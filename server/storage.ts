@@ -9,7 +9,6 @@ import {
   progress,
   quizAttempts,
   aiProcessingJobs,
-  analyticsEvents,
   type User,
   type UpsertUser,
   type InsertDocument,
@@ -30,13 +29,11 @@ import {
   type QuizAttempt,
   type InsertAiProcessingJob,
   type AiProcessingJob,
-  type AnalyticsEvent,
-  type InsertAnalyticsEvent,
   type CourseWithDetails,
   type LearnerProgress,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, isNotNull, gte } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -95,14 +92,6 @@ export interface IStorage {
   createAiProcessingJob(job: InsertAiProcessingJob): Promise<AiProcessingJob>;
   updateAiProcessingJob(id: string, updates: Partial<AiProcessingJob>): Promise<AiProcessingJob>;
   getAiProcessingJob(id: string): Promise<AiProcessingJob | undefined>;
-
-  // Analytics operations
-  createAnalyticsEvent(data: InsertAnalyticsEvent): Promise<AnalyticsEvent>;
-  getAnalyticsOverview(dateRange?: string): Promise<any>;
-  getCoursePerformanceMetrics(): Promise<any[]>;
-  getLearnerEngagementData(days?: number): Promise<any[]>;
-  getTopCourses(limit?: number): Promise<any[]>;
-  getCompletionTrends(): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -387,128 +376,6 @@ export class DatabaseStorage implements IStorage {
   async getAiProcessingJob(id: string): Promise<AiProcessingJob | undefined> {
     const [job] = await db.select().from(aiProcessingJobs).where(eq(aiProcessingJobs.id, id));
     return job;
-  }
-
-  // Analytics operations
-  async createAnalyticsEvent(data: InsertAnalyticsEvent): Promise<AnalyticsEvent> {
-    const [event] = await db.insert(analyticsEvents).values(data).returning();
-    return event;
-  }
-
-  async getAnalyticsOverview(dateRange: string = '30d'): Promise<any> {
-    // Calculate date range
-    const days = parseInt(dateRange.replace('d', '')) || 30;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    // Get overview metrics
-    const totalCourses = await db.select({ count: sql<number>`count(*)` }).from(courses);
-    const totalUsers = await db.select({ count: sql<number>`count(*)` }).from(users);
-    const totalEnrollments = await db.select({ count: sql<number>`count(*)` }).from(enrollments);
-    
-    // Get completion rate
-    const completedEnrollments = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(enrollments)
-      .where(isNotNull(enrollments.completedAt));
-
-    // Get total time spent
-    const timeSpent = await db
-      .select({ total: sql<number>`coalesce(sum(time_spent), 0)` })
-      .from(progress);
-
-    // Get active users today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const activeToday = await db
-      .select({ count: sql<number>`count(distinct user_id)` })
-      .from(analyticsEvents)
-      .where(gte(analyticsEvents.timestamp, today));
-
-    const completionRate = totalEnrollments[0].count > 0 
-      ? Math.round((completedEnrollments[0].count / totalEnrollments[0].count) * 100)
-      : 0;
-
-    return {
-      totalCourses: totalCourses[0].count,
-      totalLearners: totalUsers[0].count,
-      totalEnrollments: totalEnrollments[0].count,
-      averageCompletion: completionRate,
-      totalTimeSpent: timeSpent[0].total || 0,
-      activeToday: activeToday[0].count,
-    };
-  }
-
-  async getCoursePerformanceMetrics(): Promise<any[]> {
-    return await db
-      .select({
-        id: courses.id,
-        title: courses.title,
-        enrollments: sql<number>`count(${enrollments.id})`,
-        completions: sql<number>`count(case when ${enrollments.completedAt} is not null then 1 end)`,
-        averageTime: sql<number>`coalesce(avg(${progress.timeSpent}), 0)`,
-        rating: courses.rating,
-        completionRate: sql<number>`
-          case when count(${enrollments.id}) > 0 
-          then round(count(case when ${enrollments.completedAt} is not null then 1 end) * 100.0 / count(${enrollments.id}))
-          else 0 end
-        `,
-      })
-      .from(courses)
-      .leftJoin(enrollments, eq(courses.id, enrollments.courseId))
-      .leftJoin(progress, eq(enrollments.id, progress.enrollmentId))
-      .groupBy(courses.id, courses.title, courses.rating)
-      .orderBy(desc(sql`count(${enrollments.id})`));
-  }
-
-  async getLearnerEngagementData(days: number = 30): Promise<any[]> {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    // Generate sample engagement data since we don't have real analytics events yet
-    const engagementData = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      engagementData.push({
-        date: date.toISOString().split('T')[0],
-        activeUsers: Math.floor(Math.random() * 50) + 10,
-        newEnrollments: Math.floor(Math.random() * 15) + 2,
-        completions: Math.floor(Math.random() * 8) + 1,
-        timeSpent: Math.floor(Math.random() * 7200) + 1800, // 30 min to 2.5 hours
-      });
-    }
-    return engagementData;
-  }
-
-  async getTopCourses(limit: number = 10): Promise<any[]> {
-    return await db
-      .select({
-        title: courses.title,
-        enrollments: sql<number>`count(${enrollments.id})`,
-        rating: courses.rating,
-      })
-      .from(courses)
-      .leftJoin(enrollments, eq(courses.id, enrollments.courseId))
-      .groupBy(courses.id, courses.title, courses.rating)
-      .orderBy(desc(sql`count(${enrollments.id})`))
-      .limit(limit);
-  }
-
-  async getCompletionTrends(): Promise<any[]> {
-    // Generate sample completion trends data
-    const trends = [];
-    for (let i = 11; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      const month = date.toISOString().slice(0, 7);
-      trends.push({
-        month,
-        enrollments: Math.floor(Math.random() * 100) + 50,
-        completions: Math.floor(Math.random() * 70) + 20,
-      });
-    }
-    return trends;
   }
 }
 
