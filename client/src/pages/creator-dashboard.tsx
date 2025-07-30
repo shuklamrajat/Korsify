@@ -73,24 +73,21 @@ export default function CreatorDashboard() {
     },
   });
 
-  // Generate course mutation
-  const generateCourseMutation = useMutation({
-    mutationFn: async ({ documentId, options }: { documentId: string; options?: any }) => {
-      const response = await apiRequest("POST", "/api/courses/generate", { documentId, options });
+  // Create course mutation
+  const createCourseMutation = useMutation({
+    mutationFn: async (courseData: { title: string; description: string; tags?: string[] }) => {
+      const response = await apiRequest("POST", "/api/courses", courseData);
       return response.json();
     },
-    onSuccess: (result) => {
+    onSuccess: (course) => {
       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
-      toast({
-        title: "Course generated successfully!",
-        description: "Your AI-powered course is ready for editing.",
-      });
-      setLocation(`/courses/${result.courseId}/edit`);
+      // Navigate to course editor
+      setLocation(`/courses/${course.id}/edit`);
     },
     onError: (error) => {
       toast({
-        title: "Course generation failed",
-        description: error.message || "Failed to generate course",
+        title: "Failed to create course",
+        description: error.message || "Could not create course",
         variant: "destructive",
       });
     },
@@ -101,15 +98,13 @@ export default function CreatorDashboard() {
     uploadMutation.mutate(file);
   };
 
-  const handleGenerateCourse = (documentId: string) => {
-    generateCourseMutation.mutate({ 
-      documentId,
-      options: {
-        language: 'English',
-        targetAudience: 'General learners',
-        difficultyLevel: 'intermediate',
-        moduleCount: 3
-      }
+  const handleCreateCourse = () => {
+    // Show create course dialog
+    // For now, create a default course
+    createCourseMutation.mutate({
+      title: "New Course",
+      description: "Enter your course description here",
+      tags: []
     });
   };
 
@@ -158,7 +153,8 @@ export default function CreatorDashboard() {
           <Button 
             size="lg" 
             className="mt-4 lg:mt-0"
-            onClick={() => document.getElementById('file-upload')?.click()}
+            onClick={handleCreateCourse}
+            disabled={createCourseMutation.isPending}
           >
             <Plus className="w-5 h-5 mr-2" />
             Create New Course

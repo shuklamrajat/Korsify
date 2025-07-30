@@ -45,6 +45,7 @@ export const documents = pgTable("documents", {
   storageUrl: varchar("storage_url").notNull(),
   processedContent: text("processed_content"),
   uploadedBy: varchar("uploaded_by").notNull(),
+  status: varchar("status", { enum: ['pending', 'processing', 'completed', 'failed'] }).notNull().default('pending'),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
