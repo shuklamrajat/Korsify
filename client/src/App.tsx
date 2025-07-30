@@ -9,7 +9,6 @@ import CreatorDashboard from "@/pages/creator-dashboard";
 import LearnerDashboard from "@/pages/learner-dashboard";
 import CourseEditor from "@/pages/course-editor";
 import CourseViewer from "@/pages/course-viewer";
-import AnalyticsDashboard from "@/pages/analytics-dashboard";
 
 function Router() {
   return (
@@ -17,7 +16,6 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/creator" component={CreatorDashboard} />
       <Route path="/learner" component={LearnerDashboard} />
-      <Route path="/analytics" component={AnalyticsDashboard} />
       <Route path="/courses/:id/edit" component={CourseEditor} />
       <Route path="/courses/:id" component={CourseViewer} />
       <Route component={NotFound} />

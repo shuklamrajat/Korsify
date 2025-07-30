@@ -126,8 +126,6 @@ export const progress = pgTable("progress", {
   completed: boolean("completed").default(false),
   completedAt: timestamp("completed_at"),
   timeSpent: integer("time_spent").default(0), // in seconds
-  engagementScore: real("engagement_score").default(0), // 0-100
-  lastAccessedAt: timestamp("last_accessed_at").defaultNow(),
 });
 
 // Quiz attempts table
@@ -154,34 +152,6 @@ export const aiProcessingJobs = pgTable("ai_processing_jobs", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Analytics events table for detailed tracking
-export const analyticsEvents = pgTable("analytics_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  courseId: varchar("course_id"),
-  lessonId: varchar("lesson_id"),
-  eventType: varchar("event_type").notNull(), // view, start, complete, pause, resume, quiz_attempt, etc.
-  eventData: jsonb("event_data"), // Additional event-specific data
-  sessionId: varchar("session_id"),
-  userAgent: text("user_agent"),
-  ipAddress: varchar("ip_address"),
-  timestamp: timestamp("timestamp").defaultNow(),
-});
-
-// Daily analytics aggregates for performance
-export const dailyAnalytics = pgTable("daily_analytics", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  date: timestamp("date").notNull(),
-  courseId: varchar("course_id"),
-  totalViews: integer("total_views").default(0),
-  uniqueViews: integer("unique_views").default(0),
-  totalTimeSpent: integer("total_time_spent").default(0), // in seconds
-  completions: integer("completions").default(0),
-  enrollments: integer("enrollments").default(0),
-  averageEngagement: real("average_engagement").default(0),
-  bounceRate: real("bounce_rate").default(0),
-});
-
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, createdAt: true });
@@ -193,8 +163,6 @@ export const insertEnrollmentSchema = createInsertSchema(enrollments).omit({ id:
 export const insertProgressSchema = createInsertSchema(progress).omit({ id: true });
 export const insertQuizAttemptSchema = createInsertSchema(quizAttempts).omit({ id: true, completedAt: true });
 export const insertAiProcessingJobSchema = createInsertSchema(aiProcessingJobs).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertAnalyticsEventSchema = createInsertSchema(analyticsEvents).omit({ id: true, timestamp: true });
-export const insertDailyAnalyticsSchema = createInsertSchema(dailyAnalytics).omit({ id: true });
 
 // Types
 export type UpsertUser = typeof users.$inferInsert;
@@ -217,10 +185,6 @@ export type InsertQuizAttempt = z.infer<typeof insertQuizAttemptSchema>;
 export type QuizAttempt = typeof quizAttempts.$inferSelect;
 export type InsertAiProcessingJob = z.infer<typeof insertAiProcessingJobSchema>;
 export type AiProcessingJob = typeof aiProcessingJobs.$inferSelect;
-export type InsertAnalyticsEvent = z.infer<typeof insertAnalyticsEventSchema>;
-export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
-export type InsertDailyAnalytics = z.infer<typeof insertDailyAnalyticsSchema>;
-export type DailyAnalytics = typeof dailyAnalytics.$inferSelect;
 
 // Extended types for API responses
 export type CourseWithDetails = Course & {
