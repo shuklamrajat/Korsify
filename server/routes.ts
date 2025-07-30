@@ -352,6 +352,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Analytics endpoints
+  app.get("/api/analytics", async (req, res) => {
+    try {
+      const { dateRange = "30d", courseId } = req.query;
+      
+      const overview = await storage.getAnalyticsOverview(dateRange as string);
+      const coursePerformance = await storage.getCoursePerformanceMetrics();
+      const learnerEngagement = await storage.getLearnerEngagementData(30);
+      const topCourses = await storage.getTopCourses();
+      const completionTrends = await storage.getCompletionTrends();
+
+      res.json({
+        overview,
+        coursePerformance,
+        learnerEngagement,
+        topCourses,
+        completionTrends,
+      });
+    } catch (error) {
+      console.error("Analytics error:", error);
+      res.status(500).json({ message: "Failed to fetch analytics data" });
+    }
+  });
+
+  app.post("/api/analytics/events", async (req, res) => {
+    try {
+      const eventData = req.body;
+      const event = await storage.createAnalyticsEvent(eventData);
+      res.json(event);
+    } catch (error) {
+      console.error("Analytics event error:", error);
+      res.status(500).json({ message: "Failed to create analytics event" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
