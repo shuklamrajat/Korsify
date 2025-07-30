@@ -257,7 +257,7 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white">
+      <section id="features" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Powerful AI-Driven Features</h2>
@@ -288,7 +288,7 @@ export default function Landing() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-20 bg-gray-50">
+      <section id="how-it-works" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">How Korsify Works</h2>
@@ -539,6 +539,140 @@ export default function Landing() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Choose the plan that fits your needs. Upgrade or downgrade anytime.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Free Plan */}
+            <Card className="border-2 border-gray-200 hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-8">
+                <div className="text-center">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Free</h3>
+                  <div className="mb-6">
+                    <span className="text-4xl font-bold text-gray-900">$0</span>
+                    <span className="text-gray-600">/month</span>
+                  </div>
+                  <ul className="space-y-3 mb-8 text-left">
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>3 document uploads per month</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Basic AI course generation</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Up to 50 learners per course</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Basic analytics</span>
+                    </li>
+                  </ul>
+                  <Button variant="outline" className="w-full" onClick={() => setLocation("/creator")}>
+                    Get Started Free
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Pro Plan */}
+            <Card className="border-2 border-primary shadow-lg scale-105 hover:shadow-xl transition-all duration-300">
+              <CardContent className="p-8 relative">
+                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-white">
+                  Most Popular
+                </Badge>
+                <div className="text-center">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Pro</h3>
+                  <div className="mb-6">
+                    <span className="text-4xl font-bold text-gray-900">$29</span>
+                    <span className="text-gray-600">/month</span>
+                  </div>
+                  <ul className="space-y-3 mb-8 text-left">
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Unlimited document uploads</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Advanced AI course generation</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Unlimited learners</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Advanced analytics & insights</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Priority support</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Custom branding</span>
+                    </li>
+                  </ul>
+                  <Button className="w-full" onClick={() => setLocation("/creator")}>
+                    Start Pro Trial
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Enterprise Plan */}
+            <Card className="border-2 border-gray-200 hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-8">
+                <div className="text-center">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Enterprise</h3>
+                  <div className="mb-6">
+                    <span className="text-4xl font-bold text-gray-900">Custom</span>
+                  </div>
+                  <ul className="space-y-3 mb-8 text-left">
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Everything in Pro</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>SSO integration</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>API access</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Dedicated account manager</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Custom integrations</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>SLA guarantee</span>
+                    </li>
+                  </ul>
+                  <Button variant="outline" className="w-full">
+                    Contact Sales
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
