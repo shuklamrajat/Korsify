@@ -192,6 +192,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/courses', async (req: any, res) => {
+    try {
+      const courseData = insertCourseSchema.parse({
+        title: req.body.title || "New Course",
+        description: req.body.description || "",
+        creatorId: req.user.id,
+        status: 'draft'
+      });
+      
+      const course = await storage.createCourse(courseData);
+      res.json(course);
+    } catch (error) {
+      console.error("Error creating course:", error);
+      res.status(500).json({ message: "Failed to create course" });
+    }
+  });
+
   app.get('/api/courses/:id', async (req: any, res) => {
     try {
       const course = await storage.getCourseWithDetails(req.params.id);
