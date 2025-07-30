@@ -74,6 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileType: path.extname(req.file.originalname).toLowerCase(),
         storageUrl: req.file.path,
         uploadedBy: req.user.id,
+        status: 'completed' as const,
       };
 
       const validatedData = insertDocumentSchema.parse(documentData);
@@ -119,6 +120,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Async course generation with progress tracking
+  app.post('/api/courses/generate-async', async (req: any, res) => {
+    try {
+      const { courseId, documentIds, options = {} } = req.body;
+      
+      if (!courseId || !documentIds || documentIds.length === 0) {
+        return res.status(400).json({ message: 'Course ID and document IDs are required' });
+      }
+
+      // Create processing job and start async processing
+      const job = await storage.createAiProcessingJob({
+        documentId: documentIds[0], // For now, use first document
+        status: 'pending',
+        phase: 'document_analysis',
+        progress: 0,
+      });
+
+      // Start processing in background
+      documentProcessor.processDocumentAsync(
+        documentIds[0],
+        req.user.id,
+        courseId,
+        job.id,
+        options
+      ).catch(error => {
+        console.error("Background processing error:", error);
+        storage.updateAiProcessingJob(job.id, {
+          status: 'failed',
+          error: error.message
+        });
+      });
+
+      res.json({ jobId: job.id, status: 'processing' });
+    } catch (error) {
+      console.error("Error starting course generation:", error);
+      res.status(500).json({ message: "Failed to start course generation" });
+    }
+  });
+
+  // Get processing job status
+  app.get('/api/processing-jobs/:id', async (req: any, res) => {
+    try {
+      const job = await storage.getAiProcessingJob(req.params.id);
+      if (!job) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+      res.json(job);
+    } catch (error) {
+      console.error("Error fetching job status:", error);
+      res.status(500).json({ message: "Failed to fetch job status" });
+    }
+  });
+
   // Course routes
   app.get('/api/courses', async (req: any, res) => {
     try {
@@ -148,6 +202,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching course:", error);
       res.status(500).json({ message: "Failed to fetch course" });
+    }
+  });
+
+  // Get documents for a specific course
+  app.get('/api/courses/:id/documents', async (req: any, res) => {
+    try {
+      const course = await storage.getCourse(req.params.id);
+      if (!course) {
+        return res.status(404).json({ message: 'Course not found' });
+      }
+      
+      // Get all documents uploaded by the course creator
+      const documents = await storage.getUserDocuments(course.createdBy);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching course documents:", error);
+      res.status(500).json({ message: "Failed to fetch course documents" });
     }
   });
 

@@ -19,6 +19,131 @@ export class DocumentProcessor {
     { name: 'finalization', progress: 0, status: 'pending' },
   ];
 
+  async processDocumentAsync(
+    documentId: string,
+    userId: string,
+    courseId: string,
+    jobId: string,
+    options: AIGenerationOptions = {}
+  ): Promise<void> {
+    try {
+      // Phase 1: Document Analysis (0-30%)
+      await this.updateJobPhase(jobId, 'document_analysis', 10, 'processing');
+      
+      const document = await storage.getDocument(documentId);
+      if (!document) {
+        throw new Error('Document not found');
+      }
+
+      let documentContent = document.processedContent;
+      if (!documentContent) {
+        // Extract content from file if not already processed
+        documentContent = await this.extractTextFromFile(document.storageUrl, document.fileType);
+        await storage.updateDocumentContent(documentId, documentContent);
+      }
+
+      await this.updateJobPhase(jobId, 'document_analysis', 30, 'completed');
+
+      // Phase 2: Content Analysis (30-50%)
+      await this.updateJobPhase(jobId, 'content_analysis', 35, 'processing');
+      
+      const analysis = await geminiService.analyzeDocument(documentContent, document.fileName);
+      
+      await this.updateJobPhase(jobId, 'content_analysis', 50, 'completed');
+
+      // Phase 3: Content Generation (50-85%)
+      await this.updateJobPhase(jobId, 'content_generation', 55, 'processing');
+      
+      const courseStructure = await geminiService.generateCourseStructure(
+        documentContent,
+        document.fileName,
+        options
+      );
+
+      await this.updateJobPhase(jobId, 'content_generation', 85, 'completed');
+
+      // Phase 4: Validation (85-95%)
+      await this.updateJobPhase(jobId, 'validation', 90, 'processing');
+      
+      // Validate the generated structure
+      if (!courseStructure || !courseStructure.modules || courseStructure.modules.length === 0) {
+        throw new Error('Generated course structure is invalid');
+      }
+
+      await this.updateJobPhase(jobId, 'validation', 95, 'completed');
+
+      // Phase 5: Finalization (95-100%)
+      await this.updateJobPhase(jobId, 'finalization', 96, 'processing');
+
+      // Update the existing course with generated content
+      await storage.updateCourse(courseId, {
+        title: courseStructure.title,
+        description: courseStructure.description,
+        tags: courseStructure.tags,
+      });
+
+      // Create modules and lessons
+      for (const [moduleIndex, module] of courseStructure.modules.entries()) {
+        const moduleData: InsertModule = {
+          courseId: courseId,
+          title: module.title,
+          description: module.description || '',
+          orderIndex: moduleIndex,
+        };
+        const createdModule = await storage.createModule(moduleData);
+
+        // Create lessons for this module
+        for (const [lessonIndex, lesson] of module.lessons.entries()) {
+          const lessonData: InsertLesson = {
+            moduleId: createdModule.id,
+            title: lesson.title,
+            content: lesson.content,
+            orderIndex: lessonIndex,
+            estimatedDuration: lesson.estimatedDuration || 10,
+            videoUrl: lesson.videoUrl,
+          };
+          await storage.createLesson(lessonData);
+        }
+
+        // Create quiz if available
+        if (module.quiz) {
+          const quizData: InsertQuiz = {
+            moduleId: createdModule.id,
+            title: module.quiz.title,
+            questions: module.quiz.questions,
+            passingScore: module.quiz.passingScore || 70,
+          };
+          await storage.createQuiz(quizData);
+        }
+      }
+
+      await this.updateJobPhase(jobId, 'finalization', 100, 'completed');
+      await storage.updateAiProcessingJob(jobId, { status: 'completed' });
+
+    } catch (error) {
+      console.error('Document processing error:', error);
+      await storage.updateAiProcessingJob(jobId, {
+        status: 'failed',
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+      throw error;
+    }
+  }
+
+  private async updateJobPhase(
+    jobId: string,
+    phase: string,
+    progress: number,
+    status: string
+  ): Promise<void> {
+    await storage.updateAiProcessingJob(jobId, {
+      phase,
+      progress,
+      status: status === 'processing' ? 'processing' : 
+              status === 'failed' ? 'failed' : 'processing'
+    });
+  }
+
   async processDocument(
     documentId: string,
     userId: string,

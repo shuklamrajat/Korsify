@@ -1,618 +1,611 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "wouter";
-import Navigation from "@/components/navigation";
+import { useParams, useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import Navigation from "@/components/navigation";
+import AiGenerationDialog from "@/components/ai-generation-dialog";
+import type { CourseWithDetails } from "@shared/schema";
 import { 
-  Save,
-  Eye,
   ArrowLeft,
-  Settings,
+  Save,
+  Upload,
   BookOpen,
   FileText,
-  Video,
-  Image,
+  Folder,
   Plus,
+  Sparkles,
+  School,
+  Eye,
+  Edit,
   Trash2,
-  GripVertical,
-  Play,
+  AlertCircle,
+  CheckCircle,
   Clock,
   Users,
-  Globe,
-  Target,
-  Zap,
-  Edit3
+  Layers,
+  ScrollText,
+  HelpCircle,
+  ChevronRight,
+  Image as ImageIcon
 } from "lucide-react";
 
 export default function CourseEditor() {
-  const params = useParams();
-  const courseId = params.id;
-  const [, setLocation] = useLocation();
+  const { courseId } = useParams();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("details");
+  const [showAiGeneration, setShowAiGeneration] = useState(false);
   
-  const [selectedModule, setSelectedModule] = useState<string | null>(null);
-  const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [editingCourse, setEditingCourse] = useState<any>(null);
+  // Form state
+  const [courseTitle, setCourseTitle] = useState("");
+  const [courseDescription, setCourseDescription] = useState("");
+  const [coverImage, setCoverImage] = useState<string | null>(null);
 
-  // Fetch course details
-  const { data: course, isLoading } = useQuery({
-    queryKey: ["/api/courses", courseId],
+  // Fetch course data
+  const { data: course, isLoading: courseLoading } = useQuery<CourseWithDetails>({
+    queryKey: ['/api/courses', courseId],
     enabled: !!courseId,
   });
 
-  // Initialize editing state when course loads
+  // Fetch course documents
+  const { data: documents = [], isLoading: documentsLoading } = useQuery<any[]>({
+    queryKey: [`/api/courses/${courseId}/documents`],
+    enabled: !!courseId,
+  });
+
+  // Initialize form with course data
   useEffect(() => {
-    if (course && !editingCourse) {
-      setEditingCourse({ ...course });
+    if (course) {
+      setCourseTitle(course.title || "");
+      setCourseDescription(course.description || "");
+      setCoverImage(course.thumbnailUrl || null);
     }
-  }, [course, editingCourse]);
+  }, [course]);
 
   // Update course mutation
   const updateCourseMutation = useMutation({
-    mutationFn: async (updates: any) => {
-      const response = await apiRequest("PATCH", `/api/courses/${courseId}`, updates);
-      return response.json();
+    mutationFn: async (updates: Partial<any>) => {
+      await apiRequest("PATCH", `/api/courses/${courseId}`, updates);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/courses', courseId] });
       toast({
-        title: "Course saved successfully",
-        description: "Your changes have been saved.",
+        title: "Course updated",
+        description: "Your changes have been saved successfully.",
       });
     },
     onError: (error) => {
       toast({
-        title: "Failed to save course",
-        description: error.message || "An error occurred while saving",
+        title: "Update failed",
+        description: error.message || "Failed to update course",
         variant: "destructive",
       });
     },
   });
 
-  // Update lesson mutation
-  const updateLessonMutation = useMutation({
-    mutationFn: async ({ lessonId, updates }: { lessonId: string; updates: any }) => {
-      const response = await apiRequest("PATCH", `/api/lessons/${lessonId}`, updates);
+  // Upload document mutation
+  const uploadDocumentMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('courseId', courseId!);
+      const response = await apiRequest("POST", "/api/documents/upload", formData);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}/documents`] });
       toast({
-        title: "Lesson updated",
-        description: "Lesson changes have been saved.",
+        title: "Document uploaded",
+        description: "Your document has been uploaded successfully.",
       });
     },
     onError: (error) => {
       toast({
-        title: "Failed to update lesson",
-        description: error.message || "An error occurred while updating the lesson",
+        title: "Upload failed",
+        description: error.message || "Failed to upload document",
         variant: "destructive",
       });
     },
   });
 
-  const handleSaveCourse = () => {
-    if (!editingCourse) return;
-    
-    const updates = {
-      title: editingCourse.title,
-      description: editingCourse.description,
-      language: editingCourse.language,
-      targetAudience: editingCourse.targetAudience,
-      difficultyLevel: editingCourse.difficultyLevel,
-      status: editingCourse.status,
-    };
-    
-    updateCourseMutation.mutate(updates);
+  const handleSaveDetails = () => {
+    updateCourseMutation.mutate({
+      title: courseTitle,
+      description: courseDescription,
+    });
   };
 
-  const handleUpdateLesson = (lessonId: string, updates: any) => {
-    updateLessonMutation.mutate({ lessonId, updates });
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      uploadDocumentMutation.mutate(file);
+    }
   };
 
-  const handlePublishCourse = () => {
-    if (!editingCourse) return;
-    
-    const updates = { ...editingCourse, status: 'published' };
-    setEditingCourse(updates);
-    updateCourseMutation.mutate({ status: 'published' });
+  const handleCoverImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // For now, just preview locally
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  if (isLoading) {
+  if (courseLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            <div className="grid lg:grid-cols-4 gap-6">
-              <div className="lg:col-span-1 space-y-4">
-                <div className="h-64 bg-gray-200 rounded"></div>
-              </div>
-              <div className="lg:col-span-3 space-y-4">
-                <div className="h-96 bg-gray-200 rounded"></div>
-              </div>
-            </div>
-          </div>
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       </div>
     );
   }
 
-  if (!course || !editingCourse) {
+  if (!course) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card>
-            <CardContent className="p-12 text-center">
-              <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Course not found</h3>
-              <p className="text-gray-600 mb-6">The course you're looking for doesn't exist or you don't have permission to edit it.</p>
-              <Button onClick={() => setLocation("/creator")}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </CardContent>
-          </Card>
+        <div className="flex flex-col items-center justify-center h-screen">
+          <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Course not found</h2>
+          <Button onClick={() => setLocation("/creator")}>
+            Back to Dashboard
+          </Button>
         </div>
       </div>
     );
   }
 
-  const selectedModuleData = selectedModule 
-    ? editingCourse.modules?.find((m: any) => m.id === selectedModule)
-    : null;
-    
-  const selectedLessonData = selectedLesson && selectedModuleData
-    ? selectedModuleData.lessons?.find((l: any) => l.id === selectedLesson)
-    : null;
+  const stats = {
+    learners: course.enrollmentCount || 0,
+    modules: course.modules?.length || 0,
+    lessons: course.modules?.reduce((acc: number, mod: any) => acc + (mod.lessons?.length || 0), 0) || 0,
+    quizzes: course.modules?.reduce((acc: number, mod: any) => acc + (mod.quiz ? 1 : 0), 0) || 0,
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              onClick={() => setLocation("/creator")}
-              className="p-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Course Editor</h1>
-              <p className="text-gray-600">Edit and customize your AI-generated course</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3 mt-4 lg:mt-0">
-            <Button
-              variant="outline"
-              onClick={() => setIsPreviewMode(!isPreviewMode)}
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              {isPreviewMode ? 'Edit Mode' : 'Preview'}
-            </Button>
-            <Button
-              onClick={handleSaveCourse}
-              disabled={updateCourseMutation.isPending}
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save Changes
-            </Button>
-            {editingCourse.status === 'draft' && (
-              <Button
-                onClick={handlePublishCourse}
-                disabled={updateCourseMutation.isPending}
-                className="bg-green-600 hover:bg-green-700"
+      {/* Header */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setLocation("/creator")}
               >
-                <Zap className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <Separator orientation="vertical" className="h-6" />
+              <h1 className="text-xl font-semibold">Course Editor</h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <Badge variant={course.status === 'published' ? 'default' : 'secondary'}>
+                {course.status}
+              </Badge>
+              <Button variant="outline" size="sm">
+                <Eye className="w-4 h-4 mr-2" />
+                Preview
+              </Button>
+              <Button size="sm">
                 Publish Course
               </Button>
-            )}
+            </div>
           </div>
         </div>
+      </div>
 
-        <div className="grid lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-8">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5" />
-                  Course Structure
-                </CardTitle>
-              </CardHeader>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-8">
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="content">Content</TabsTrigger>
+            <TabsTrigger value="documents">Documents</TabsTrigger>
+          </TabsList>
+
+          {/* Details Tab */}
+          <TabsContent value="details" className="space-y-6">
+            {/* Cover Image Section */}
+            <Card>
               <CardContent className="p-0">
-                <ScrollArea className="h-96">
-                  <div className="p-4 space-y-2">
-                    {editingCourse.modules?.map((module: any, moduleIndex: number) => (
-                      <div key={module.id} className="space-y-1">
-                        <Button
-                          variant={selectedModule === module.id ? "default" : "ghost"}
-                          className="w-full justify-start text-left h-auto p-3"
-                          onClick={() => {
-                            setSelectedModule(module.id);
-                            setSelectedLesson(null);
-                          }}
-                        >
-                          <div className="flex items-center gap-2 w-full">
-                            <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center text-xs font-medium text-blue-600">
-                              {moduleIndex + 1}
-                            </div>
-                            <div className="flex-1 text-left">
-                              <div className="font-medium truncate">{module.title}</div>
-                              <div className="text-xs text-gray-500">
-                                {module.lessons?.length || 0} lessons
-                              </div>
-                            </div>
-                          </div>
-                        </Button>
-                        
-                        {selectedModule === module.id && module.lessons && (
-                          <div className="ml-6 space-y-1">
-                            {module.lessons.map((lesson: any, lessonIndex: number) => (
-                              <Button
-                                key={lesson.id}
-                                variant={selectedLesson === lesson.id ? "secondary" : "ghost"}
-                                size="sm"
-                                className="w-full justify-start text-left h-auto p-2"
-                                onClick={() => setSelectedLesson(lesson.id)}
-                              >
-                                <div className="flex items-center gap-2 w-full">
-                                  <div className="w-4 h-4 bg-gray-100 rounded text-xs flex items-center justify-center">
-                                    {lessonIndex + 1}
-                                  </div>
-                                  <span className="truncate text-sm">{lesson.title}</span>
-                                </div>
-                              </Button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                <div 
+                  className="relative h-48 bg-gradient-to-r from-primary/10 to-purple-600/10 rounded-t-lg overflow-hidden cursor-pointer group"
+                  onClick={() => document.getElementById('cover-upload')?.click()}
+                >
+                  {coverImage ? (
+                    <img 
+                      src={coverImage} 
+                      alt="Course cover" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full">
+                      <ImageIcon className="w-12 h-12 text-gray-400 mb-2" />
+                      <p className="text-gray-600 font-medium">Add Cover Image</p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        A compelling cover image significantly increases learner engagement and course enrollment
+                      </p>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button variant="secondary" size="sm">
+                      {coverImage ? 'Change Image' : 'Upload Image'}
+                    </Button>
                   </div>
-                </ScrollArea>
+                </div>
+                <input
+                  id="cover-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCoverImageUpload}
+                />
               </CardContent>
             </Card>
-          </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
-            <Tabs defaultValue="course" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="course">Course Details</TabsTrigger>
-                <TabsTrigger value="content">Content Editor</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-              </TabsList>
+            {/* Course Details Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Course Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Course Title</label>
+                  <Input
+                    value={courseTitle}
+                    onChange={(e) => setCourseTitle(e.target.value)}
+                    placeholder="Enter course title"
+                    maxLength={100}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Course Description</label>
+                  <Textarea
+                    value={courseDescription}
+                    onChange={(e) => setCourseDescription(e.target.value)}
+                    placeholder="Enter course description"
+                    rows={3}
+                    maxLength={500}
+                  />
+                </div>
 
-              <TabsContent value="course" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Course Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="title">Course Title</Label>
-                        <Input
-                          id="title"
-                          value={editingCourse.title || ''}
-                          onChange={(e) => setEditingCourse(prev => ({ ...prev, title: e.target.value }))}
-                          placeholder="Enter course title"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="status">Status</Label>
-                        <Select
-                          value={editingCourse.status}
-                          onValueChange={(value) => setEditingCourse(prev => ({ ...prev, status: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="draft">Draft</SelectItem>
-                            <SelectItem value="published">Published</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        value={editingCourse.description || ''}
-                        onChange={(e) => setEditingCourse(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="Enter course description"
-                        rows={4}
-                      />
-                    </div>
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleSaveDetails}
+                    disabled={updateCourseMutation.isPending}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Changes
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="language">Language</Label>
-                        <Select
-                          value={editingCourse.language}
-                          onValueChange={(value) => setEditingCourse(prev => ({ ...prev, language: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="en">English</SelectItem>
-                            <SelectItem value="es">Spanish</SelectItem>
-                            <SelectItem value="fr">French</SelectItem>
-                            <SelectItem value="de">German</SelectItem>
-                            <SelectItem value="it">Italian</SelectItem>
-                            <SelectItem value="pt">Portuguese</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="difficulty">Difficulty</Label>
-                        <Select
-                          value={editingCourse.difficultyLevel}
-                          onValueChange={(value) => setEditingCourse(prev => ({ ...prev, difficultyLevel: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="beginner">Beginner</SelectItem>
-                            <SelectItem value="intermediate">Intermediate</SelectItem>
-                            <SelectItem value="advanced">Advanced</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+            {/* Course Statistics */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Course Statistics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-2xl font-bold">{stats.learners}</p>
+                    <p className="text-sm text-gray-600">Learners</p>
+                  </div>
+                  <div className="text-center">
+                    <Layers className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-2xl font-bold">{stats.modules}</p>
+                    <p className="text-sm text-gray-600">Modules</p>
+                  </div>
+                  <div className="text-center">
+                    <ScrollText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-2xl font-bold">{stats.lessons}</p>
+                    <p className="text-sm text-gray-600">Lessons</p>
+                  </div>
+                  <div className="text-center">
+                    <HelpCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-2xl font-bold">{stats.quizzes}</p>
+                    <p className="text-sm text-gray-600">Quizzes</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="audience">Target Audience</Label>
-                        <Input
-                          id="audience"
-                          value={editingCourse.targetAudience || ''}
-                          onChange={(e) => setEditingCourse(prev => ({ ...prev, targetAudience: e.target.value }))}
-                          placeholder="e.g., Developers, Students"
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+          {/* Content Tab */}
+          <TabsContent value="content" className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Course Content</h2>
+              <p className="text-gray-600 mb-6">
+                Organize your course content by creating modules and lessons. Each module can contain multiple lessons.
+              </p>
+            </div>
 
-                {/* Course Statistics */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Course Statistics</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-4 gap-4">
-                      <div className="text-center p-4 bg-blue-50 rounded-lg">
-                        <div className="text-2xl font-bold text-blue-600">
-                          {editingCourse.modules?.length || 0}
-                        </div>
-                        <div className="text-sm text-gray-600">Modules</div>
-                      </div>
-                      <div className="text-center p-4 bg-green-50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-600">
-                          {editingCourse.modules?.reduce((acc: number, module: any) => 
-                            acc + (module.lessons?.length || 0), 0) || 0}
-                        </div>
-                        <div className="text-sm text-gray-600">Lessons</div>
-                      </div>
-                      <div className="text-center p-4 bg-purple-50 rounded-lg">
-                        <div className="text-2xl font-bold text-purple-600">
-                          {editingCourse.estimatedDuration || 0}
-                        </div>
-                        <div className="text-sm text-gray-600">Minutes</div>
-                      </div>
-                      <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                        <div className="text-2xl font-bold text-yellow-600">
-                          {editingCourse.enrollmentCount || 0}
-                        </div>
-                        <div className="text-sm text-gray-600">Students</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="content" className="space-y-6">
-                {selectedLessonData ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Edit3 className="w-5 h-5" />
-                        Edit Lesson: {selectedLessonData.title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="lesson-title">Lesson Title</Label>
-                        <Input
-                          id="lesson-title"
-                          value={selectedLessonData.title}
-                          onChange={(e) => {
-                            const updatedCourse = { ...editingCourse };
-                            const moduleIndex = updatedCourse.modules.findIndex((m: any) => m.id === selectedModule);
-                            const lessonIndex = updatedCourse.modules[moduleIndex].lessons.findIndex((l: any) => l.id === selectedLesson);
-                            updatedCourse.modules[moduleIndex].lessons[lessonIndex].title = e.target.value;
-                            setEditingCourse(updatedCourse);
-                          }}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="lesson-content">Lesson Content</Label>
-                        <Textarea
-                          id="lesson-content"
-                          value={selectedLessonData.content}
-                          onChange={(e) => {
-                            const updatedCourse = { ...editingCourse };
-                            const moduleIndex = updatedCourse.modules.findIndex((m: any) => m.id === selectedModule);
-                            const lessonIndex = updatedCourse.modules[moduleIndex].lessons.findIndex((l: any) => l.id === selectedLesson);
-                            updatedCourse.modules[moduleIndex].lessons[lessonIndex].content = e.target.value;
-                            setEditingCourse(updatedCourse);
-                          }}
-                          rows={12}
-                          className="font-mono text-sm"
-                        />
-                      </div>
-
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="lesson-duration">Duration (minutes)</Label>
-                          <Input
-                            id="lesson-duration"
-                            type="number"
-                            value={selectedLessonData.estimatedDuration || ''}
-                            onChange={(e) => {
-                              const updatedCourse = { ...editingCourse };
-                              const moduleIndex = updatedCourse.modules.findIndex((m: any) => m.id === selectedModule);
-                              const lessonIndex = updatedCourse.modules[moduleIndex].lessons.findIndex((l: any) => l.id === selectedLesson);
-                              updatedCourse.modules[moduleIndex].lessons[lessonIndex].estimatedDuration = parseInt(e.target.value) || 0;
-                              setEditingCourse(updatedCourse);
-                            }}
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="lesson-video">Video URL (optional)</Label>
-                          <Input
-                            id="lesson-video"
-                            value={selectedLessonData.videoUrl || ''}
-                            onChange={(e) => {
-                              const updatedCourse = { ...editingCourse };
-                              const moduleIndex = updatedCourse.modules.findIndex((m: any) => m.id === selectedModule);
-                              const lessonIndex = updatedCourse.modules[moduleIndex].lessons.findIndex((l: any) => l.id === selectedLesson);
-                              updatedCourse.modules[moduleIndex].lessons[lessonIndex].videoUrl = e.target.value;
-                              setEditingCourse(updatedCourse);
-                            }}
-                            placeholder="https://youtube.com/..."
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => setSelectedLesson(null)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            const updates = {
-                              title: selectedLessonData.title,
-                              content: selectedLessonData.content,
-                              estimatedDuration: selectedLessonData.estimatedDuration,
-                              videoUrl: selectedLessonData.videoUrl,
-                            };
-                            handleUpdateLesson(selectedLessonData.id, updates);
-                          }}
-                          disabled={updateLessonMutation.isPending}
-                        >
-                          <Save className="w-4 h-4 mr-2" />
-                          Save Lesson
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Modules</CardTitle>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Module
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="bg-amber-600 hover:bg-amber-700"
+                      onClick={() => setShowAiGeneration(true)}
+                      disabled={documents.length === 0}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      AI Generate
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {course.modules && course.modules.length > 0 ? (
+                  <div className="space-y-4">
+                    {course.modules.map((module: any, index: number) => (
+                      <Card key={module.id} className="border-l-4 border-l-primary">
+                        <CardHeader className="bg-primary/5">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <Folder className="w-5 h-5 text-primary" />
+                              <div>
+                                <h4 className="font-medium">Module {index + 1}: {module.title}</h4>
+                                <p className="text-sm text-gray-600 mt-1">{module.description}</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button variant="ghost" size="sm">
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-4">
+                          <div className="flex items-center gap-6 text-sm text-gray-600 mb-4">
+                            <span>{module.lessons?.length || 0} lessons</span>
+                            <span>{module.quiz ? '1 quiz' : 'No quiz'}</span>
+                          </div>
+                          <Separator className="mb-4" />
+                          {module.lessons && module.lessons.length > 0 ? (
+                            <div className="space-y-2">
+                              {module.lessons.map((lesson: any, lessonIndex: number) => (
+                                <div key={lesson.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-sm text-gray-500">{lessonIndex + 1}.</span>
+                                    <span className="text-sm">{lesson.title}</span>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <Button variant="ghost" size="sm">
+                                      <Eye className="w-3 h-3" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm">
+                                      <Edit className="w-3 h-3" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm">
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500 text-center py-4">No lessons yet</p>
+                          )}
+                          <Button variant="outline" size="sm" className="w-full mt-4">
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Lesson
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 ) : (
-                  <Card>
-                    <CardContent className="p-12 text-center">
-                      <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a lesson to edit</h3>
-                      <p className="text-gray-600">Choose a lesson from the course structure to start editing its content.</p>
-                    </CardContent>
-                  </Card>
+                  <div className="text-center py-12">
+                    <School className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No modules yet</h3>
+                    <p className="text-gray-600 mb-4">Get started by adding your first module</p>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add First Module
+                    </Button>
+                  </div>
                 )}
-              </TabsContent>
+              </CardContent>
+            </Card>
 
-              <TabsContent value="settings" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Settings className="w-5 h-5" />
-                      Course Settings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-gray-900">Visibility & Access</h4>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Course Status</Label>
-                          <Select
-                            value={editingCourse.status}
-                            onValueChange={(value) => setEditingCourse(prev => ({ ...prev, status: value }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="draft">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                  Draft
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="published">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                  Published
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+            {/* AI Help Section */}
+            <Card className="bg-amber-50 border-amber-200">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-amber-900 mb-1">AI-Powered Course Creation</h3>
+                    <p className="text-amber-800 text-sm mb-3">
+                      Let AI help you create your course content! Upload documents and our AI will analyze them to suggest modules and lessons.
+                    </p>
+                    {documents.length > 0 && (
+                      <div className="bg-amber-100 rounded p-3 mb-3">
+                        <p className="text-sm text-amber-900">
+                          <ChevronRight className="w-4 h-4 inline mr-1" />
+                          Click to preview what Gemini AI would generate
+                        </p>
                       </div>
-                    </div>
+                    )}
+                    <Button variant="outline" size="sm" className="border-amber-300 text-amber-700 hover:bg-amber-100">
+                      Customize AI Settings
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                    <Separator />
-
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-gray-900">Danger Zone</h4>
-                      <div className="border border-red-200 rounded-lg p-4 bg-red-50">
-                        <div className="flex items-center justify-between">
+          {/* Documents Tab */}
+          <TabsContent value="documents" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Course Documents</CardTitle>
+                  <Button 
+                    size="sm"
+                    onClick={() => document.getElementById('doc-upload')?.click()}
+                    disabled={uploadDocumentMutation.isPending}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {documentsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : documents.length > 0 ? (
+                  <div className="space-y-3">
+                    {documents.map((doc: any) => (
+                      <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-5 h-5 text-gray-500" />
                           <div>
-                            <h5 className="font-medium text-red-900">Delete Course</h5>
-                            <p className="text-sm text-red-700">
-                              Permanently delete this course and all its content. This action cannot be undone.
+                            <p className="font-medium">{doc.fileName}</p>
+                            <p className="text-sm text-gray-500">
+                              {(doc.fileSize / 1024 / 1024).toFixed(2)} MB • {doc.fileType.toUpperCase()}
                             </p>
                           </div>
-                          <Button variant="destructive" size="sm">
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {doc.status === 'pending' && (
+                            <Badge variant="secondary">
+                              <Clock className="w-3 h-3 mr-1" />
+                              Pending
+                            </Badge>
+                          )}
+                          {doc.status === 'processing' && (
+                            <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-orange-700 mr-1" />
+                              Processing
+                            </Badge>
+                          )}
+                          {doc.status === 'completed' && (
+                            <Badge variant="default" className="bg-green-100 text-green-700">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Completed
+                            </Badge>
+                          )}
+                          {doc.status === 'failed' && (
+                            <Badge variant="destructive">
+                              <AlertCircle className="w-3 h-3 mr-1" />
+                              Error
+                            </Badge>
+                          )}
+                          <Button variant="ghost" size="sm">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No documents uploaded yet</h3>
+                    <p className="text-gray-600 mb-4">Upload documents to use for AI module generation</p>
+                    <Button onClick={() => document.getElementById('doc-upload')?.click()}>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Document
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* AI Module Generation Card */}
+            <Card className="bg-amber-50 border-amber-200">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="w-5 h-5 text-amber-600" />
+                    <CardTitle className="text-amber-900">AI Module Generation</CardTitle>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    className="bg-amber-600 hover:bg-amber-700"
+                    onClick={() => setShowAiGeneration(true)}
+                    disabled={documents.length === 0}
+                  >
+                    Generate Modules
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-amber-800">
+                  Use Gemini AI to automatically generate modules and lessons from your uploaded documents. 
+                  The AI will analyze document content and create a structured learning experience for your students.
+                </p>
+                {documents.length > 0 && (
+                  <div className="bg-amber-100 rounded p-3 mt-3">
+                    <p className="text-sm text-amber-900">
+                      <CheckCircle className="w-4 h-4 inline mr-1" />
+                      {documents.length} document{documents.length > 1 ? 's' : ''} ready for AI generation
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Hidden file input */}
+        <input
+          id="doc-upload"
+          type="file"
+          accept=".pdf,.doc,.docx,.txt,.md"
+          className="hidden"
+          onChange={handleFileUpload}
+        />
+
+        {/* AI Generation Dialog */}
+        {showAiGeneration && (
+          <AiGenerationDialog
+            open={showAiGeneration}
+            onOpenChange={setShowAiGeneration}
+            courseId={courseId!}
+            documents={documents}
+            onComplete={() => {
+              queryClient.invalidateQueries({ queryKey: ['/api/courses', courseId] });
+              setActiveTab("content");
+            }}
+          />
+        )}
       </div>
     </div>
   );
