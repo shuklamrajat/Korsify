@@ -231,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get all documents uploaded by the course creator
-      const documents = await storage.getUserDocuments(course.createdBy);
+      const documents = await storage.getUserDocuments(course.creatorId);
       res.json(documents);
     } catch (error) {
       console.error("Error fetching course documents:", error);
