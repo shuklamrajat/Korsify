@@ -20,10 +20,11 @@ import {
 } from "@/components/ui/sheet";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import type { User } from "@shared/schema";
 import { 
   GraduationCap, 
   Menu, 
-  User, 
+  User as UserIcon, 
   Settings, 
   LogOut, 
   BookOpen, 
@@ -39,7 +40,7 @@ export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Fetch user data
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
   });
 
@@ -157,7 +158,7 @@ export default function Navigation() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                       <Avatar className="h-9 w-9">
-                        <AvatarImage src={user.profileImageUrl} alt={user.firstName} />
+                        <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || 'User'} />
                         <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                           {user.firstName?.charAt(0) || user.email?.charAt(0) || 'U'}
                         </AvatarFallback>
@@ -187,7 +188,7 @@ export default function Navigation() {
                     <DropdownMenuSeparator />
                     
                     <DropdownMenuItem>
-                      <User className="mr-2 h-4 w-4" />
+                      <UserIcon className="mr-2 h-4 w-4" />
                       <span>Profile</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
@@ -264,7 +265,7 @@ export default function Navigation() {
                     <div className="pt-4 border-t">
                       <div className="flex items-center space-x-3 mb-4">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={user.profileImageUrl} alt={user.firstName} />
+                          <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || 'User'} />
                           <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                             {user.firstName?.charAt(0) || user.email?.charAt(0) || 'U'}
                           </AvatarFallback>
