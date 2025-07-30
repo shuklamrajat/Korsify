@@ -8,6 +8,15 @@ Korsify is a cutting-edge educational platform that transforms documents into st
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (January 2025)
+
+**Latest Updates:**
+- Fixed navigation auto-scrolling functionality by adding proper section IDs (features, how-it-works, pricing)
+- Resolved file upload "No file uploaded" error by updating apiRequest function to handle FormData properly
+- Added comprehensive pricing section with Free, Pro, and Enterprise plans
+- All major functionality now working: document upload, AI processing, course generation, and responsive navigation
+- Application is production-ready and fully functional
+
 ## System Architecture
 
 ### Frontend Architecture
