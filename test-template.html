@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Korsify Template Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Korsify Template Generation Test</h1>
+        
+        <div class="test-section">
+            <h2>1. Test API Connection</h2>
+            <button onclick="testAPI()">Test API</button>
+            <div id="api-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. Test Template Listing</h2>
+            <button onclick="getTemplates()">Get Templates</button>
+            <div id="templates-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. Test Template Generation</h2>
+            <p>Select a template to generate a course:</p>
+            <select id="template-select">
+                <option value="">Loading templates...</option>
+            </select>
+            <button onclick="generateFromTemplate()">Generate Course</button>
+            <div id="generate-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. Test Custom Course Generation</h2>
+            <input type="text" id="custom-title" placeholder="Course Title" style="width: 100%; padding: 8px; margin: 5px 0;">
+            <textarea id="custom-desc" placeholder="Course Description" style="width: 100%; padding: 8px; margin: 5px 0; height: 60px;"></textarea>
+            <select id="custom-category" style="width: 100%; padding: 8px; margin: 5px 0;">
+                <option value="technology">Technology</option>
+                <option value="business">Business</option>
+                <option value="health">Health</option>
+                <option value="creative">Creative</option>
+            </select>
+            <button onclick="generateCustom()">Generate Custom Course</button>
+            <div id="custom-result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Base API URL
+        const API_BASE = 'http://localhost:5000';
+        
+        // Test API connection
+        async function testAPI() {
+            const resultDiv = document.getElementById('api-result');
+            try {
+                const response = await fetch(`${API_BASE}/api/user`);
+                const data = await response.json();
+                resultDiv.className = 'result success';
+                resultDiv.textContent = 'API Connected! User: ' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = 'API Error: ' + error.message;
+            }
+        }
+
+        // Get templates
+        async function getTemplates() {
+            const resultDiv = document.getElementById('templates-result');
+            const select = document.getElementById('template-select');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/templates`);
+                const templates = await response.json();
+                
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `Found ${templates.length} templates:\n` + 
+                    templates.map(t => `- ${t.name} (${t.category})`).join('\n');
+                
+                // Populate select dropdown
+                select.innerHTML = '<option value="">Select a template</option>';
+                templates.forEach(template => {
+                    const option = document.createElement('option');
+                    option.value = template.id;
+                    option.textContent = `${template.name} - ${template.category}`;
+                    select.appendChild(option);
+                });
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = 'Error fetching templates: ' + error.message;
+            }
+        }
+
+        // Generate from template
+        async function generateFromTemplate() {
+            const resultDiv = document.getElementById('generate-result');
+            const templateId = document.getElementById('template-select').value;
+            
+            if (!templateId) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = 'Please select a template first!';
+                return;
+            }
+            
+            resultDiv.className = 'result';
+            resultDiv.textContent = 'Generating course from template...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/templates/${templateId}/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = 'Course generated successfully!\n' +
+                        `Course ID: ${data.course.id}\n` +
+                        `Title: ${data.course.title}\n` +
+                        `Status: ${data.course.status}\n\n` +
+                        'You can now edit this course in the Creator Dashboard!';
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = 'Generation failed: ' + data.message;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Generate custom course
+        async function generateCustom() {
+            const resultDiv = document.getElementById('custom-result');
+            const title = document.getElementById('custom-title').value;
+            const description = document.getElementById('custom-desc').value;
+            const category = document.getElementById('custom-category').value;
+            
+            if (!title || !description) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = 'Please fill in title and description!';
+                return;
+            }
+            
+            resultDiv.className = 'result';
+            resultDiv.textContent = 'Generating custom course with AI...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/templates/custom`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title,
+                        description,
+                        category,
+                        difficultyLevel: 'beginner',
+                        targetAudience: 'General learners',
+                        estimatedDuration: 120
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = 'Custom course generated successfully!\n' +
+                        `Course ID: ${data.course.id}\n` +
+                        `Title: ${data.course.title}\n` +
+                        `Description: ${data.course.description}\n\n` +
+                        'AI has created modules and lessons based on your requirements!';
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = 'Generation failed: ' + data.message;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Load templates on page load
+        window.onload = () => {
+            getTemplates();
+        };
+    </script>
+</body>
+</html>

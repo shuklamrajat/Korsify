@@ -40,9 +40,13 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  // Test route
+  // Test routes
   app.get('/test', (req, res) => {
     res.sendFile(path.resolve('./test.html'));
+  });
+  
+  app.get('/test-template', (req, res) => {
+    res.sendFile(path.resolve('./test-template.html'));
   });
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
