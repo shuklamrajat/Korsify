@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FileUpload from "@/components/ui/file-upload";
 import ProgressIndicator from "@/components/ui/progress-indicator";
 import CourseCard from "@/components/ui/course-card";
+import TemplateGallery from "@/components/ui/template-gallery";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -22,7 +23,8 @@ import {
   Settings,
   BarChart3,
   Zap,
-  Brain
+  Brain,
+  Sparkles
 } from "lucide-react";
 
 export default function CreatorDashboard() {
@@ -185,11 +187,28 @@ export default function CreatorDashboard() {
         </div>
 
         <Tabs defaultValue="courses" className="space-y-8">
-          <TabsList>
-            <TabsTrigger value="courses">My Courses</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="create">Create Course</TabsTrigger>
+          <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+            <TabsTrigger value="courses" className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              My Courses
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Templates
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Documents
+            </TabsTrigger>
+            <TabsTrigger value="create" className="flex items-center gap-2">
+              <Upload className="w-4 h-4" />
+              Upload
+            </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="templates" className="space-y-6">
+            <TemplateGallery onCourseCreated={(courseId) => setLocation(`/courses/${courseId}/edit`)} />
+          </TabsContent>
 
           <TabsContent value="courses" className="space-y-6">
             <div className="flex items-center justify-between">
