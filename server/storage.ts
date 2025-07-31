@@ -1,6 +1,7 @@
 import {
   users,
   documents,
+  courseTemplates,
   courses,
   modules,
   lessons,
@@ -13,6 +14,8 @@ import {
   type UpsertUser,
   type InsertDocument,
   type Document,
+  type InsertCourseTemplate,
+  type CourseTemplate,
   type InsertCourse,
   type Course,
   type InsertModule,
@@ -46,6 +49,14 @@ export interface IStorage {
   getDocument(id: string): Promise<Document | undefined>;
   getUserDocuments(userId: string): Promise<Document[]>;
   updateDocumentContent(id: string, content: string): Promise<void>;
+
+  // Course Template operations
+  createCourseTemplate(template: InsertCourseTemplate): Promise<CourseTemplate>;
+  getCourseTemplate(id: string): Promise<CourseTemplate | undefined>;
+  getCourseTemplates(): Promise<CourseTemplate[]>;
+  getCourseTemplatesByCategory(category: string): Promise<CourseTemplate[]>;
+  updateCourseTemplate(id: string, updates: Partial<CourseTemplate>): Promise<CourseTemplate>;
+  deleteCourseTemplate(id: string): Promise<void>;
 
   // Course operations
   createCourse(course: InsertCourse): Promise<Course>;
@@ -194,6 +205,36 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCourse(id: string): Promise<void> {
     await db.delete(courses).where(eq(courses.id, id));
+  }
+
+  // Course Template operations
+  async createCourseTemplate(template: InsertCourseTemplate): Promise<CourseTemplate> {
+    const [created] = await db.insert(courseTemplates).values(template).returning();
+    return created;
+  }
+
+  async getCourseTemplate(id: string): Promise<CourseTemplate | undefined> {
+    const [template] = await db.select().from(courseTemplates).where(eq(courseTemplates.id, id));
+    return template;
+  }
+
+  async getCourseTemplates(): Promise<CourseTemplate[]> {
+    return db.select().from(courseTemplates).where(eq(courseTemplates.isActive, true)).orderBy(courseTemplates.name);
+  }
+
+  async getCourseTemplatesByCategory(category: string): Promise<CourseTemplate[]> {
+    return db.select().from(courseTemplates)
+      .where(and(eq(courseTemplates.category, category), eq(courseTemplates.isActive, true)))
+      .orderBy(courseTemplates.name);
+  }
+
+  async updateCourseTemplate(id: string, updates: Partial<CourseTemplate>): Promise<CourseTemplate> {
+    const [updated] = await db.update(courseTemplates).set(updates).where(eq(courseTemplates.id, id)).returning();
+    return updated;
+  }
+
+  async deleteCourseTemplate(id: string): Promise<void> {
+    await db.delete(courseTemplates).where(eq(courseTemplates.id, id));
   }
 
   // Module operations

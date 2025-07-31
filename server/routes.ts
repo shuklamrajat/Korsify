@@ -4,7 +4,8 @@ import multer from "multer";
 import path from "path";
 import { storage } from "./storage";
 import { documentProcessor } from "./services/documentProcessor";
-import { insertDocumentSchema, insertCourseSchema, insertEnrollmentSchema } from "@shared/schema";
+import { templateGenerator } from "./services/templateGenerator";
+import { insertDocumentSchema, insertCourseSchema, insertCourseTemplateSchema, insertEnrollmentSchema } from "@shared/schema";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -274,6 +275,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting course:", error);
       res.status(500).json({ message: "Failed to delete course" });
+    }
+  });
+
+  // Course Template routes
+  app.get('/api/templates', async (req: any, res) => {
+    try {
+      const { category } = req.query;
+      const templates = category 
+        ? await storage.getCourseTemplatesByCategory(category)
+        : await storage.getCourseTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      res.status(500).json({ message: "Failed to fetch templates" });
+    }
+  });
+
+  app.get('/api/templates/:id', async (req: any, res) => {
+    try {
+      const template = await storage.getCourseTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ message: 'Template not found' });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching template:", error);
+      res.status(500).json({ message: "Failed to fetch template" });
+    }
+  });
+
+  app.post('/api/templates/:id/generate', async (req: any, res) => {
+    try {
+      const template = await storage.getCourseTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ message: 'Template not found' });
+      }
+
+      const { title, targetAudience, difficultyLevel } = req.body;
+
+      // Generate course structure from template
+      const courseStructure = await templateGenerator.generateCourseFromTemplate(template, {
+        title,
+        targetAudience,
+        difficultyLevel
+      });
+
+      // Create the course
+      const courseData = {
+        title: title || template.name,
+        description: template.description,
+        creatorId: req.user.id,
+        templateId: template.id,
+        targetAudience: targetAudience || 'General learners',
+        difficultyLevel: difficultyLevel || template.difficultyLevel,
+        estimatedDuration: template.estimatedDuration,
+        status: 'draft' as const
+      };
+
+      const course = await storage.createCourse(courseData);
+
+      // Create modules and lessons
+      for (const moduleData of courseStructure.modules) {
+        const module = await storage.createModule({
+          courseId: course.id,
+          title: moduleData.title,
+          description: moduleData.description,
+          orderIndex: moduleData.orderIndex,
+          estimatedDuration: moduleData.estimatedDuration
+        });
+
+        for (const lessonData of moduleData.lessons) {
+          await storage.createLesson({
+            moduleId: module.id,
+            title: lessonData.title,
+            content: lessonData.content,
+            orderIndex: lessonData.orderIndex,
+            estimatedDuration: lessonData.estimatedDuration
+          });
+        }
+      }
+
+      res.json({ course, message: 'Course generated successfully from template' });
+    } catch (error) {
+      console.error("Error generating course from template:", error);
+      res.status(500).json({ message: "Failed to generate course from template" });
+    }
+  });
+
+  app.post('/api/templates/custom', async (req: any, res) => {
+    try {
+      const { title, description, category, difficultyLevel, targetAudience, estimatedDuration } = req.body;
+
+      // Generate custom course structure
+      const courseStructure = await templateGenerator.createCustomTemplate({
+        title,
+        description,
+        category,
+        difficultyLevel,
+        targetAudience,
+        estimatedDuration
+      });
+
+      // Create the course directly
+      const courseData = {
+        title,
+        description,
+        creatorId: req.user.id,
+        targetAudience,
+        difficultyLevel,
+        estimatedDuration,
+        status: 'draft' as const
+      };
+
+      const course = await storage.createCourse(courseData);
+
+      // Create modules and lessons
+      for (const moduleData of courseStructure.modules) {
+        const module = await storage.createModule({
+          courseId: course.id,
+          title: moduleData.title,
+          description: moduleData.description,
+          orderIndex: moduleData.orderIndex,
+          estimatedDuration: moduleData.estimatedDuration
+        });
+
+        for (const lessonData of moduleData.lessons) {
+          await storage.createLesson({
+            moduleId: module.id,
+            title: lessonData.title,
+            content: lessonData.content,
+            orderIndex: lessonData.orderIndex,
+            estimatedDuration: lessonData.estimatedDuration
+          });
+        }
+      }
+
+      res.json({ course, message: 'Custom course generated successfully' });
+    } catch (error) {
+      console.error("Error generating custom course:", error);
+      res.status(500).json({ message: "Failed to generate custom course" });
     }
   });
 

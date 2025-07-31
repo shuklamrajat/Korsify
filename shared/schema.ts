@@ -49,6 +49,21 @@ export const documents = pgTable("documents", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Course Templates table
+export const courseTemplates = pgTable("course_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: text("description").notNull(),
+  category: varchar("category").notNull(), // e.g., 'business', 'technology', 'education', 'health'
+  tags: jsonb("tags").$type<string[]>().default([]),
+  thumbnailUrl: varchar("thumbnail_url"),
+  difficultyLevel: varchar("difficulty_level", { enum: ['beginner', 'intermediate', 'advanced'] }).default('beginner'),
+  estimatedDuration: integer("estimated_duration"), // in minutes
+  structure: jsonb("structure").notNull(), // Course outline structure
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Courses table
 export const courses = pgTable("courses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -56,6 +71,7 @@ export const courses = pgTable("courses", {
   description: text("description"),
   creatorId: varchar("creator_id").notNull(),
   documentId: varchar("document_id"),
+  templateId: varchar("template_id"), // Link to course template if created from template
   status: varchar("status", { enum: ['draft', 'processing', 'published'] }).notNull().default('draft'),
   language: varchar("language").default('en'),
   targetAudience: varchar("target_audience"),
@@ -155,6 +171,7 @@ export const aiProcessingJobs = pgTable("ai_processing_jobs", {
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, createdAt: true });
+export const insertCourseTemplateSchema = createInsertSchema(courseTemplates).omit({ id: true, createdAt: true });
 export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertModuleSchema = createInsertSchema(modules).omit({ id: true, createdAt: true });
 export const insertLessonSchema = createInsertSchema(lessons).omit({ id: true, createdAt: true });
@@ -169,6 +186,8 @@ export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 export type Document = typeof documents.$inferSelect;
+export type InsertCourseTemplate = z.infer<typeof insertCourseTemplateSchema>;
+export type CourseTemplate = typeof courseTemplates.$inferSelect;
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type Course = typeof courses.$inferSelect;
 export type InsertModule = z.infer<typeof insertModuleSchema>;
