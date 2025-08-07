@@ -89,6 +89,16 @@ export default function AiGenerationDialog({
   const [customOptions, setCustomOptions] = useState<any>({});
   const [showCustomization, setShowCustomization] = useState(false);
 
+  // Auto-select all available documents when dialog opens or documents change
+  useEffect(() => {
+    if (open && documents.length > 0) {
+      const availableDocIds = documents
+        .filter(doc => doc.status === 'completed')
+        .map(doc => doc.id);
+      setSelectedDocuments(availableDocIds);
+    }
+  }, [open, documents]);
+
   // Poll for processing status
   const { data: jobStatus } = useQuery({
     queryKey: ['/api/processing-jobs', processingJobId],
@@ -241,7 +251,29 @@ export default function AiGenerationDialog({
 
               {/* Document Selection */}
               <div>
-                <h4 className="font-medium mb-3">Select Documents</h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium">Select Documents</h4>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={selectedDocuments.length === availableDocuments.length ? "default" : "secondary"}>
+                      {selectedDocuments.length} of {availableDocuments.length} selected
+                    </Badge>
+                    {availableDocuments.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (selectedDocuments.length === availableDocuments.length) {
+                            setSelectedDocuments([]);
+                          } else {
+                            setSelectedDocuments(availableDocuments.map(d => d.id));
+                          }
+                        }}
+                      >
+                        {selectedDocuments.length === availableDocuments.length ? 'Deselect All' : 'Select All'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 <div className="space-y-2">
                   {availableDocuments.length === 0 ? (
                     <Card>
