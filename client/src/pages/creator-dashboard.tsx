@@ -268,14 +268,23 @@ export default function CreatorDashboard() {
               </Card>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {courses.map((course: any) => (
-                  <CourseCard
-                    key={course.id}
-                    course={course}
-                    onEdit={() => setLocation(`/courses/${course.id}/edit`)}
-                    onView={() => setLocation(`/courses/${course.id}`)}
-                  />
-                ))}
+                {courses.map((course: any) => {
+                  console.log('Course data:', course); // Debug log
+                  return (
+                    <CourseCard
+                      key={course.id}
+                      course={course}
+                      onEdit={() => {
+                        console.log('Editing course:', course.id);
+                        setLocation(`/courses/${course.id}/edit`);
+                      }}
+                      onView={() => {
+                        console.log('Viewing course:', course.id);
+                        setLocation(`/courses/${course.id}`);
+                      }}
+                    />
+                  );
+                })}
               </div>
             )}
           </TabsContent>

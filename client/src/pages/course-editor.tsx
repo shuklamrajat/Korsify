@@ -38,11 +38,16 @@ import {
 } from "lucide-react";
 
 export default function CourseEditor() {
-  const { courseId } = useParams();
+  const params = useParams();
+  const courseId = params.id;
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("details");
   const [showAiGeneration, setShowAiGeneration] = useState(false);
+  
+  // Debug logging
+  console.log('CourseEditor params:', params);
+  console.log('CourseEditor courseId:', courseId);
   
   // Form state
   const [courseTitle, setCourseTitle] = useState("");

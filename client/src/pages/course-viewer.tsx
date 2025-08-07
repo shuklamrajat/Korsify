@@ -37,6 +37,10 @@ export default function CourseViewer() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Debug logging
+  console.log('CourseViewer params:', params);
+  console.log('CourseViewer courseId:', courseId);
+  
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
