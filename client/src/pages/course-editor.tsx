@@ -12,7 +12,26 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import Navigation from "@/components/navigation";
 import AiGenerationDialog from "@/components/ai-generation-dialog";
-import type { CourseWithDetails } from "@shared/schema";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
+import type { CourseWithDetails, Document } from "@shared/schema";
 import { 
   ArrowLeft,
   Save,
@@ -34,7 +53,10 @@ import {
   ScrollText,
   HelpCircle,
   ChevronRight,
-  Image as ImageIcon
+  Image as ImageIcon,
+  X,
+  FileUp,
+  Link
 } from "lucide-react";
 
 export default function CourseEditor() {
@@ -44,6 +66,10 @@ export default function CourseEditor() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("details");
   const [showAiGeneration, setShowAiGeneration] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showDocumentSelector, setShowDocumentSelector] = useState(false);
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   
   // Debug logging
   console.log('CourseEditor params:', params);
@@ -60,10 +86,15 @@ export default function CourseEditor() {
     enabled: !!courseId,
   });
 
-  // Fetch course documents
-  const { data: documents = [], isLoading: documentsLoading } = useQuery<any[]>({
+  // Fetch course documents (documents linked to this course)
+  const { data: courseDocuments = [], isLoading: courseDocumentsLoading } = useQuery<Document[]>({
     queryKey: [`/api/courses/${courseId}/documents`],
     enabled: !!courseId,
+  });
+
+  // Fetch all user documents (for selection dialog)
+  const { data: allUserDocuments = [], isLoading: allDocumentsLoading } = useQuery<Document[]>({
+    queryKey: ['/api/documents'],
   });
 
   // Initialize form with course data
@@ -121,10 +152,76 @@ export default function CourseEditor() {
     },
   });
 
+  // Delete course mutation
+  const deleteCourseMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/courses/${courseId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Course deleted",
+        description: "The course has been deleted successfully.",
+      });
+      setLocation('/creator');
+    },
+    onError: (error) => {
+      toast({
+        title: "Delete failed",
+        description: error.message || "Failed to delete course",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Add documents to course mutation
+  const addDocumentsMutation = useMutation({
+    mutationFn: async (documentIds: string[]) => {
+      await apiRequest("POST", `/api/courses/${courseId}/documents`, { documentIds });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Documents added",
+        description: "Documents have been added to the course.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}/documents`] });
+      setShowDocumentSelector(false);
+      setSelectedDocuments([]);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to add documents",
+        description: error.message || "Failed to add documents to course",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Remove document from course mutation  
+  const removeDocumentMutation = useMutation({
+    mutationFn: async (documentId: string) => {
+      await apiRequest("DELETE", `/api/courses/${courseId}/documents/${documentId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Document removed",
+        description: "Document has been removed from the course.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}/documents`] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to remove document",
+        description: error.message || "Failed to remove document",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSaveDetails = () => {
     updateCourseMutation.mutate({
       title: courseTitle,
       description: courseDescription,
+      thumbnailUrl: coverImage,
     });
   };
 
@@ -145,6 +242,20 @@ export default function CourseEditor() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleDeleteCourse = () => {
+    deleteCourseMutation.mutate();
+  };
+
+  const handleAddDocuments = () => {
+    if (selectedDocuments.length > 0) {
+      addDocumentsMutation.mutate(selectedDocuments);
+    }
+  };
+
+  const handleRemoveDocument = (documentId: string) => {
+    removeDocumentMutation.mutate(documentId);
   };
 
   if (courseLoading) {
@@ -204,12 +315,29 @@ export default function CourseEditor() {
               <Badge variant={course.status === 'published' ? 'default' : 'secondary'}>
                 {course.status}
               </Badge>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowPreview(true)}
+              >
                 <Eye className="w-4 h-4 mr-2" />
                 Preview
               </Button>
-              <Button size="sm">
-                Publish Course
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
+              <Button 
+                size="sm"
+                onClick={() => updateCourseMutation.mutate({ status: 'published' })}
+                disabled={course.status === 'published'}
+              >
+                {course.status === 'published' ? 'Published' : 'Publish Course'}
               </Button>
             </div>
           </div>
@@ -356,7 +484,7 @@ export default function CourseEditor() {
                       size="sm" 
                       className="bg-amber-600 hover:bg-amber-700"
                       onClick={() => setShowAiGeneration(true)}
-                      disabled={documents.length === 0}
+                      disabled={courseDocuments.length === 0}
                     >
                       <Sparkles className="w-4 h-4 mr-2" />
                       AI Generate
@@ -453,7 +581,7 @@ export default function CourseEditor() {
                     <p className="text-amber-800 text-sm mb-3">
                       Let AI help you create your course content! Upload documents and our AI will analyze them to suggest modules and lessons.
                     </p>
-                    {documents.length > 0 && (
+                    {courseDocuments.length > 0 && (
                       <div className="bg-amber-100 rounded p-3 mb-3">
                         <p className="text-sm text-amber-900">
                           <ChevronRight className="w-4 h-4 inline mr-1" />
@@ -476,24 +604,34 @@ export default function CourseEditor() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Course Documents</CardTitle>
-                  <Button 
-                    size="sm"
-                    onClick={() => document.getElementById('doc-upload')?.click()}
-                    disabled={uploadDocumentMutation.isPending}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowDocumentSelector(true)}
+                    >
+                      <Link className="w-4 h-4 mr-2" />
+                      Add Existing
+                    </Button>
+                    <Button 
+                      size="sm"
+                      onClick={() => document.getElementById('doc-upload')?.click()}
+                      disabled={uploadDocumentMutation.isPending}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload New
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                {documentsLoading ? (
+                {courseDocumentsLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                   </div>
-                ) : documents.length > 0 ? (
+                ) : courseDocuments.length > 0 ? (
                   <div className="space-y-3">
-                    {documents.map((doc: any) => (
+                    {courseDocuments.map((doc: Document) => (
                       <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
                         <div className="flex items-center gap-3">
                           <FileText className="w-5 h-5 text-gray-500" />
@@ -532,8 +670,13 @@ export default function CourseEditor() {
                           <Button variant="ghost" size="sm">
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="w-4 h-4" />
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleRemoveDocument(doc.id)}
+                            disabled={removeDocumentMutation.isPending}
+                          >
+                            <X className="w-4 h-4 text-red-500" />
                           </Button>
                         </div>
                       </div>
@@ -542,12 +685,18 @@ export default function CourseEditor() {
                 ) : (
                   <div className="text-center py-12">
                     <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No documents uploaded yet</h3>
-                    <p className="text-gray-600 mb-4">Upload documents to use for AI module generation</p>
-                    <Button onClick={() => document.getElementById('doc-upload')?.click()}>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload Document
-                    </Button>
+                    <h3 className="text-lg font-semibold mb-2">No documents linked to this course</h3>
+                    <p className="text-gray-600 mb-4">Add documents to use for AI module generation</p>
+                    <div className="flex gap-3 justify-center">
+                      <Button variant="outline" onClick={() => setShowDocumentSelector(true)}>
+                        <Link className="w-4 h-4 mr-2" />
+                        Add Existing Document
+                      </Button>
+                      <Button onClick={() => document.getElementById('doc-upload')?.click()}>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload New Document
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -565,7 +714,7 @@ export default function CourseEditor() {
                     size="sm" 
                     className="bg-amber-600 hover:bg-amber-700"
                     onClick={() => setShowAiGeneration(true)}
-                    disabled={documents.length === 0}
+                    disabled={courseDocuments.length === 0}
                   >
                     Generate Modules
                   </Button>
@@ -576,11 +725,11 @@ export default function CourseEditor() {
                   Use Gemini AI to automatically generate modules and lessons from your uploaded documents. 
                   The AI will analyze document content and create a structured learning experience for your students.
                 </p>
-                {documents.length > 0 && (
+                {courseDocuments.length > 0 && (
                   <div className="bg-amber-100 rounded p-3 mt-3">
                     <p className="text-sm text-amber-900">
                       <CheckCircle className="w-4 h-4 inline mr-1" />
-                      {documents.length} document{documents.length > 1 ? 's' : ''} ready for AI generation
+                      {courseDocuments.length} document{courseDocuments.length > 1 ? 's' : ''} ready for AI generation
                     </p>
                   </div>
                 )}
@@ -604,13 +753,192 @@ export default function CourseEditor() {
             open={showAiGeneration}
             onOpenChange={setShowAiGeneration}
             courseId={courseId!}
-            documents={documents}
+            documents={courseDocuments}
             onComplete={() => {
               queryClient.invalidateQueries({ queryKey: ['/api/courses', courseId] });
               setActiveTab("content");
             }}
           />
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to delete this course?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the course 
+                "{course.title}" and all its modules, lessons, and associated data.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteCourse}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete Course
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Document Selector Dialog */}
+        <Dialog open={showDocumentSelector} onOpenChange={setShowDocumentSelector}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Add Documents to Course</DialogTitle>
+              <DialogDescription>
+                Select documents to add to this course for AI content generation
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="h-[400px] pr-4">
+              <div className="space-y-3">
+                {allUserDocuments.filter(doc => 
+                  !courseDocuments.some(courseDoc => courseDoc.id === doc.id)
+                ).map((doc) => (
+                  <div key={doc.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                    <Checkbox
+                      checked={selectedDocuments.includes(doc.id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedDocuments([...selectedDocuments, doc.id]);
+                        } else {
+                          setSelectedDocuments(selectedDocuments.filter(id => id !== doc.id));
+                        }
+                      }}
+                    />
+                    <FileText className="w-5 h-5 text-gray-500" />
+                    <div className="flex-1">
+                      <p className="font-medium">{doc.fileName}</p>
+                      <p className="text-sm text-gray-500">
+                        {(doc.fileSize / 1024 / 1024).toFixed(2)} MB • {doc.fileType.toUpperCase()}
+                      </p>
+                    </div>
+                    {doc.status === 'completed' && (
+                      <Badge variant="default" className="bg-green-100 text-green-700">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Ready
+                      </Badge>
+                    )}
+                  </div>
+                ))}
+                {allUserDocuments.filter(doc => 
+                  !courseDocuments.some(courseDoc => courseDoc.id === doc.id)
+                ).length === 0 && (
+                  <p className="text-center text-gray-500 py-8">
+                    No available documents to add. All your documents are already linked to this course.
+                  </p>
+                )}
+              </div>
+            </ScrollArea>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => {
+                setShowDocumentSelector(false);
+                setSelectedDocuments([]);
+              }}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleAddDocuments}
+                disabled={selectedDocuments.length === 0 || addDocumentsMutation.isPending}
+              >
+                Add {selectedDocuments.length} Document{selectedDocuments.length !== 1 ? 's' : ''}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Preview Dialog */}
+        <Dialog open={showPreview} onOpenChange={setShowPreview}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Course Preview</DialogTitle>
+              <DialogDescription>
+                This is how your course will appear to learners
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+              {/* Course Header */}
+              <div className="relative">
+                {coverImage ? (
+                  <img 
+                    src={coverImage} 
+                    alt="Course cover" 
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                ) : (
+                  <div className="w-full h-48 bg-gradient-to-r from-primary/10 to-purple-600/10 rounded-lg" />
+                )}
+                <div className="absolute bottom-4 left-4 right-4 text-white">
+                  <h1 className="text-3xl font-bold mb-2 drop-shadow-lg">{course.title}</h1>
+                  <Badge className="bg-white/90 text-black">
+                    {course.difficultyLevel || 'Beginner'}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Course Info */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <p className="text-2xl font-bold">{stats.modules}</p>
+                  <p className="text-sm text-gray-600">Modules</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold">{stats.lessons}</p>
+                  <p className="text-sm text-gray-600">Lessons</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold">{course.estimatedDuration || 0} min</p>
+                  <p className="text-sm text-gray-600">Duration</p>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <h2 className="text-xl font-semibold mb-2">About this course</h2>
+                <p className="text-gray-600">{course.description || 'No description provided'}</p>
+              </div>
+
+              {/* Course Content */}
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Course Content</h2>
+                {course.modules && course.modules.length > 0 ? (
+                  <div className="space-y-3">
+                    {course.modules.map((module: any, index: number) => (
+                      <div key={module.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-medium">
+                            Module {index + 1}: {module.title}
+                          </h3>
+                          <span className="text-sm text-gray-500">
+                            {module.lessons?.length || 0} lessons
+                          </span>
+                        </div>
+                        {module.description && (
+                          <p className="text-sm text-gray-600 mb-2">{module.description}</p>
+                        )}
+                        {module.lessons && module.lessons.length > 0 && (
+                          <ul className="ml-4 space-y-1">
+                            {module.lessons.map((lesson: any, lessonIndex: number) => (
+                              <li key={lesson.id} className="text-sm text-gray-700">
+                                {lessonIndex + 1}. {lesson.title}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-gray-500 py-8">
+                    No course content available yet
+                  </p>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
