@@ -90,7 +90,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         document.id,
         req.user.id,
         courseId,
-        null, // jobId will be created internally
+        undefined, // jobId will be created internally
         {}
       ).catch(error => {
         console.error("Document processing error:", error);
