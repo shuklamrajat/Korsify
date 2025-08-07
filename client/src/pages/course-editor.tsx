@@ -56,7 +56,7 @@ export default function CourseEditor() {
 
   // Fetch course data
   const { data: course, isLoading: courseLoading } = useQuery<CourseWithDetails>({
-    queryKey: ['/api/courses', courseId],
+    queryKey: [`/api/courses/${courseId}`],
     enabled: !!courseId,
   });
 
