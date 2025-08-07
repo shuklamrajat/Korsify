@@ -276,12 +276,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Course not found' });
       }
       
-      // Get all documents uploaded by the course creator
-      const documents = await storage.getUserDocuments(course.creatorId);
+      // Get documents linked to this specific course
+      const documents = await storage.getCourseDocuments(req.params.id);
       res.json(documents);
     } catch (error) {
       console.error("Error fetching course documents:", error);
       res.status(500).json({ message: "Failed to fetch course documents" });
+    }
+  });
+
+  // Add documents to a course
+  app.post('/api/courses/:id/documents', async (req: any, res) => {
+    try {
+      const course = await storage.getCourse(req.params.id);
+      if (!course) {
+        return res.status(404).json({ message: 'Course not found' });
+      }
+
+      if (course.creatorId !== req.user.id) {
+        return res.status(403).json({ message: 'Not authorized to edit this course' });
+      }
+
+      const { documentIds } = req.body;
+      if (!documentIds || !Array.isArray(documentIds)) {
+        return res.status(400).json({ message: 'Document IDs are required' });
+      }
+
+      const courseDocuments = await storage.addMultipleDocumentsToCourse(req.params.id, documentIds);
+      res.json(courseDocuments);
+    } catch (error) {
+      console.error("Error adding documents to course:", error);
+      res.status(500).json({ message: "Failed to add documents to course" });
+    }
+  });
+
+  // Remove a document from a course
+  app.delete('/api/courses/:courseId/documents/:documentId', async (req: any, res) => {
+    try {
+      const course = await storage.getCourse(req.params.courseId);
+      if (!course) {
+        return res.status(404).json({ message: 'Course not found' });
+      }
+
+      if (course.creatorId !== req.user.id) {
+        return res.status(403).json({ message: 'Not authorized to edit this course' });
+      }
+
+      await storage.removeDocumentFromCourse(req.params.courseId, req.params.documentId);
+      res.json({ message: 'Document removed from course' });
+    } catch (error) {
+      console.error("Error removing document from course:", error);
+      res.status(500).json({ message: "Failed to remove document from course" });
     }
   });
 

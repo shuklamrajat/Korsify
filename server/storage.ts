@@ -3,6 +3,7 @@ import {
   documents,
   courseTemplates,
   courses,
+  courseDocuments,
   modules,
   lessons,
   quizzes,
@@ -18,6 +19,8 @@ import {
   type CourseTemplate,
   type InsertCourse,
   type Course,
+  type InsertCourseDocument,
+  type CourseDocument,
   type InsertModule,
   type Module,
   type InsertLesson,
@@ -53,6 +56,12 @@ export interface IStorage {
   getUserDocuments(userId: string): Promise<Document[]>;
   updateDocumentContent(id: string, content: string): Promise<void>;
   updateDocument(id: string, updates: Partial<Document>): Promise<void>;
+  
+  // Course Document operations
+  addDocumentToCourse(courseId: string, documentId: string): Promise<CourseDocument>;
+  removeDocumentFromCourse(courseId: string, documentId: string): Promise<void>;
+  getCourseDocuments(courseId: string): Promise<Document[]>;
+  addMultipleDocumentsToCourse(courseId: string, documentIds: string[]): Promise<CourseDocument[]>;
 
   // Course Template operations
   createCourseTemplate(template: InsertCourseTemplate): Promise<CourseTemplate>;
@@ -181,6 +190,46 @@ export class DatabaseStorage implements IStorage {
 
   async updateDocument(id: string, updates: Partial<Document>): Promise<void> {
     await db.update(documents).set(updates).where(eq(documents.id, id));
+  }
+
+  // Course Document operations
+  async addDocumentToCourse(courseId: string, documentId: string): Promise<CourseDocument> {
+    const [created] = await db.insert(courseDocuments).values({
+      courseId,
+      documentId
+    }).returning();
+    return created;
+  }
+
+  async removeDocumentFromCourse(courseId: string, documentId: string): Promise<void> {
+    await db.delete(courseDocuments)
+      .where(and(
+        eq(courseDocuments.courseId, courseId),
+        eq(courseDocuments.documentId, documentId)
+      ));
+  }
+
+  async getCourseDocuments(courseId: string): Promise<Document[]> {
+    const courseDocumentLinks = await db
+      .select()
+      .from(courseDocuments)
+      .innerJoin(documents, eq(courseDocuments.documentId, documents.id))
+      .where(eq(courseDocuments.courseId, courseId))
+      .orderBy(desc(courseDocuments.addedAt));
+
+    return courseDocumentLinks.map(({ documents }) => documents);
+  }
+
+  async addMultipleDocumentsToCourse(courseId: string, documentIds: string[]): Promise<CourseDocument[]> {
+    if (documentIds.length === 0) return [];
+    
+    const values = documentIds.map(documentId => ({
+      courseId,
+      documentId
+    }));
+
+    const created = await db.insert(courseDocuments).values(values).returning();
+    return created;
   }
 
   // Course operations
