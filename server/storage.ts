@@ -215,7 +215,7 @@ export class DatabaseStorage implements IStorage {
       .from(courseDocuments)
       .innerJoin(documents, eq(courseDocuments.documentId, documents.id))
       .where(eq(courseDocuments.courseId, courseId))
-      .orderBy(desc(courseDocuments.addedAt));
+      .orderBy(desc(courseDocuments.createdAt));
 
     return courseDocumentLinks.map(({ documents }) => documents);
   }

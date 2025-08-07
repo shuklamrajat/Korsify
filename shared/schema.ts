@@ -92,7 +92,7 @@ export const courseDocuments = pgTable("course_documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   courseId: varchar("course_id").notNull(),
   documentId: varchar("document_id").notNull(),
-  addedAt: timestamp("added_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Modules table
