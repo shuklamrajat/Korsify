@@ -47,10 +47,17 @@ export default function CourseViewer() {
   const [currentTime, setCurrentTime] = useState(0);
 
   // Fetch course details
-  const { data: course, isLoading } = useQuery({
-    queryKey: ["/api/courses", courseId],
+  const { data: course, isLoading, error } = useQuery({
+    queryKey: [`/api/courses/${courseId}`],
     enabled: !!courseId,
   });
+  
+  // Debug course fetch error
+  useEffect(() => {
+    if (error) {
+      console.error('Error fetching course:', error);
+    }
+  }, [error]);
 
   // Fetch enrollments to check if user is enrolled
   const { data: enrollments = [] } = useQuery({
@@ -197,7 +204,7 @@ export default function CourseViewer() {
     );
   }
 
-  if (!course) {
+  if (!course && !isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation />
@@ -205,12 +212,29 @@ export default function CourseViewer() {
           <Card>
             <CardContent className="p-12 text-center">
               <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Course not found</h3>
-              <p className="text-gray-600 mb-6">The course you're looking for doesn't exist or is not available.</p>
-              <Button onClick={() => setLocation("/learner")}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {error?.message?.includes('401') ? 'Please log in to view this course' : 'Course not found'}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {error?.message?.includes('401') 
+                  ? 'You need to be logged in to access course content.' 
+                  : 'The course you\'re looking for doesn\'t exist or is not available.'}
+              </p>
+              <div className="flex gap-3 justify-center">
+                {error?.message?.includes('401') && (
+                  <Button onClick={() => setLocation("/login")}>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Go to Login
+                  </Button>
+                )}
+                <Button 
+                  variant={error?.message?.includes('401') ? "outline" : "default"}
+                  onClick={() => setLocation("/learner")}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
