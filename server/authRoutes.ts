@@ -9,8 +9,7 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  userType: z.enum(['creator', 'learner']).optional().default('learner')
+  lastName: z.string().optional()
 });
 
 const loginSchema = z.object({
@@ -33,14 +32,13 @@ export function setupAuthRoutes(app: Express) {
         return res.status(400).json({ message: "Email already registered" });
       }
 
-      // Hash password and create user
+      // Hash password and create user (without role - will be selected after login)
       const passwordHash = await hashPassword(data.password);
       const user = await storage.createUser(
         data.email,
         passwordHash,
         data.firstName,
-        data.lastName,
-        data.userType
+        data.lastName
       );
 
       // Generate token
@@ -61,7 +59,7 @@ export function setupAuthRoutes(app: Express) {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          userType: user.userType
+          currentRole: user.currentRole
         }
       });
     } catch (error) {
@@ -111,7 +109,8 @@ export function setupAuthRoutes(app: Express) {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          userType: user.userType
+          currentRole: user.currentRole,
+          needsRoleSelection: !user.currentRole
         }
       });
     } catch (error) {
@@ -151,5 +150,30 @@ export function setupAuthRoutes(app: Express) {
   app.get('/api/auth/status', async (req: Request, res: Response) => {
     const token = req.cookies?.token;
     res.json({ authenticated: !!token });
+  });
+
+  // Update user role endpoint
+  app.post('/api/auth/update-role', authenticate, async (req: AuthRequest, res: Response) => {
+    try {
+      const { role } = req.body;
+      
+      if (!role || !['creator', 'learner'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      await storage.updateUserRole(req.user.id, role);
+      
+      res.json({
+        message: "Role updated successfully",
+        role
+      });
+    } catch (error) {
+      console.error("Error updating role:", error);
+      res.status(500).json({ message: "Failed to update role" });
+    }
   });
 }

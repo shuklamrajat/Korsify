@@ -9,6 +9,7 @@ import FileUpload from "@/components/ui/file-upload";
 import ProgressIndicator from "@/components/ui/progress-indicator";
 import CourseCard from "@/components/ui/course-card";
 import TemplateGallery from "@/components/ui/template-gallery";
+import CreateCourseDialog from "@/components/ui/create-course-dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -34,6 +35,7 @@ export default function CreatorDashboard() {
   const queryClient = useQueryClient();
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
   const [processingJobId, setProcessingJobId] = useState<string | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   // Fetch user data
   const { data: user } = useQuery<User>({
@@ -126,13 +128,7 @@ export default function CreatorDashboard() {
   };
 
   const handleCreateCourse = () => {
-    // Show create course dialog
-    // For now, create a default course
-    createCourseMutation.mutate({
-      title: "New Course",
-      description: "Enter your course description here",
-      tags: []
-    });
+    setShowCreateDialog(true);
   };
 
   const handleGenerateCourse = (documentId: string) => {
@@ -173,6 +169,7 @@ export default function CreatorDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
+      <CreateCourseDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
@@ -216,7 +213,7 @@ export default function CreatorDashboard() {
         </div>
 
         <Tabs defaultValue="courses" className="space-y-8">
-          <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+          <TabsList className="grid grid-cols-3 w-full max-w-xl">
             <TabsTrigger value="courses" className="flex items-center gap-2">
               <BookOpen className="w-4 h-4" />
               My Courses
@@ -225,13 +222,9 @@ export default function CreatorDashboard() {
               <Sparkles className="w-4 h-4" />
               Templates
             </TabsTrigger>
-            <TabsTrigger value="documents" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Documents
-            </TabsTrigger>
-            <TabsTrigger value="create" className="flex items-center gap-2">
-              <Upload className="w-4 h-4" />
-              Upload
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Analytics
             </TabsTrigger>
           </TabsList>
 
@@ -266,10 +259,10 @@ export default function CreatorDashboard() {
                 <CardContent className="p-12 text-center">
                   <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">No courses yet</h3>
-                  <p className="text-gray-600 mb-6">Upload a document to create your first AI-powered course.</p>
-                  <Button onClick={() => document.getElementById('file-upload')?.click()}>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Document
+                  <p className="text-gray-600 mb-6">Create your first course to start teaching.</p>
+                  <Button onClick={handleCreateCourse}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Course
                   </Button>
                 </CardContent>
               </Card>
@@ -287,161 +280,31 @@ export default function CreatorDashboard() {
             )}
           </TabsContent>
 
-          <TabsContent value="documents" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">Uploaded Documents</h2>
-              <Button onClick={() => document.getElementById('file-upload')?.click()}>
-                <Upload className="w-4 h-4 mr-2" />
-                Upload New Document
-              </Button>
-            </div>
-
-            {documents.length === 0 ? (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No documents uploaded</h3>
-                  <p className="text-gray-600 mb-6">Upload your first document to start creating courses.</p>
-                  <Button onClick={() => document.getElementById('file-upload')?.click()}>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Document
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {documents.map((document: any) => (
-                  <Card key={document.id} className="hover:shadow-lg transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 mb-2 truncate">{document.fileName}</h3>
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="outline">{document.fileType.toUpperCase()}</Badge>
-                            <span className="text-sm text-gray-500">
-                              {(document.fileSize / 1024 / 1024).toFixed(1)} MB
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            Uploaded {new Date(document.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <FileText className="w-8 h-8 text-gray-400" />
-                      </div>
-                      
-                      <Button 
-                        className="w-full" 
-                        onClick={() => handleGenerateCourse(document.id)}
-                        disabled={generateCourseMutation.isPending}
-                      >
-                        {generateCourseMutation.isPending ? (
-                          <>
-                            <Settings className="w-4 h-4 mr-2 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Brain className="w-4 h-4 mr-2" />
-                            Generate Course
-                          </>
-                        )}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="create" className="space-y-6">
+          <TabsContent value="analytics" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="w-5 h-5" />
-                  Create AI-Powered Course
-                </CardTitle>
+                <CardTitle>Course Analytics</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="text-center py-8">
-                  <Brain className="w-16 h-16 text-primary mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload a Document</h3>
-                  <p className="text-gray-600 mb-6">
-                    Upload your PDF, DOC, DOCX, TXT, or MD file and watch our AI transform it into a structured course.
-                  </p>
-                  
-                  <FileUpload
-                    onFileSelect={handleFileUpload}
-                    accept=".pdf,.doc,.docx,.txt,.md"
-                    maxSize={50 * 1024 * 1024}
-                    className="mb-6"
-                  />
-
-                  {uploadingFile && (
-                    <div className="mt-6">
-                      <ProgressIndicator
-                        title="Uploading document..."
-                        progress={uploadMutation.isPending ? 50 : 100}
-                        status={uploadMutation.isPending ? "processing" : "completed"}
-                      />
-                    </div>
-                  )}
-
-                  {generateCourseMutation.isPending && (
-                    <div className="mt-6">
-                      <ProgressIndicator
-                        title="Generating course with AI..."
-                        progress={75}
-                        status="processing"
-                        phases={[
-                          { name: "Document Analysis", status: "completed" },
-                          { name: "Content Analysis", status: "completed" },
-                          { name: "Content Generation", status: "processing" },
-                          { name: "Validation", status: "pending" },
-                          { name: "Finalization", status: "pending" }
-                        ]}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="bg-blue-50 rounded-lg p-6">
-                  <h4 className="font-semibold text-gray-900 mb-2">AI Generation Features</h4>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li className="flex items-center gap-2">
-                      <Brain className="w-4 h-4 text-blue-600" />
-                      Powered by Google Gemini 2.5 Flash
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-blue-600" />
-                      Supports PDF, DOC, DOCX, TXT, MD files
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Settings className="w-4 h-4 text-blue-600" />
-                      5-phase processing pipeline
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Star className="w-4 h-4 text-blue-600" />
-                      Auto-generated quizzes and assessments
-                    </li>
-                  </ul>
+              <CardContent>
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-gray-900">1,247</p>
+                    <p className="text-gray-600">Total Students</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-gray-900">78%</p>
+                    <p className="text-gray-600">Completion Rate</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-gray-900">4.8</p>
+                    <p className="text-gray-600">Average Rating</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Hidden file input */}
-      <input
-        id="file-upload"
-        type="file"
-        accept=".pdf,.doc,.docx,.txt,.md"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleFileUpload(file);
-        }}
-      />
     </div>
   );
 }

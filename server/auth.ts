@@ -18,7 +18,7 @@ export function generateToken(user: User): string {
     { 
       id: user.id, 
       email: user.email,
-      userType: user.userType 
+      currentRole: user.currentRole 
     },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
