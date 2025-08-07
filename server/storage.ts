@@ -52,6 +52,7 @@ export interface IStorage {
   getDocument(id: string): Promise<Document | undefined>;
   getUserDocuments(userId: string): Promise<Document[]>;
   updateDocumentContent(id: string, content: string): Promise<void>;
+  updateDocument(id: string, updates: Partial<Document>): Promise<void>;
 
   // Course Template operations
   createCourseTemplate(template: InsertCourseTemplate): Promise<CourseTemplate>;
@@ -178,6 +179,10 @@ export class DatabaseStorage implements IStorage {
     await db.update(documents).set({ processedContent: content }).where(eq(documents.id, id));
   }
 
+  async updateDocument(id: string, updates: Partial<Document>): Promise<void> {
+    await db.update(documents).set(updates).where(eq(documents.id, id));
+  }
+
   // Course operations
   async createCourse(course: InsertCourse): Promise<Course> {
     const [created] = await db.insert(courses).values(course).returning();
@@ -236,7 +241,7 @@ export class DatabaseStorage implements IStorage {
 
   // Course Template operations
   async createCourseTemplate(template: InsertCourseTemplate): Promise<CourseTemplate> {
-    const [created] = await db.insert(courseTemplates).values([template]).returning();
+    const [created] = await db.insert(courseTemplates).values(template).returning();
     return created;
   }
 
