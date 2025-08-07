@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Korsify Authentication Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #4F46E5;
+      padding-bottom: 10px;
+    }
+    .section {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      background: #4F46E5;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #4338CA;
+    }
+    .success {
+      color: green;
+      background: #e6ffe6;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+    .error {
+      color: red;
+      background: #ffe6e6;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+    .info {
+      background: #e6f3ff;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+    .result {
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 10px 0;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+    .user-type-selector {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .user-type-selector label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 Korsify Authentication Test</h1>
+    
+    <div id="result"></div>
+
+    <!-- Check Auth Status -->
+    <div class="section">
+      <h2>1. Check Authentication Status</h2>
+      <button onclick="checkAuthStatus()">Check Status</button>
+      <button onclick="getCurrentUser()">Get Current User</button>
+    </div>
+
+    <!-- Register -->
+    <div class="section">
+      <h2>2. Register New Account</h2>
+      <input type="email" id="register-email" placeholder="Email" value="test@example.com">
+      <input type="password" id="register-password" placeholder="Password" value="password123">
+      <input type="text" id="register-firstname" placeholder="First Name" value="Test">
+      <input type="text" id="register-lastname" placeholder="Last Name" value="User">
+      <div class="user-type-selector">
+        <label>
+          <input type="radio" name="userType" value="learner" checked>
+          Learner
+        </label>
+        <label>
+          <input type="radio" name="userType" value="creator">
+          Creator
+        </label>
+      </div>
+      <button onclick="register()">Register</button>
+    </div>
+
+    <!-- Login -->
+    <div class="section">
+      <h2>3. Login</h2>
+      <input type="email" id="login-email" placeholder="Email" value="test@example.com">
+      <input type="password" id="login-password" placeholder="Password" value="password123">
+      <button onclick="login()">Login</button>
+    </div>
+
+    <!-- Logout -->
+    <div class="section">
+      <h2>4. Logout</h2>
+      <button onclick="logout()">Logout</button>
+    </div>
+
+    <!-- Test Protected Routes -->
+    <div class="section">
+      <h2>5. Test Protected Routes</h2>
+      <button onclick="testProtectedRoute()">Test /api/user</button>
+      <button onclick="testDocuments()">Test /api/documents</button>
+    </div>
+  </div>
+
+  <script>
+    function showResult(message, type = 'info') {
+      const resultDiv = document.getElementById('result');
+      resultDiv.className = type;
+      resultDiv.textContent = message;
+    }
+
+    async function checkAuthStatus() {
+      try {
+        const response = await fetch('/api/auth/status');
+        const data = await response.json();
+        showResult(`Auth Status: ${data.authenticated ? 'Authenticated ✓' : 'Not Authenticated ✗'}`, 
+                   data.authenticated ? 'success' : 'info');
+      } catch (error) {
+        showResult(`Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function getCurrentUser() {
+      try {
+        const response = await fetch('/api/auth/me');
+        const data = await response.json();
+        if (response.ok) {
+          showResult(`Current User:\n${JSON.stringify(data.user, null, 2)}`, 'success');
+        } else {
+          showResult(`Not authenticated: ${data.message}`, 'error');
+        }
+      } catch (error) {
+        showResult(`Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function register() {
+      try {
+        const userType = document.querySelector('input[name="userType"]:checked').value;
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('register-email').value,
+            password: document.getElementById('register-password').value,
+            firstName: document.getElementById('register-firstname').value,
+            lastName: document.getElementById('register-lastname').value,
+            userType: userType
+          })
+        });
+        
+        const data = await response.json();
+        if (response.ok) {
+          showResult(`Registration successful!\n${JSON.stringify(data.user, null, 2)}`, 'success');
+        } else {
+          showResult(`Registration failed: ${data.message}`, 'error');
+        }
+      } catch (error) {
+        showResult(`Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function login() {
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('login-email').value,
+            password: document.getElementById('login-password').value
+          })
+        });
+        
+        const data = await response.json();
+        if (response.ok) {
+          showResult(`Login successful!\n${JSON.stringify(data.user, null, 2)}`, 'success');
+        } else {
+          showResult(`Login failed: ${data.message}`, 'error');
+        }
+      } catch (error) {
+        showResult(`Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function logout() {
+      try {
+        const response = await fetch('/api/auth/logout', {
+          method: 'POST'
+        });
+        
+        const data = await response.json();
+        showResult(`Logout successful: ${data.message}`, 'success');
+      } catch (error) {
+        showResult(`Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function testProtectedRoute() {
+      try {
+        const response = await fetch('/api/user');
+        const data = await response.json();
+        if (response.ok) {
+          showResult(`Protected route accessed!\n${JSON.stringify(data, null, 2)}`, 'success');
+        } else {
+          showResult(`Access denied: ${data.message}`, 'error');
+        }
+      } catch (error) {
+        showResult(`Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function testDocuments() {
+      try {
+        const response = await fetch('/api/documents');
+        const data = await response.json();
+        if (response.ok) {
+          showResult(`Documents accessed!\nCount: ${data.length}`, 'success');
+        } else {
+          showResult(`Access denied: ${data.message}`, 'error');
+        }
+      } catch (error) {
+        showResult(`Error: ${error.message}`, 'error');
+      }
+    }
+
+    // Check status on load
+    window.onload = checkAuthStatus;
+  </script>
+</body>
+</html>

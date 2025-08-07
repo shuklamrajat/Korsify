@@ -48,6 +48,10 @@ app.use((req, res, next) => {
   app.get('/test-template', (req, res) => {
     res.sendFile(path.resolve('./test-template.html'));
   });
+  
+  app.get('/test-auth', (req, res) => {
+    res.sendFile(path.resolve('./test-auth.html'));
+  });
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
