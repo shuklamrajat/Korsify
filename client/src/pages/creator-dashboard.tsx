@@ -12,6 +12,7 @@ import TemplateGallery from "@/components/ui/template-gallery";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import type { User, Course, Document } from "@shared/schema";
 import { 
   Plus,
   Upload,
@@ -35,17 +36,17 @@ export default function CreatorDashboard() {
   const [processingJobId, setProcessingJobId] = useState<string | null>(null);
 
   // Fetch user data
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
   });
 
   // Fetch user courses
-  const { data: courses = [], isLoading: coursesLoading } = useQuery({
+  const { data: courses = [], isLoading: coursesLoading } = useQuery<Course[]>({
     queryKey: ["/api/courses"],
   });
 
   // Fetch user documents
-  const { data: documents = [] } = useQuery({
+  const { data: documents = [] } = useQuery<Document[]>({
     queryKey: ["/api/documents"],
   });
 
@@ -95,6 +96,30 @@ export default function CreatorDashboard() {
     },
   });
 
+  // Generate course from document mutation
+  const generateCourseMutation = useMutation({
+    mutationFn: async (documentId: string) => {
+      const response = await apiRequest("POST", "/api/courses/generate", { documentId });
+      return response.json();
+    },
+    onSuccess: (course) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
+      toast({
+        title: "Course generated successfully!",
+        description: "Your AI-powered course is ready to edit.",
+      });
+      // Navigate to course editor
+      setLocation(`/courses/${course.id}/edit`);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to generate course",
+        description: error.message || "Could not generate course from document",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleFileUpload = async (file: File) => {
     setUploadingFile(file);
     uploadMutation.mutate(file);
@@ -110,10 +135,14 @@ export default function CreatorDashboard() {
     });
   };
 
+  const handleGenerateCourse = (documentId: string) => {
+    generateCourseMutation.mutate(documentId);
+  };
+
   const stats = [
     {
       title: "Total Courses",
-      value: courses.length.toString(),
+      value: courses?.length?.toString() || "0",
       change: "+2 this month",
       icon: BookOpen,
       color: "text-blue-600"
