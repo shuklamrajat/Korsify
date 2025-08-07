@@ -60,6 +60,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Process document for course
+  app.post('/api/documents/process-for-course', upload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      const courseId = req.body.courseId;
+      if (!courseId) {
+        return res.status(400).json({ message: 'Course ID is required' });
+      }
+
+      // Save document
+      const documentData = {
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        fileType: req.file.mimetype,
+        storageUrl: req.file.path,
+        uploadedBy: req.user.id,
+        status: 'processing' as const,
+      };
+
+      const validatedData = insertDocumentSchema.parse(documentData);
+      const document = await storage.createDocument(validatedData);
+      
+      // Start AI processing for the course
+      documentProcessor.processDocumentAsync(
+        document.id,
+        req.user.id,
+        courseId,
+        null, // jobId will be created internally
+        {}
+      ).catch(error => {
+        console.error("Document processing error:", error);
+        storage.updateDocument(document.id, { status: 'failed' });
+      });
+
+      res.json({ 
+        message: 'Document uploaded and processing started',
+        documentId: document.id 
+      });
+    } catch (error) {
+      console.error("Error processing document for course:", error);
+      res.status(500).json({ message: "Failed to process document" });
+    }
+  });
+
   // Document routes
   app.post('/api/documents', upload.single('file'), async (req: any, res) => {
     try {

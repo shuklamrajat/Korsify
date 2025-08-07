@@ -43,8 +43,9 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(email: string, passwordHash: string, firstName?: string, lastName?: string, userType?: 'creator' | 'learner'): Promise<User>;
+  createUser(email: string, passwordHash: string, firstName?: string, lastName?: string): Promise<User>;
   updateUserPassword(id: string, passwordHash: string): Promise<void>;
+  updateUserRole(id: string, role: 'creator' | 'learner'): Promise<void>;
 
   // Document operations
   createDocument(document: InsertDocument): Promise<Document>;
@@ -134,16 +135,22 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(email: string, passwordHash: string, firstName?: string, lastName?: string, userType: 'creator' | 'learner' = 'learner'): Promise<User> {
+  async createUser(email: string, passwordHash: string, firstName?: string, lastName?: string): Promise<User> {
     const [user] = await db.insert(users).values({
       email,
       passwordHash,
       firstName,
       lastName,
-      userType,
+      currentRole: null, // Role will be selected after first login
       emailVerified: false
     }).returning();
     return user;
+  }
+
+  async updateUserRole(id: string, role: 'creator' | 'learner'): Promise<void> {
+    await db.update(users)
+      .set({ currentRole: role, updatedAt: new Date() })
+      .where(eq(users.id, id));
   }
 
   async updateUserPassword(id: string, passwordHash: string): Promise<void> {

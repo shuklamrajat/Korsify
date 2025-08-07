@@ -32,7 +32,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  userType: varchar("user_type", { enum: ['creator', 'learner'] }).notNull().default('learner'),
+  currentRole: varchar("current_role", { enum: ['creator', 'learner'] }),
   emailVerified: boolean("email_verified").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -99,7 +99,7 @@ export const modules = pgTable("modules", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Lessons table
+// Lessons table  
 export const lessons = pgTable("lessons", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   moduleId: varchar("module_id").notNull(),
@@ -109,6 +109,16 @@ export const lessons = pgTable("lessons", {
   estimatedDuration: integer("estimated_duration"), // in minutes
   videoUrl: varchar("video_url"),
   attachments: jsonb("attachments").$type<string[]>().default([]),
+  // Reference tracking for AI-generated content
+  references: jsonb("references").$type<{
+    sources: Array<{
+      id: string;
+      type: 'document' | 'template' | 'ai_generated';
+      title: string;
+      excerpt: string;
+      location?: string; // page number, section, etc.
+    }>;
+  }>(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

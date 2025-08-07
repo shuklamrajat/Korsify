@@ -10,12 +10,14 @@ import LearnerDashboard from "@/pages/learner-dashboard";
 import CourseEditor from "@/pages/course-editor";
 import CourseViewer from "@/pages/course-viewer";
 import LoginPage from "@/pages/login";
+import RoleSelection from "@/pages/role-selection";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/login" component={LoginPage} />
+      <Route path="/select-role" component={RoleSelection} />
       <Route path="/creator" component={CreatorDashboard} />
       <Route path="/learner" component={LearnerDashboard} />
       <Route path="/courses/:id/edit" component={CourseEditor} />

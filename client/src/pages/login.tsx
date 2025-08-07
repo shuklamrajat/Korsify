@@ -45,11 +45,12 @@ export default function LoginPage() {
           description: "Login successful"
         });
         
-        // Redirect based on user type
-        if (data.user.userType === "creator") {
-          setLocation("/creator");
+        // Check if user needs to select a role
+        if (data.user.needsRoleSelection) {
+          setLocation("/select-role");
         } else {
-          setLocation("/learner");
+          // Redirect based on current role
+          setLocation(data.user.currentRole === "creator" ? "/creator" : "/learner");
         }
       } else {
         toast({
@@ -109,12 +110,8 @@ export default function LoginPage() {
           description: "Registration successful"
         });
         
-        // Redirect based on user type
-        if (userType === "creator") {
-          setLocation("/creator");
-        } else {
-          setLocation("/learner");
-        }
+        // New users need to select a role
+        setLocation("/select-role");
       } else {
         toast({
           title: "Registration failed",
@@ -243,18 +240,7 @@ export default function LoginPage() {
                   </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="user-type">I want to</Label>
-                  <Select value={userType} onValueChange={(value: "learner" | "creator") => setUserType(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="learner">Learn courses</SelectItem>
-                      <SelectItem value="creator">Create courses</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+
                 
                 <div className="space-y-2">
                   <Label htmlFor="register-password">Password</Label>
