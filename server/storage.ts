@@ -43,6 +43,8 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(email: string, passwordHash: string, firstName?: string, lastName?: string, userType?: 'creator' | 'learner'): Promise<User>;
+  updateUserPassword(id: string, passwordHash: string): Promise<void>;
 
   // Document operations
   createDocument(document: InsertDocument): Promise<Document>;
@@ -132,6 +134,24 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async createUser(email: string, passwordHash: string, firstName?: string, lastName?: string, userType: 'creator' | 'learner' = 'learner'): Promise<User> {
+    const [user] = await db.insert(users).values({
+      email,
+      passwordHash,
+      firstName,
+      lastName,
+      userType,
+      emailVerified: false
+    }).returning();
+    return user;
+  }
+
+  async updateUserPassword(id: string, passwordHash: string): Promise<void> {
+    await db.update(users)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(users.id, id));
+  }
+
   // Document operations
   async createDocument(document: InsertDocument): Promise<Document> {
     const [created] = await db.insert(documents).values(document).returning();
@@ -209,7 +229,7 @@ export class DatabaseStorage implements IStorage {
 
   // Course Template operations
   async createCourseTemplate(template: InsertCourseTemplate): Promise<CourseTemplate> {
-    const [created] = await db.insert(courseTemplates).values(template).returning();
+    const [created] = await db.insert(courseTemplates).values([template]).returning();
     return created;
   }
 

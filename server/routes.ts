@@ -6,6 +6,8 @@ import { storage } from "./storage";
 import { documentProcessor } from "./services/documentProcessor";
 import { templateGenerator } from "./services/templateGenerator";
 import { insertDocumentSchema, insertCourseSchema, insertCourseTemplateSchema, insertEnrollmentSchema } from "@shared/schema";
+import { authenticate, AuthRequest } from "./auth";
+import { setupAuthRoutes } from "./authRoutes";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -25,36 +27,32 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Mock authentication middleware for demo
-  const mockAuth = (req: any, res: any, next: any) => {
-    // In production, use proper authentication
-    req.user = {
-      id: 'demo-user-id',
-      email: 'demo@example.com',
-      firstName: 'Demo',
-      lastName: 'User',
-      userType: 'creator',
-    };
-    next();
-  };
+  // Setup authentication routes
+  setupAuthRoutes(app);
 
-  app.use('/api', mockAuth);
+  // Apply authentication middleware to protected API routes
+  // Note: auth routes themselves don't need this middleware
+  app.use('/api', (req, res, next) => {
+    // Skip auth middleware for auth routes
+    if (req.path.startsWith('/api/auth/')) {
+      return next();
+    }
+    // Apply authentication for all other API routes
+    return authenticate(req as AuthRequest, res, next);
+  });
 
   // User routes
-  app.get('/api/user', async (req: any, res) => {
+  app.get('/api/user', async (req: AuthRequest, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
       const user = await storage.getUser(req.user.id);
       if (!user) {
-        // Create demo user if not exists
-        const newUser = await storage.upsertUser({
-          id: req.user.id,
-          email: req.user.email,
-          firstName: req.user.firstName,
-          lastName: req.user.lastName,
-          userType: req.user.userType,
-        });
-        return res.json(newUser);
+        return res.status(404).json({ message: "User not found" });
       }
+      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);

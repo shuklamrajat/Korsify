@@ -90,17 +90,21 @@ export default function Navigation() {
   ] : [];
 
   const handleSignIn = () => {
-    // In a real app, this would redirect to authentication
-    setLocation('/creator');
+    setLocation('/login');
   };
 
   const handleGetStarted = () => {
-    setLocation('/creator');
+    setLocation('/login');
   };
 
-  const handleSignOut = () => {
-    // In a real app, this would handle sign out
-    setLocation('/');
+  const handleSignOut = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      // Refresh the page to clear user state
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
