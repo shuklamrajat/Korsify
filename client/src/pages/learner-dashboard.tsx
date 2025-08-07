@@ -75,6 +75,16 @@ export default function LearnerDashboard() {
   };
 
   const handleContinueLearning = (courseId: string) => {
+    console.log('Navigating to course:', courseId); // Debug log
+    if (!courseId || typeof courseId !== 'string') {
+      console.error('Invalid course ID:', courseId);
+      toast({
+        title: "Navigation Error",
+        description: "Could not navigate to course. Invalid course ID.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLocation(`/courses/${courseId}`);
   };
 
@@ -319,12 +329,19 @@ export default function LearnerDashboard() {
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredCourses.map((course: any) => {
                   const isEnrolled = enrollments.some((e: any) => e.course.id === course.id);
+                  console.log('Course in browse:', course); // Debug log
                   return (
                     <CourseCard
                       key={course.id}
                       course={course}
-                      onEnroll={isEnrolled ? undefined : () => handleEnroll(course.id)}
-                      onContinue={isEnrolled ? () => handleContinueLearning(course.id) : undefined}
+                      onEnroll={isEnrolled ? undefined : () => {
+                        console.log('Enrolling in course:', course.id);
+                        handleEnroll(course.id);
+                      }}
+                      onContinue={isEnrolled ? () => {
+                        console.log('Continuing course:', course.id);
+                        handleContinueLearning(course.id);
+                      } : undefined}
                       isEnrolled={isEnrolled}
                       showEnrollButton={true}
                     />
