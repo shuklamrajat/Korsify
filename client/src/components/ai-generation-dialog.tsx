@@ -93,7 +93,7 @@ export default function AiGenerationDialog({
   useEffect(() => {
     if (open && documents.length > 0) {
       const availableDocIds = documents
-        .filter(doc => doc.status === 'completed')
+        .filter(doc => doc.status === 'completed' || doc.status === 'ready' || !doc.status)
         .map(doc => doc.id);
       setSelectedDocuments(availableDocIds);
     }
@@ -182,7 +182,10 @@ export default function AiGenerationDialog({
     );
   };
 
-  const availableDocuments = documents.filter(doc => doc.status === 'completed');
+  // Show all documents that aren't failed or pending processing
+  const availableDocuments = documents.filter(doc => 
+    doc.status === 'completed' || doc.status === 'ready' || !doc.status
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
