@@ -103,11 +103,19 @@ export class GeminiService {
        - Use scholarly approach with cross-disciplinary connections
        - Include real-world examples and case studies
 
-    4. QUIZ DESIGN:
+    4. SOURCE GROUNDING (CRITICAL):
+       - ALL content must be derived directly from the provided document
+       - DO NOT add information not present in the source material
+       - Each lesson must include inline citations in format: [1], [2], etc.
+       - Citations should reference specific parts of the source document
+       - Track the exact text passages being referenced for each claim
+
+    5. QUIZ DESIGN:
        - Mix question types (multiple choice, true/false)
        - Include distractors that address common misconceptions
        - Provide detailed explanations for correct answers
        - Align questions with learning objectives
+       - Questions must be based on content from the source document
 
     Respond with a valid JSON structure matching the CourseStructure interface.
     `;
