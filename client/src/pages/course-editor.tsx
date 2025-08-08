@@ -14,6 +14,8 @@ import Navigation from "@/components/navigation";
 import AiGenerationDialog from "@/components/ai-generation-dialog";
 import SourceViewer from "@/components/source-viewer";
 import CitationRenderer from "@/components/citation-renderer";
+import ModuleEditorDialog from "@/components/module-editor-dialog";
+import LessonEditorDialog from "@/components/lesson-editor-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -73,6 +75,11 @@ export default function CourseEditor() {
   const [showDocumentSelector, setShowDocumentSelector] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [showSourcePanel, setShowSourcePanel] = useState(false);
+  const [showModuleEditor, setShowModuleEditor] = useState(false);
+  const [showLessonEditor, setShowLessonEditor] = useState(false);
+  const [editingModule, setEditingModule] = useState(null);
+  const [editingLesson, setEditingLesson] = useState(null);
+  const [selectedModuleId, setSelectedModuleId] = useState("");
   const [activeSourceReference, setActiveSourceReference] = useState<string | null>(null);
   const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
   
@@ -266,6 +273,44 @@ export default function CourseEditor() {
 
   const handleRemoveDocument = (documentId: string) => {
     removeDocumentMutation.mutate(documentId);
+  };
+
+  const handleDeleteModule = async (moduleId: string) => {
+    if (confirm("Are you sure you want to delete this module? This will also delete all its lessons.")) {
+      try {
+        await apiRequest("DELETE", `/api/modules/${moduleId}`);
+        toast({
+          title: "Module deleted",
+          description: "The module has been deleted successfully.",
+        });
+        queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}`] });
+      } catch (error: any) {
+        toast({
+          title: "Failed to delete module",
+          description: error.message || "An error occurred while deleting the module.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleDeleteLesson = async (lessonId: string) => {
+    if (confirm("Are you sure you want to delete this lesson?")) {
+      try {
+        await apiRequest("DELETE", `/api/lessons/${lessonId}`);
+        toast({
+          title: "Lesson deleted",
+          description: "The lesson has been deleted successfully.",
+        });
+        queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}`] });
+      } catch (error: any) {
+        toast({
+          title: "Failed to delete lesson",
+          description: error.message || "An error occurred while deleting the lesson.",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   if (courseLoading) {
@@ -486,7 +531,14 @@ export default function CourseEditor() {
                 <div className="flex items-center justify-between">
                   <CardTitle>Modules</CardTitle>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setEditingModule(null);
+                        setShowModuleEditor(true);
+                      }}
+                    >
                       <Plus className="w-4 h-4 mr-2" />
                       Add Module
                     </Button>
@@ -517,10 +569,21 @@ export default function CourseEditor() {
                               </div>
                             </div>
                             <div className="flex gap-2">
-                              <Button variant="ghost" size="sm">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => {
+                                  setEditingModule(module);
+                                  setShowModuleEditor(true);
+                                }}
+                              >
                                 <Edit className="w-4 h-4" />
                               </Button>
-                              <Button variant="ghost" size="sm">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleDeleteModule(module.id)}
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
@@ -549,10 +612,22 @@ export default function CourseEditor() {
                                       >
                                         <Eye className="w-3 h-3" />
                                       </Button>
-                                      <Button variant="ghost" size="sm">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedModuleId(module.id);
+                                          setEditingLesson(lesson);
+                                          setShowLessonEditor(true);
+                                        }}
+                                      >
                                         <Edit className="w-3 h-3" />
                                       </Button>
-                                      <Button variant="ghost" size="sm">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={() => handleDeleteLesson(lesson.id)}
+                                      >
                                         <Trash2 className="w-3 h-3" />
                                       </Button>
                                     </div>
@@ -592,7 +667,16 @@ export default function CourseEditor() {
                           ) : (
                             <p className="text-sm text-gray-500 text-center py-4">No lessons yet</p>
                           )}
-                          <Button variant="outline" size="sm" className="w-full mt-4">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full mt-4"
+                            onClick={() => {
+                              setSelectedModuleId(module.id);
+                              setEditingLesson(null);
+                              setShowLessonEditor(true);
+                            }}
+                          >
                             <Plus className="w-4 h-4 mr-2" />
                             Add Lesson
                           </Button>
@@ -605,7 +689,12 @@ export default function CourseEditor() {
                     <School className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No modules yet</h3>
                     <p className="text-gray-600 mb-4">Get started by adding your first module</p>
-                    <Button>
+                    <Button
+                      onClick={() => {
+                        setEditingModule(null);
+                        setShowModuleEditor(true);
+                      }}
+                    >
                       <Plus className="w-4 h-4 mr-2" />
                       Add First Module
                     </Button>
@@ -996,6 +1085,35 @@ export default function CourseEditor() {
             />
           </DialogContent>
         </Dialog>
+
+        {/* Module Editor Dialog */}
+        {showModuleEditor && (
+          <ModuleEditorDialog
+            open={showModuleEditor}
+            onOpenChange={setShowModuleEditor}
+            courseId={courseId!}
+            module={editingModule}
+            onSuccess={() => {
+              setShowModuleEditor(false);
+              setEditingModule(null);
+            }}
+          />
+        )}
+
+        {/* Lesson Editor Dialog */}
+        {showLessonEditor && (
+          <LessonEditorDialog
+            open={showLessonEditor}
+            onOpenChange={setShowLessonEditor}
+            courseId={courseId!}
+            moduleId={selectedModuleId}
+            lesson={editingLesson}
+            onSuccess={() => {
+              setShowLessonEditor(false);
+              setEditingLesson(null);
+            }}
+          />
+        )}
       </div>
     </div>
   );
