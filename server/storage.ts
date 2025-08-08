@@ -339,15 +339,16 @@ export class DatabaseStorage implements IStorage {
 
   // Lesson operations
   async createLesson(lesson: InsertLesson): Promise<Lesson> {
-    // Temporarily simplified for type compatibility
     const [created] = await db.insert(lessons).values({
       moduleId: lesson.moduleId,
       title: lesson.title,
       content: lesson.content,
       orderIndex: lesson.orderIndex,
       estimatedDuration: lesson.estimatedDuration,
-      videoUrl: lesson.videoUrl
-    } as any).returning();
+      videoUrl: lesson.videoUrl,
+      attachments: lesson.attachments || [],
+      sourceReferences: lesson.sourceReferences || []
+    }).returning();
     return created;
   }
 

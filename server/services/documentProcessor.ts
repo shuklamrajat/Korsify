@@ -113,6 +113,10 @@ export class DocumentProcessor {
         // Create lessons for this module
         for (let lessonIndex = 0; lessonIndex < module.lessons.length; lessonIndex++) {
           const lesson = module.lessons[lessonIndex];
+          
+          // Generate source references from content citations
+          const sourceReferences = this.extractSourceReferences(lesson.content, documentId, fileName);
+          
           const lessonData: InsertLesson = {
             moduleId: createdModule.id,
             title: lesson.title,
@@ -120,6 +124,8 @@ export class DocumentProcessor {
             orderIndex: lessonIndex,
             estimatedDuration: lesson.estimatedDuration || 10,
             videoUrl: undefined,
+            attachments: [],
+            sourceReferences: sourceReferences
           };
           await storage.createLesson(lessonData);
         }
@@ -153,6 +159,34 @@ export class DocumentProcessor {
       }
       throw error;
     }
+  }
+
+  private extractSourceReferences(content: string, documentId: string, documentName: string): any[] {
+    const references: any[] = [];
+    const citationPattern = /\[(\d+)\]/g;
+    let match;
+    let citationCount = 0;
+    
+    while ((match = citationPattern.exec(content)) !== null && citationCount < 10) {
+      citationCount++;
+      const citationId = match[1];
+      const startIndex = Math.max(0, match.index - 100);
+      const endIndex = Math.min(content.length, match.index + 100);
+      const contextText = content.substring(startIndex, endIndex);
+      
+      references.push({
+        id: citationId,
+        documentId: documentId,
+        documentName: documentName,
+        text: contextText.trim(),
+        context: `Referenced in lesson content at position ${match.index}`,
+        startOffset: startIndex,
+        endOffset: endIndex,
+        pageNumber: null
+      });
+    }
+    
+    return references;
   }
 
   private async updateJobPhase(
