@@ -115,7 +115,9 @@ export class DocumentProcessor {
           const lesson = module.lessons[lessonIndex];
           
           // Generate source references from content citations
-          const sourceReferences = this.extractSourceReferences(lesson.content, documentId, fileName);
+          const doc = await storage.getDocument(documentId);
+          const documentName = doc?.fileName || 'Document';
+          const sourceReferences = this.extractSourceReferences(lesson.content, documentId, documentName);
           
           const lessonData: InsertLesson = {
             moduleId: createdModule.id,
