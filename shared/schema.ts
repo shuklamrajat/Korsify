@@ -13,6 +13,18 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Source Reference type for citations
+export interface SourceReference {
+  id: string;
+  documentId: string;
+  documentName: string;
+  pageNumber?: number;
+  startOffset: number;
+  endOffset: number;
+  text: string;
+  context?: string;
+}
+
 // Session storage table for authentication
 export const sessions = pgTable(
   "sessions",
@@ -116,6 +128,7 @@ export const lessons = pgTable("lessons", {
   estimatedDuration: integer("estimated_duration"), // in minutes
   videoUrl: varchar("video_url"),
   attachments: jsonb("attachments").$type<string[]>().default([]),
+  sourceReferences: jsonb("source_references").$type<SourceReference[]>().default([]),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

@@ -38,6 +38,14 @@ interface ProcessingPhase {
   message?: string;
 }
 
+interface JobStatus {
+  id: string;
+  phase: string;
+  progress: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  error?: string;
+}
+
 interface AiGenerationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -46,7 +54,13 @@ interface AiGenerationDialogProps {
   onComplete?: () => void;
 }
 
-const phaseDetails = {
+type PhaseType = 'document_analysis' | 'content_analysis' | 'content_generation' | 'validation' | 'finalization';
+
+const phaseDetails: Record<PhaseType, {
+  title: string;
+  icon: any;
+  message: string;
+}> = {
   document_analysis: {
     title: "Analyzing Documents",
     icon: Search,
@@ -89,18 +103,17 @@ export default function AiGenerationDialog({
   const [customOptions, setCustomOptions] = useState<any>({});
   const [showCustomization, setShowCustomization] = useState(false);
 
-  // Auto-select all available documents when dialog opens or documents change
+  // Auto-select all documents when dialog opens or documents change
   useEffect(() => {
     if (open && documents.length > 0) {
-      const availableDocIds = documents
-        .filter(doc => doc.status === 'completed' || doc.status === 'ready' || !doc.status)
-        .map(doc => doc.id);
-      setSelectedDocuments(availableDocIds);
+      // Select all documents regardless of status - let the backend handle status checks
+      const allDocIds = documents.map(doc => doc.id);
+      setSelectedDocuments(allDocIds);
     }
   }, [open, documents]);
 
   // Poll for processing status
-  const { data: jobStatus } = useQuery({
+  const { data: jobStatus } = useQuery<JobStatus>({
     queryKey: ['/api/processing-jobs', processingJobId],
     enabled: !!processingJobId && processing,
     refetchInterval: 1000,
@@ -182,10 +195,8 @@ export default function AiGenerationDialog({
     );
   };
 
-  // Show all documents that aren't failed or pending processing
-  const availableDocuments = documents.filter(doc => 
-    doc.status === 'completed' || doc.status === 'ready' || !doc.status
-  );
+  // Show all documents - let users decide which ones to use
+  const availableDocuments = documents;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -327,9 +338,9 @@ export default function AiGenerationDialog({
               <div className="space-y-6">
                 <div className="text-center mb-8">
                   <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    {currentPhase && phaseDetails[currentPhase.name] ? (
+                    {currentPhase && phaseDetails[currentPhase.name as PhaseType] ? (
                       (() => {
-                        const Icon = phaseDetails[currentPhase.name].icon;
+                        const Icon = phaseDetails[currentPhase.name as PhaseType].icon;
                         return <Icon className="w-10 h-10 text-primary animate-pulse" />;
                       })()
                     ) : (
@@ -337,13 +348,13 @@ export default function AiGenerationDialog({
                     )}
                   </div>
                   <h3 className="text-lg font-semibold">
-                    {currentPhase && phaseDetails[currentPhase.name] 
-                      ? phaseDetails[currentPhase.name].title 
+                    {currentPhase && phaseDetails[currentPhase.name as PhaseType] 
+                      ? phaseDetails[currentPhase.name as PhaseType].title 
                       : 'Processing...'}
                   </h3>
                   <p className="text-gray-600 mt-1">
-                    {currentPhase && phaseDetails[currentPhase.name]
-                      ? phaseDetails[currentPhase.name].message
+                    {currentPhase && phaseDetails[currentPhase.name as PhaseType]
+                      ? phaseDetails[currentPhase.name as PhaseType].message
                       : 'Please wait while we process your documents...'}
                   </p>
                 </div>

@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import Navigation from "@/components/navigation";
 import AiGenerationDialog from "@/components/ai-generation-dialog";
+import SourceViewer from "@/components/source-viewer";
+import CitationRenderer from "@/components/citation-renderer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,6 +72,9 @@ export default function CourseEditor() {
   const [showPreview, setShowPreview] = useState(false);
   const [showDocumentSelector, setShowDocumentSelector] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [showSourcePanel, setShowSourcePanel] = useState(false);
+  const [activeSourceReference, setActiveSourceReference] = useState<string | null>(null);
+  const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
   
   // Debug logging
   console.log('CourseEditor params:', params);
@@ -127,26 +132,30 @@ export default function CourseEditor() {
     },
   });
 
-  // Upload document mutation
+  // Upload document mutation - supports multiple files
   const uploadDocumentMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('document', file);
-      formData.append('courseId', courseId!);
-      const response = await apiRequest("POST", "/api/documents/upload", formData);
-      return response.json();
+    mutationFn: async (files: FileList) => {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData();
+        formData.append('document', file);
+        formData.append('courseId', courseId!);
+        const response = await apiRequest("POST", "/api/documents/upload", formData);
+        return response.json();
+      });
+      return Promise.all(uploadPromises);
     },
-    onSuccess: () => {
+    onSuccess: (results) => {
       queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}/documents`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
       toast({
-        title: "Document uploaded",
-        description: "Your document has been uploaded successfully.",
+        title: "Documents uploaded",
+        description: `Successfully uploaded ${results.length} document(s).`,
       });
     },
     onError: (error) => {
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload document",
+        description: error.message || "Failed to upload documents",
         variant: "destructive",
       });
     },
@@ -226,9 +235,10 @@ export default function CourseEditor() {
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      uploadDocumentMutation.mutate(file);
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      uploadDocumentMutation.mutate(files);
+      event.target.value = ''; // Clear input for re-upload
     }
   };
 
@@ -525,22 +535,57 @@ export default function CourseEditor() {
                           {module.lessons && module.lessons.length > 0 ? (
                             <div className="space-y-2">
                               {module.lessons.map((lesson: any, lessonIndex: number) => (
-                                <div key={lesson.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-sm text-gray-500">{lessonIndex + 1}.</span>
-                                    <span className="text-sm">{lesson.title}</span>
+                                <div key={lesson.id}>
+                                  <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-sm text-gray-500">{lessonIndex + 1}.</span>
+                                      <span className="text-sm">{lesson.title}</span>
+                                    </div>
+                                    <div className="flex gap-1">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={() => setExpandedLesson(expandedLesson === lesson.id ? null : lesson.id)}
+                                      >
+                                        <Eye className="w-3 h-3" />
+                                      </Button>
+                                      <Button variant="ghost" size="sm">
+                                        <Edit className="w-3 h-3" />
+                                      </Button>
+                                      <Button variant="ghost" size="sm">
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
                                   </div>
-                                  <div className="flex gap-1">
-                                    <Button variant="ghost" size="sm">
-                                      <Eye className="w-3 h-3" />
-                                    </Button>
-                                    <Button variant="ghost" size="sm">
-                                      <Edit className="w-3 h-3" />
-                                    </Button>
-                                    <Button variant="ghost" size="sm">
-                                      <Trash2 className="w-3 h-3" />
-                                    </Button>
-                                  </div>
+                                  
+                                  {/* Expanded Lesson Content with Citations */}
+                                  {expandedLesson === lesson.id && (
+                                    <div className="mt-2 p-4 bg-gray-50 rounded-lg">
+                                      <div className="flex justify-between items-start mb-2">
+                                        <h5 className="font-medium text-sm">Lesson Content</h5>
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm"
+                                          onClick={() => setShowSourcePanel(!showSourcePanel)}
+                                        >
+                                          <FileText className="w-3 h-3 mr-1" />
+                                          {showSourcePanel ? 'Hide' : 'Show'} Sources
+                                        </Button>
+                                      </div>
+                                      {lesson.content ? (
+                                        <CitationRenderer
+                                          content={lesson.content}
+                                          sourceReferences={[]}
+                                          onCitationClick={(ref) => {
+                                            setActiveSourceReference(ref.id);
+                                            setShowSourcePanel(true);
+                                          }}
+                                        />
+                                      ) : (
+                                        <p className="text-sm text-gray-500">No content available</p>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                             </div>
@@ -738,11 +783,12 @@ export default function CourseEditor() {
           </TabsContent>
         </Tabs>
 
-        {/* Hidden file input */}
+        {/* Hidden file input - supports multiple files */}
         <input
           id="doc-upload"
           type="file"
           accept=".pdf,.doc,.docx,.txt,.md"
+          multiple
           className="hidden"
           onChange={handleFileUpload}
         />
@@ -937,6 +983,17 @@ export default function CourseEditor() {
                 )}
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Source Viewer Dialog */}
+        <Dialog open={showSourcePanel} onOpenChange={setShowSourcePanel}>
+          <DialogContent className="max-w-6xl w-full h-[80vh] p-0">
+            <SourceViewer
+              documents={courseDocuments}
+              sourceReferences={[]}
+              activeReference={activeSourceReference || undefined}
+            />
           </DialogContent>
         </Dialog>
       </div>
