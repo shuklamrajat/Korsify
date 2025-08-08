@@ -381,42 +381,7 @@ export default function RichTextEditor({
         <EditorContent editor={editor} />
       </div>
 
-      {editor && editable && (
-        <BubbleMenu 
-          editor={editor}
-          tippyOptions={{ duration: 100 }}
-          className="bg-white shadow-lg border rounded-lg p-1 flex items-center gap-1"
-        >
-          <Toggle
-            size="sm"
-            pressed={editor.isActive('bold')}
-            onPressedChange={() => editor.chain().focus().toggleBold().run()}
-          >
-            <Bold className="h-3 w-3" />
-          </Toggle>
-          <Toggle
-            size="sm"
-            pressed={editor.isActive('italic')}
-            onPressedChange={() => editor.chain().focus().toggleItalic().run()}
-          >
-            <Italic className="h-3 w-3" />
-          </Toggle>
-          <Toggle
-            size="sm"
-            pressed={editor.isActive('underline')}
-            onPressedChange={() => editor.chain().focus().toggleUnderline().run()}
-          >
-            <UnderlineIcon className="h-3 w-3" />
-          </Toggle>
-          <Toggle
-            size="sm"
-            pressed={editor.isActive('highlight')}
-            onPressedChange={() => editor.chain().focus().toggleHighlight().run()}
-          >
-            <Highlighter className="h-3 w-3" />
-          </Toggle>
-        </BubbleMenu>
-      )}
+
     </div>
   );
 }
