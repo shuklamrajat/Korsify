@@ -15,7 +15,8 @@ import {
   CheckCircle,
   Calendar,
   Target,
-  Globe
+  Globe,
+  Trash2
 } from "lucide-react";
 
 interface Course {
@@ -40,6 +41,7 @@ interface CourseCardProps {
   onView?: () => void;
   onEnroll?: () => void;
   onContinue?: () => void;
+  onDelete?: () => void;
   isEnrolled?: boolean;
   showEnrollButton?: boolean;
   progress?: number;
@@ -52,6 +54,7 @@ export default function CourseCard({
   onView,
   onEnroll,
   onContinue,
+  onDelete,
   isEnrolled = false,
   showEnrollButton = false,
   progress = 0,
@@ -223,6 +226,20 @@ export default function CourseCard({
                 <Button onClick={onEdit} className="flex-1" size="sm">
                   <Edit className="w-4 h-4 mr-2" />
                   Edit
+                </Button>
+              )}
+              {onDelete && (
+                <Button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                  }} 
+                  variant="destructive" 
+                  size="sm"
+                  className="px-2"
+                  title="Delete Course"
+                >
+                  <Trash2 className="w-4 h-4" />
                 </Button>
               )}
             </div>

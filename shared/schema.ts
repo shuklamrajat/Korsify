@@ -116,16 +116,6 @@ export const lessons = pgTable("lessons", {
   estimatedDuration: integer("estimated_duration"), // in minutes
   videoUrl: varchar("video_url"),
   attachments: jsonb("attachments").$type<string[]>().default([]),
-  // Reference tracking for AI-generated content
-  sourceReferences: jsonb("source_references").$type<{
-    sources: Array<{
-      id: string;
-      type: 'document' | 'template' | 'ai_generated';
-      title: string;
-      excerpt: string;
-      location?: string; // page number, section, etc.
-    }>;
-  }>(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
