@@ -13,7 +13,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { 
   FileText, 
-  Sparkles, 
   Brain, 
   Upload,
   X,
@@ -21,8 +20,8 @@ import {
   BookOpen,
   Zap,
   Users,
-  Clock,
-  Target
+  Target,
+  Clock
 } from "lucide-react";
 
 interface CreateCourseDialogProps {
@@ -41,7 +40,7 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
   const [selectedDocument, setSelectedDocument] = useState<File | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+
 
   // Create course mutation
   const createCourseMutation = useMutation({
@@ -49,9 +48,8 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
       title: string; 
       description: string; 
       tags?: string[];
-      method: 'blank' | 'document' | 'template';
+      method: 'blank' | 'document';
       documentFile?: File;
-      templateId?: string;
     }) => {
       // First create the course
       const courseResponse = await apiRequest("POST", "/api/courses", {
@@ -73,15 +71,7 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
         }
       }
 
-      // If template method, apply template
-      if (data.method === 'template' && data.templateId) {
-        const templateResponse = await apiRequest("POST", `/api/templates/${data.templateId}/generate`, {
-          courseId: course.id
-        });
-        if (!templateResponse.ok) {
-          throw new Error("Failed to apply template");
-        }
-      }
+
 
       return course;
     },
@@ -116,6 +106,15 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
     setTags(tags.filter(t => t !== tag));
   };
 
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setTags([]);
+    setCurrentTag("");
+    setSelectedDocument(null);
+    setActiveTab("blank");
+  };
+
   const handleSubmit = () => {
     if (!title) {
       toast({
@@ -130,41 +129,12 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
       title,
       description,
       tags,
-      method: activeTab as 'blank' | 'document' | 'template',
-      documentFile: selectedDocument || undefined,
-      templateId: selectedTemplate || undefined
+      method: activeTab as 'blank' | 'document',
+      documentFile: selectedDocument || undefined
     });
   };
 
-  const templates = [
-    {
-      id: "intro-programming",
-      title: "Introduction to Programming",
-      description: "Complete beginner programming course with Python",
-      category: "Technology",
-      duration: "8 weeks",
-      modules: 12,
-      icon: "🐍"
-    },
-    {
-      id: "business-fundamentals",
-      title: "Business Fundamentals",
-      description: "Essential business concepts for entrepreneurs",
-      category: "Business",
-      duration: "6 weeks",
-      modules: 10,
-      icon: "💼"
-    },
-    {
-      id: "creative-writing",
-      title: "Creative Writing Workshop",
-      description: "Master the art of storytelling and creative expression",
-      category: "Arts",
-      duration: "4 weeks",
-      modules: 8,
-      icon: "✍️"
-    }
-  ];
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -177,7 +147,7 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="blank" className="flex items-center gap-2">
               <BookOpen className="w-4 h-4" />
               Start from Scratch
@@ -185,10 +155,6 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
             <TabsTrigger value="document" className="flex items-center gap-2">
               <Brain className="w-4 h-4" />
               AI from Document
-            </TabsTrigger>
-            <TabsTrigger value="template" className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              Use Template
             </TabsTrigger>
           </TabsList>
 
@@ -317,7 +283,7 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
                     Fast creation
                   </span>
                   <span className="flex items-center gap-1">
-                    <Sparkles className="w-4 h-4" />
+                    <Brain className="w-4 h-4" />
                     AI-generated content
                   </span>
                 </div>
@@ -325,49 +291,14 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
             </Card>
           </TabsContent>
 
-          <TabsContent value="template" className="mt-6">
-            <div className="space-y-3">
-              {templates.map(template => (
-                <Card
-                  key={template.id}
-                  className={`p-4 cursor-pointer transition-all hover:shadow-md ${
-                    selectedTemplate === template.id ? 'ring-2 ring-primary' : ''
-                  }`}
-                  onClick={() => setSelectedTemplate(template.id)}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="text-3xl">{template.icon}</div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">{template.title}</h4>
-                      <p className="text-sm text-gray-600 mt-1">{template.description}</p>
-                      <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {template.duration}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <BookOpen className="w-3 h-3" />
-                          {template.modules} modules
-                        </span>
-                        <Badge variant="outline" className="text-xs">
-                          {template.category}
-                        </Badge>
-                      </div>
-                    </div>
-                    {selectedTemplate === template.id && (
-                      <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                        <span className="text-white text-sm">✓</span>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
+
         </Tabs>
 
         <div className="flex justify-end gap-3 mt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => {
+            resetForm();
+            onOpenChange(false);
+          }}>
             Cancel
           </Button>
           <Button 
