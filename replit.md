@@ -10,8 +10,26 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 
-**Latest Updates:**
-- **MAJOR UPDATE: Implemented Complete Authentication System** (January 24, 2025)
+**Latest Updates (January 27, 2025):**
+- **Removed Templates Section** from Creator Dashboard for streamlined experience
+- **Added Quick Delete Functionality** for courses with confirmation dialogs
+- **Fixed Database Schema Issues** - removed source_references column mismatch
+- **Enhanced Course Management:**
+  - Quick delete buttons on course cards for faster management
+  - Delete confirmation dialog to prevent accidental deletions
+  - Improved error handling for missing courses
+- **AI Course Generation Improvements:**
+  - Verified strict Module → Lessons hierarchy in all AI-generated content
+  - All course documents auto-select when opening Generate Modules dialog
+  - Fixed document status filtering to properly show available documents
+- **Course Editor Enhancements:**
+  - Full editing capabilities for all AI-generated content
+  - Edit/delete buttons for modules and lessons
+  - Add module/lesson functionality
+  - AI Generate button for content creation
+
+**Previous Updates (January 24, 2025):**
+- **MAJOR UPDATE: Implemented Complete Authentication System**
   - Replaced mock authentication with real user accounts using industry-standard security
   - Added secure password hashing with bcryptjs
   - Implemented JWT token-based authentication with httpOnly cookies

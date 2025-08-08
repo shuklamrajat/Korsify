@@ -5,6 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import FileUpload from "@/components/ui/file-upload";
 import ProgressIndicator from "@/components/ui/progress-indicator";
 import CourseCard from "@/components/ui/course-card";
@@ -36,6 +46,8 @@ export default function CreatorDashboard() {
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
   const [processingJobId, setProcessingJobId] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
 
   // Fetch user data
   const { data: user } = useQuery<User>({
@@ -117,6 +129,33 @@ export default function CreatorDashboard() {
       toast({
         title: "Failed to generate course",
         description: error.message || "Could not generate course from document",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete course mutation
+  const deleteCourseMutation = useMutation({
+    mutationFn: async (courseId: string) => {
+      const response = await apiRequest("DELETE", `/api/courses/${courseId}`);
+      if (!response.ok) {
+        throw new Error("Failed to delete course");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
+      toast({
+        title: "Course deleted",
+        description: "The course has been successfully deleted.",
+      });
+      setDeleteDialogOpen(false);
+      setCourseToDelete(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to delete course",
+        description: error.message || "Could not delete the course",
         variant: "destructive",
       });
     },
@@ -213,24 +252,16 @@ export default function CreatorDashboard() {
         </div>
 
         <Tabs defaultValue="courses" className="space-y-8">
-          <TabsList className="grid grid-cols-3 w-full max-w-xl">
+          <TabsList className="grid grid-cols-2 w-full max-w-md">
             <TabsTrigger value="courses" className="flex items-center gap-2">
               <BookOpen className="w-4 h-4" />
               My Courses
-            </TabsTrigger>
-            <TabsTrigger value="templates" className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              Templates
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               Analytics
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="templates" className="space-y-6">
-            <TemplateGallery onCourseCreated={(courseId) => setLocation(`/courses/${courseId}/edit`)} />
-          </TabsContent>
 
           <TabsContent value="courses" className="space-y-6">
             <div className="flex items-center justify-between">
@@ -282,6 +313,10 @@ export default function CreatorDashboard() {
                         console.log('Viewing course:', course.id);
                         setLocation(`/courses/${course.id}`);
                       }}
+                      onDelete={() => {
+                        setCourseToDelete(course);
+                        setDeleteDialogOpen(true);
+                      }}
                     />
                   );
                 })}
@@ -313,6 +348,32 @@ export default function CreatorDashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Course</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{courseToDelete?.title}"? This action cannot be undone.
+                All modules, lessons, and student progress will be permanently deleted.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (courseToDelete) {
+                    deleteCourseMutation.mutate(courseToDelete.id);
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete Course
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
