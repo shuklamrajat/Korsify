@@ -12,8 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import Navigation from "@/components/navigation";
 import AiGenerationDialog from "@/components/ai-generation-dialog";
-import SourceViewer from "@/components/source-viewer";
-import CitationRenderer from "@/components/citation-renderer";
+import { SourceViewer } from "@/components/source-viewer";
+import { CitationRenderer } from "@/components/citation-renderer";
 import ModuleEditorDialog from "@/components/module-editor-dialog";
 import LessonEditorDialog from "@/components/lesson-editor-dialog";
 import {
@@ -519,12 +519,31 @@ export default function CourseEditor() {
 
           {/* Content Tab */}
           <TabsContent value="content" className="space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Course Content</h2>
-              <p className="text-gray-600 mb-6">
-                Organize your course content by creating modules and lessons. Each module can contain multiple lessons.
-              </p>
-            </div>
+            <div className="flex gap-6">
+              {/* Source Panel - Left Side */}
+              {showSourcePanel && (
+                <div className="w-96 flex-shrink-0">
+                  <Card className="h-[calc(100vh-300px)] overflow-hidden">
+                    <SourceViewer
+                      sourceReferences={course?.modules?.flatMap(m => 
+                        m.lessons?.flatMap(l => l.sourceReferences || []) || []
+                      ) || []}
+                      documents={courseDocuments}
+                      selectedCitationId={activeSourceReference || undefined}
+                      onClose={() => setShowSourcePanel(false)}
+                    />
+                  </Card>
+                </div>
+              )}
+              
+              {/* Main Content Area */}
+              <div className="flex-1">
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold mb-2">Course Content</h2>
+                  <p className="text-gray-600">
+                    Organize your course content by creating modules and lessons. Each module can contain multiple lessons.
+                  </p>
+                </div>
 
             <Card>
               <CardHeader>
@@ -650,9 +669,9 @@ export default function CourseEditor() {
                                       {lesson.content ? (
                                         <CitationRenderer
                                           content={lesson.content}
-                                          sourceReferences={[]}
-                                          onCitationClick={(ref) => {
-                                            setActiveSourceReference(ref.id);
+                                          sourceReferences={lesson.sourceReferences || []}
+                                          onCitationClick={(citationId) => {
+                                            setActiveSourceReference(citationId);
                                             setShowSourcePanel(true);
                                           }}
                                         />
@@ -730,6 +749,8 @@ export default function CourseEditor() {
                 </div>
               </CardContent>
             </Card>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Documents Tab */}
