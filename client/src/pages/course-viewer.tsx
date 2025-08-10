@@ -29,6 +29,7 @@ import {
   Brain,
   Globe
 } from "lucide-react";
+import { LessonViewer } from "@/components/lesson-viewer";
 
 export default function CourseViewer() {
   const params = useParams();

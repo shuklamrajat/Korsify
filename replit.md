@@ -11,6 +11,22 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (January 2025)
 
 **Latest Updates (January 27, 2025):**
+- **Enhanced Source Referencing with Document Scrolling**
+  - Fixed source referencing to scroll to relevant document sections when citations are clicked
+  - Added document content expansion with highlighted citation context
+  - Implemented smooth scrolling animations when navigating to citations
+  - Added visual highlight animations (yellow fade) to show clicked citation locations
+- **Revolutionary Rich Text Editor for Lessons**
+  - Implemented TipTap-based rich text editor with comprehensive formatting tools
+  - Added pre-built templates for Key Concepts, Examples, Warnings, Tips, Exercises, and Summaries
+  - Full support for text formatting, alignment, lists, quotes, code blocks, images, and links
+  - Toolbar with intuitive controls for headings, bold, italic, underline, highlight, and more
+- **Enhanced Lesson Viewer for Learners**
+  - Created beautiful lesson viewer with reading progress tracking
+  - Styled content with enhanced typography and visual hierarchy
+  - Added navigation between lessons with Previous/Next buttons
+  - Integrated video support with embedded YouTube player
+  - Attractive cards and layouts optimized for readability
 - **Fixed Role Selection Flow** - Role selection screen now appears at every login as requested
   - Users must choose between Creator and Learner mode every time they log in
   - Welcome screen displays "Welcome to Korsify! How would you like to use the platform today?"

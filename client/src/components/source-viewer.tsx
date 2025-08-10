@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,7 +9,8 @@ import {
   ChevronRight, 
   FileSearch,
   X,
-  Hash
+  Hash,
+  MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -34,6 +35,8 @@ export function SourceViewer({
 }: SourceViewerProps) {
   const [selectedReference, setSelectedReference] = useState<SourceReference | null>(null);
   const [expandedDocuments, setExpandedDocuments] = useState<Set<string>>(new Set());
+  const [expandedContent, setExpandedContent] = useState<string | null>(null);
+  const contentRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     if (selectedCitationId) {
@@ -41,6 +44,19 @@ export function SourceViewer({
       if (ref) {
         setSelectedReference(ref);
         setExpandedDocuments(new Set([ref.documentId]));
+        setExpandedContent(ref.documentId);
+        
+        // Scroll to the reference after a short delay to ensure rendering
+        setTimeout(() => {
+          const element = contentRefs.current[ref.id];
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.classList.add('highlight-animation');
+            setTimeout(() => {
+              element.classList.remove('highlight-animation');
+            }, 2000);
+          }
+        }, 100);
       }
     }
   }, [selectedCitationId, sourceReferences]);
@@ -84,6 +100,25 @@ export function SourceViewer({
       {index + 1}
     </span>
   );
+
+  // Get context around the citation text (before and after)
+  const getContextAroundText = (fullText: string, citation: string) => {
+    if (!fullText || !citation) return citation;
+    
+    const index = fullText.toLowerCase().indexOf(citation.toLowerCase());
+    if (index === -1) return citation;
+    
+    const contextLength = 200;
+    const start = Math.max(0, index - contextLength);
+    const end = Math.min(fullText.length, index + citation.length + contextLength);
+    
+    let result = '';
+    if (start > 0) result += '...';
+    result += fullText.substring(start, end);
+    if (end < fullText.length) result += '...';
+    
+    return result;
+  };
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
@@ -158,10 +193,68 @@ export function SourceViewer({
                       <>
                         <Separator />
                         <div className="p-3 space-y-2 max-h-96 overflow-y-auto">
+                          {/* Show full document content if expanded */}
+                          {expandedContent === docId && doc?.processedContent && (
+                            <Card className="mb-4 bg-amber-50 border-amber-200">
+                              <div className="p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="font-semibold text-amber-900 flex items-center gap-2">
+                                    <FileText className="w-4 h-4" />
+                                    Document Content
+                                  </h4>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setExpandedContent(null)}
+                                  >
+                                    Collapse
+                                  </Button>
+                                </div>
+                                <ScrollArea className="h-96">
+                                  <div className="prose prose-sm max-w-none">
+                                    {refs.map(ref => (
+                                      <div
+                                        key={ref.id}
+                                        ref={(el) => { contentRefs.current[ref.id] = el; }}
+                                        id={`citation-${ref.id}`}
+                                        className={`mb-6 p-4 rounded-lg transition-all ${
+                                          selectedReference?.id === ref.id
+                                            ? 'bg-blue-100 border-2 border-blue-400'
+                                            : 'hover:bg-gray-50'
+                                        }`}
+                                      >
+                                        <div className="flex items-start gap-2 mb-2">
+                                          <MapPin className="w-4 h-4 text-blue-600 mt-0.5" />
+                                          <span className="font-semibold text-sm text-blue-800">
+                                            Citation [{sourceReferences.indexOf(ref) + 1}]
+                                          </span>
+                                        </div>
+                                        <p className="text-gray-700 whitespace-pre-wrap">
+                                          {getContextAroundText(doc.processedContent, ref.text)}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </ScrollArea>
+                              </div>
+                            </Card>
+                          )}
+                          
+                          {/* Citation cards */}
                           {refs.map((ref, index) => (
                             <div
                               key={ref.id}
-                              onClick={() => setSelectedReference(ref)}
+                              onClick={() => {
+                                setSelectedReference(ref);
+                                setExpandedContent(docId);
+                                // Scroll to citation in document
+                                setTimeout(() => {
+                                  const element = contentRefs.current[ref.id];
+                                  if (element) {
+                                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  }
+                                }, 100);
+                              }}
                               className={`p-3 rounded-lg border cursor-pointer transition-all ${
                                 selectedReference?.id === ref.id
                                   ? 'bg-blue-50 border-blue-300'

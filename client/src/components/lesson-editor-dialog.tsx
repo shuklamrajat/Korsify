@@ -195,8 +195,7 @@ export default function LessonEditorDialog({
               content={content}
               onChange={setContent}
               placeholder="Write your lesson content here. You can format text, add images, create lists, and more..."
-              minHeight="400px"
-              editable={!isLoading}
+              readOnly={isLoading}
             />
           </div>
 
