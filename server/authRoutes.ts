@@ -1,7 +1,9 @@
 import { Express, Request, Response } from "express";
 import cookieParser from "cookie-parser";
+import passport from "passport";
 import { storage } from "./storage";
 import { generateToken, hashPassword, verifyPassword, authenticate, AuthRequest } from "./auth";
+import { initializeOAuth } from "./oauth";
 import { z } from "zod";
 
 // Validation schemas
@@ -20,6 +22,10 @@ const loginSchema = z.object({
 export function setupAuthRoutes(app: Express) {
   // Add cookie parser middleware
   app.use(cookieParser());
+  
+  // Initialize Passport and OAuth strategies
+  app.use(passport.initialize());
+  initializeOAuth();
 
   // Register endpoint
   app.post('/api/auth/register', async (req: Request, res: Response) => {
@@ -180,4 +186,86 @@ export function setupAuthRoutes(app: Express) {
       res.status(500).json({ message: "Failed to update role" });
     }
   });
+
+  // OAuth Routes
+  // Google OAuth
+  app.get('/api/auth/google',
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+  );
+
+  app.get('/api/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/login', session: false }),
+    (req: any, res: Response) => {
+      // Generate JWT token for the authenticated user
+      const user = req.user;
+      const token = generateToken(user);
+      
+      // Set cookie
+      const isProduction = process.env.NODE_ENV === 'production';
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'lax' : 'none',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/'
+      });
+      
+      // Redirect to role selection
+      res.redirect('/select-role');
+    }
+  );
+
+  // Apple OAuth
+  app.get('/api/auth/apple',
+    passport.authenticate('apple')
+  );
+
+  app.post('/api/auth/apple/callback',
+    passport.authenticate('apple', { failureRedirect: '/login', session: false }),
+    (req: any, res: Response) => {
+      // Generate JWT token for the authenticated user
+      const user = req.user;
+      const token = generateToken(user);
+      
+      // Set cookie
+      const isProduction = process.env.NODE_ENV === 'production';
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'lax' : 'none',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/'
+      });
+      
+      // Redirect to role selection
+      res.redirect('/select-role');
+    }
+  );
+
+  // LinkedIn OAuth
+  app.get('/api/auth/linkedin',
+    passport.authenticate('linkedin')
+  );
+
+  app.get('/api/auth/linkedin/callback',
+    passport.authenticate('linkedin', { failureRedirect: '/login', session: false }),
+    (req: any, res: Response) => {
+      // Generate JWT token for the authenticated user
+      const user = req.user;
+      const token = generateToken(user);
+      
+      // Set cookie
+      const isProduction = process.env.NODE_ENV === 'production';
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'lax' : 'none',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/'
+      });
+      
+      // Redirect to role selection
+      res.redirect('/select-role');
+    }
+  );
 }
