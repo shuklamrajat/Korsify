@@ -101,9 +101,9 @@ export const courses = pgTable("courses", {
 
 // Course Documents junction table for many-to-many relationship
 export const courseDocuments = pgTable("course_documents", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  courseId: varchar("course_id").notNull(),
-  documentId: varchar("document_id").notNull(),
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id", { length: 255 }).notNull(),
+  documentId: varchar("document_id", { length: 255 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
