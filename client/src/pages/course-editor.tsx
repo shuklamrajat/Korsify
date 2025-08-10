@@ -1117,7 +1117,8 @@ export default function CourseEditor() {
                 processedContent: doc.processedContent || undefined
               }))}
               sourceReferences={[]}
-              activeReference={activeSourceReference || undefined}
+              selectedCitationId={activeSourceReference || undefined}
+              onClose={() => setShowSourcePanel(false)}
             />
           </DialogContent>
         </Dialog>
