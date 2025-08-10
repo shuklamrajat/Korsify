@@ -93,8 +93,8 @@ export default function CourseEditor() {
   const [coverImage, setCoverImage] = useState<string | null>(null);
 
   // Fetch course data
-  const { data: course, isLoading: courseLoading } = useQuery<CourseWithDetails>({
-    queryKey: [`/api/courses/${courseId}`],
+  const { data: course, isLoading: courseLoading, refetch: refetchCourse } = useQuery<CourseWithDetails>({
+    queryKey: ['/api/courses', courseId],
     enabled: !!courseId,
   });
 
@@ -966,9 +966,23 @@ export default function CourseEditor() {
             onOpenChange={setShowAiGeneration}
             courseId={courseId!}
             documents={courseDocuments}
-            onComplete={() => {
-              queryClient.invalidateQueries({ queryKey: ['/api/courses', courseId] });
-              setActiveTab("content");
+            onComplete={async () => {
+              // Force refresh all course-related data with a small delay to ensure DB writes are complete
+              setTimeout(async () => {
+                await queryClient.invalidateQueries({ queryKey: ['/api/courses', courseId] });
+                await queryClient.refetchQueries({ queryKey: ['/api/courses', courseId] });
+                // Also refresh documents in case they were processed
+                await queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}/documents`] });
+                // Explicitly refetch the course data
+                await refetchCourse();
+                // Switch to content tab to show the new modules
+                setActiveTab("content");
+                // Show success message
+                toast({
+                  title: "Modules Generated Successfully",
+                  description: "Your AI-generated modules are now ready. Check the Content tab to view and edit them.",
+                });
+              }, 1000); // Wait 1 second for DB writes to complete
             }}
           />
         )}
