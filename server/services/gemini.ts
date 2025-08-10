@@ -141,6 +141,9 @@ export class GeminiService {
        - Difficulty Level: ${difficultyLevel}
        - Include "Key Takeaways" sections summarizing essential points
        - Add "Further Reading" suggestions based on document references
+       
+    IMPORTANT: Module titles should NOT include "Module 1:", "Module 2:", etc. prefixes. 
+    Just provide the descriptive title (e.g., "Introduction to Pricing Strategy" not "Module 1: Introduction to Pricing Strategy").
 
     Focus exclusively on the document content, presenting information clearly and comprehensively. Ensure all content is directly derived from the provided source material.
 

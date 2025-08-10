@@ -639,7 +639,11 @@ export default function CourseEditor() {
                             <div className="flex items-center gap-3">
                               <Folder className="w-5 h-5 text-primary" />
                               <div>
-                                <h4 className="font-medium">Module {index + 1}: {module.title}</h4>
+                                <h4 className="font-medium">
+                                  {module.title.startsWith(`Module ${index + 1}:`) || module.title.startsWith(`Module ${index + 1} :`) 
+                                    ? module.title 
+                                    : `Module ${index + 1}: ${module.title}`}
+                                </h4>
                                 <p className="text-sm text-gray-600 mt-1">{module.description}</p>
                               </div>
                             </div>
