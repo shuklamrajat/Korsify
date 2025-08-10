@@ -73,9 +73,14 @@ export default function Navigation() {
 
   const userMenuItems = user ? [
     {
-      label: user.userType === 'creator' ? 'Creator Dashboard' : 'Learner Dashboard',
+      label: 'Learner Dashboard',
       icon: BookOpen,
-      action: () => setLocation(user.userType === 'creator' ? '/creator' : '/learner'),
+      action: () => setLocation('/learner'),
+    },
+    {
+      label: 'Creator Dashboard',
+      icon: PlusCircle,
+      action: () => setLocation('/creator'),
     },
     {
       label: 'Browse Courses',
