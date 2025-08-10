@@ -110,7 +110,7 @@ export function setupAuthRoutes(app: Express) {
           firstName: user.firstName,
           lastName: user.lastName,
           currentRole: user.currentRole,
-          needsRoleSelection: !user.currentRole
+          needsRoleSelection: true // Always require role selection at login
         }
       });
     } catch (error) {
@@ -140,7 +140,7 @@ export function setupAuthRoutes(app: Express) {
         email: req.user.email,
         firstName: req.user.firstName,
         lastName: req.user.lastName,
-        userType: req.user.userType,
+        currentRole: req.user.currentRole,
         emailVerified: req.user.emailVerified
       }
     });
