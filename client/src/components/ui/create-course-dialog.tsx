@@ -21,8 +21,10 @@ import {
   Zap,
   Users,
   Target,
-  Clock
+  Clock,
+  Loader2
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 interface CreateCourseDialogProps {
   open: boolean;
@@ -39,7 +41,9 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
-  const [selectedDocument, setSelectedDocument] = useState<File | null>(null);
+  const [selectedDocuments, setSelectedDocuments] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
 
   // Create course mutation
@@ -49,7 +53,7 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
       description: string; 
       tags?: string[];
       method: 'blank' | 'document';
-      documentFile?: File;
+      documentFiles?: File[];
     }) => {
       // First create the course
       const courseResponse = await apiRequest("POST", "/api/courses", {
@@ -60,15 +64,29 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
       const course = await courseResponse.json();
 
       // If document method, upload and process
-      if (data.method === 'document' && data.documentFile) {
-        const formData = new FormData();
-        formData.append('file', data.documentFile);
-        formData.append('courseId', course.id);
+      if (data.method === 'document' && data.documentFiles && data.documentFiles.length > 0) {
+        setIsUploading(true);
         
-        const uploadResponse = await apiRequest("POST", "/api/documents/process-for-course", formData);
-        if (!uploadResponse.ok) {
-          throw new Error("Failed to process document");
+        // Upload each file
+        for (let i = 0; i < data.documentFiles.length; i++) {
+          const file = data.documentFiles[i];
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('courseId', course.id);
+          
+          // Update progress
+          setUploadProgress(Math.round(((i + 1) / data.documentFiles.length) * 100));
+          
+          const uploadResponse = await apiRequest("POST", "/api/documents/process-for-course", formData);
+          if (!uploadResponse.ok) {
+            setIsUploading(false);
+            setUploadProgress(0);
+            throw new Error(`Failed to process document: ${file.name}`);
+          }
         }
+        
+        setIsUploading(false);
+        setUploadProgress(0);
       }
 
 
@@ -111,8 +129,10 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
     setDescription("");
     setTags([]);
     setCurrentTag("");
-    setSelectedDocument(null);
+    setSelectedDocuments([]);
     setActiveTab("blank");
+    setUploadProgress(0);
+    setIsUploading(false);
   };
 
   const handleSubmit = () => {
@@ -130,7 +150,7 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
       description,
       tags,
       method: activeTab as 'blank' | 'document',
-      documentFile: selectedDocument || undefined
+      documentFiles: selectedDocuments.length > 0 ? selectedDocuments : undefined
     });
   };
 
@@ -245,25 +265,39 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
                 <div className="mt-4">
                   <label htmlFor="document-upload" className="cursor-pointer">
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-blue-500 transition-colors">
-                      {selectedDocument ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <FileText className="w-5 h-5 text-blue-600" />
-                          <span className="text-sm font-medium">{selectedDocument.name}</span>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setSelectedDocument(null);
-                            }}
-                            className="ml-2 text-red-500 hover:text-red-700"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                      {selectedDocuments.length > 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-gray-700 mb-2">
+                            {selectedDocuments.length} file{selectedDocuments.length > 1 ? 's' : ''} selected
+                          </p>
+                          {selectedDocuments.map((doc, index) => (
+                            <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-blue-600" />
+                                <span className="text-sm">{doc.name}</span>
+                                <span className="text-xs text-gray-500">
+                                  ({(doc.size / 1024 / 1024).toFixed(2)} MB)
+                                </span>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setSelectedDocuments(selectedDocuments.filter((_, i) => i !== index));
+                                }}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       ) : (
                         <>
                           <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                           <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
-                          <p className="text-xs text-gray-500 mt-1">PDF, DOC, DOCX, TXT, MD (max 50MB)</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Multiple files supported: PDF, DOC, DOCX, TXT, MD (max 50MB each)
+                          </p>
                         </>
                       )}
                     </div>
@@ -272,10 +306,25 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
                     id="document-upload"
                     type="file"
                     accept=".pdf,.doc,.docx,.txt,.md"
+                    multiple
                     className="hidden"
-                    onChange={(e) => setSelectedDocument(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setSelectedDocuments(files);
+                    }}
                   />
                 </div>
+
+                {/* Progress indicator */}
+                {isUploading && (
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Uploading documents...</span>
+                      <span className="font-medium">{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-2" />
+                  </div>
+                )}
 
                 <div className="flex justify-center gap-4 text-sm text-gray-500 mt-4">
                   <span className="flex items-center gap-1">
@@ -303,9 +352,26 @@ export default function CreateCourseDialog({ open, onOpenChange }: CreateCourseD
           </Button>
           <Button 
             onClick={handleSubmit}
-            disabled={createCourseMutation.isPending || !title}
+            disabled={
+              createCourseMutation.isPending || 
+              !title || 
+              isUploading ||
+              (activeTab === 'document' && selectedDocuments.length === 0)
+            }
           >
-            {createCourseMutation.isPending ? "Creating..." : "Create Course"}
+            {isUploading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Uploading {uploadProgress}%...
+              </>
+            ) : createCourseMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              "Create Course"
+            )}
           </Button>
         </div>
       </DialogContent>
