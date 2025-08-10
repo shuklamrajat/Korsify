@@ -346,7 +346,8 @@ export class DatabaseStorage implements IStorage {
       orderIndex: lesson.orderIndex,
       estimatedDuration: lesson.estimatedDuration,
       videoUrl: lesson.videoUrl,
-      attachments: lesson.attachments || []
+      attachments: lesson.attachments || [],
+      sourceReferences: lesson.sourceReferences || []
     }).returning();
     return created;
   }
