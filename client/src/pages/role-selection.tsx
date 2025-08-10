@@ -29,6 +29,8 @@ export default function RoleSelection() {
         role: selectedRole
       });
 
+      const data = await response.json();
+      
       if (response.ok) {
         toast({
           title: "Role selected!",
@@ -38,12 +40,13 @@ export default function RoleSelection() {
         // Redirect to appropriate dashboard
         setLocation(selectedRole === "creator" ? "/creator" : "/learner");
       } else {
-        throw new Error("Failed to update role");
+        throw new Error(data.message || "Failed to update role");
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Role update error:", error);
       toast({
         title: "Error",
-        description: "Failed to update role. Please try again.",
+        description: error.message || "Failed to update role. Please try again.",
         variant: "destructive"
       });
     } finally {
