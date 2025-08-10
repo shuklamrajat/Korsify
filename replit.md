@@ -11,22 +11,24 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (January 2025)
 
 **Latest Updates (January 27, 2025):**
-- **Removed Templates Section** from Creator Dashboard for streamlined experience
-- **Added Quick Delete Functionality** for courses with confirmation dialogs
-- **Fixed Database Schema Issues** - removed source_references column mismatch
-- **Enhanced Course Management:**
-  - Quick delete buttons on course cards for faster management
-  - Delete confirmation dialog to prevent accidental deletions
-  - Improved error handling for missing courses
-- **AI Course Generation Improvements:**
-  - Verified strict Module → Lessons hierarchy in all AI-generated content
-  - All course documents auto-select when opening Generate Modules dialog
-  - Fixed document status filtering to properly show available documents
-- **Course Editor Enhancements:**
-  - Full editing capabilities for all AI-generated content
-  - Edit/delete buttons for modules and lessons
-  - Add module/lesson functionality
-  - AI Generate button for content creation
+- **Fixed Role Selection Flow** - Role selection screen now appears at every login as requested
+  - Users must choose between Creator and Learner mode every time they log in
+  - Welcome screen displays "Welcome to Korsify! How would you like to use the platform today?"
+  - Fixed "Failed to update role" error that was preventing proper role selection
+  - Removed userType field error in authentication endpoints
+- **Implemented NotebookLM-Style Source Referencing**
+  - Added SourceViewer component for displaying document citations
+  - Created CitationRenderer for clickable inline citations [1], [2]
+  - Split layout in course editor with toggleable source panel on left side
+  - AI-generated content includes automatic citations linking back to source documents
+  - Hover previews and click-to-highlight functionality for citations
+- **Previous Feature Updates:**
+  - Removed Templates Section from Creator Dashboard for streamlined experience
+  - Added Quick Delete Functionality for courses with confirmation dialogs
+  - Fixed Database Schema Issues - removed source_references column mismatch
+  - Enhanced Course Management with quick delete buttons and confirmation dialogs
+  - AI Course Generation with strict Module → Lessons hierarchy
+  - Course Editor with full editing capabilities for all AI-generated content
 
 **Previous Updates (January 24, 2025):**
 - **MAJOR UPDATE: Implemented Complete Authentication System**

@@ -45,13 +45,8 @@ export default function LoginPage() {
           description: "Login successful"
         });
         
-        // Check if user needs to select a role
-        if (data.user.needsRoleSelection) {
-          setLocation("/select-role");
-        } else {
-          // Redirect based on current role
-          setLocation(data.user.currentRole === "creator" ? "/creator" : "/learner");
-        }
+        // Always redirect to role selection on login
+        setLocation("/select-role");
       } else {
         toast({
           title: "Login failed",
