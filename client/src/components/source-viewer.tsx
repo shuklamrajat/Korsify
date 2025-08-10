@@ -1,334 +1,274 @@
-import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   FileText, 
+  Quote, 
   ChevronRight, 
-  Search, 
-  ExternalLink,
-  Quote,
-  BookOpen,
-  Info,
+  FileSearch,
   X,
-  ChevronDown,
-  ChevronUp
+  Hash
 } from "lucide-react";
-import type { Document, SourceReference } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import type { SourceReference } from "@shared/schema";
 
 interface SourceViewerProps {
-  documents: Document[];
-  sourceReferences?: SourceReference[];
-  activeReference?: string;
-  onReferenceClick?: (reference: SourceReference) => void;
+  sourceReferences: SourceReference[];
+  documents: Array<{
+    id: string;
+    fileName: string;
+    processedContent?: string;
+  }>;
+  onClose?: () => void;
+  selectedCitationId?: string;
 }
 
-interface ParsedContent {
-  text: string;
-  citations: { id: string; text: string; documentId: string }[];
-}
-
-export default function SourceViewer({
-  documents,
-  sourceReferences = [],
-  activeReference,
-  onReferenceClick
+export function SourceViewer({ 
+  sourceReferences, 
+  documents, 
+  onClose,
+  selectedCitationId 
 }: SourceViewerProps) {
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
-  const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
-  const [searchQuery, setSearchQuery] = useState("");
-  const [hoveredCitation, setHoveredCitation] = useState<string | null>(null);
-  const citationRefs = useRef<{ [key: string]: HTMLElement | null }>({});
+  const [selectedReference, setSelectedReference] = useState<SourceReference | null>(null);
+  const [expandedDocuments, setExpandedDocuments] = useState<Set<string>>(new Set());
 
-  // Generate source guide summary
-  const generateSourceGuide = () => {
-    if (documents.length === 0) return null;
-
-    return documents.map(doc => ({
-      id: doc.id,
-      title: doc.fileName,
-      summary: `Document containing ${doc.processedContent?.length || 0} characters of content`,
-      suggestedQuestions: [
-        `What are the main topics in ${doc.fileName}?`,
-        `Summarize the key points from ${doc.fileName}`,
-        `How does ${doc.fileName} relate to the course objectives?`
-      ]
-    }));
-  };
-
-  const sourceGuide = generateSourceGuide();
-
-  // Parse content with citations
-  const parseContentWithCitations = (content: string): ParsedContent => {
-    const citationPattern = /\[(\d+)\]/g;
-    const citations: { id: string; text: string; documentId: string }[] = [];
-    
-    let parsedText = content;
-    let match;
-    
-    while ((match = citationPattern.exec(content)) !== null) {
-      const citationId = match[1];
-      const reference = sourceReferences.find(ref => ref.id === citationId);
-      
-      if (reference) {
-        citations.push({
-          id: citationId,
-          text: reference.text,
-          documentId: reference.documentId
-        });
+  useEffect(() => {
+    if (selectedCitationId) {
+      const ref = sourceReferences.find(r => r.id === selectedCitationId);
+      if (ref) {
+        setSelectedReference(ref);
+        setExpandedDocuments(new Set([ref.documentId]));
       }
     }
-    
-    return { text: parsedText, citations };
-  };
+  }, [selectedCitationId, sourceReferences]);
 
-  // Handle citation hover
-  const handleCitationHover = (citationId: string | null) => {
-    setHoveredCitation(citationId);
-  };
-
-  // Handle citation click
-  const handleCitationClick = (citationId: string) => {
-    const reference = sourceReferences.find(ref => ref.id === citationId);
-    if (reference) {
-      setSelectedDocument(documents.find(doc => doc.id === reference.documentId) || null);
-      if (onReferenceClick) {
-        onReferenceClick(reference);
-      }
+  // Group references by document
+  const referencesByDocument = sourceReferences.reduce((acc, ref) => {
+    if (!acc[ref.documentId]) {
+      acc[ref.documentId] = [];
     }
+    acc[ref.documentId].push(ref);
+    return acc;
+  }, {} as Record<string, SourceReference[]>);
+
+  const toggleDocument = (docId: string) => {
+    const newExpanded = new Set(expandedDocuments);
+    if (newExpanded.has(docId)) {
+      newExpanded.delete(docId);
+    } else {
+      newExpanded.add(docId);
+    }
+    setExpandedDocuments(newExpanded);
   };
 
-  // Toggle source expansion
-  const toggleSourceExpansion = (sourceId: string) => {
-    setExpandedSources(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(sourceId)) {
-        newSet.delete(sourceId);
-      } else {
-        newSet.add(sourceId);
-      }
-      return newSet;
-    });
+  const getDocumentById = (id: string) => {
+    return documents.find(doc => doc.id === id);
   };
 
-  // Filter documents based on search
-  const filteredDocuments = documents.filter(doc =>
-    doc.fileName.toLowerCase().includes(searchQuery.toLowerCase())
+  const highlightText = (text: string, highlight: string) => {
+    if (!highlight) return text;
+    
+    const parts = text.split(new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+    return parts.map((part, i) => 
+      part.toLowerCase() === highlight.toLowerCase() 
+        ? <mark key={i} className="bg-yellow-200 px-0.5 rounded">{part}</mark>
+        : part
+    );
+  };
+
+  const renderCitationNumber = (index: number) => (
+    <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+      {index + 1}
+    </span>
   );
 
   return (
-    <div className="flex h-full">
-      {/* Source Panel */}
-      <div className="w-80 border-r flex flex-col">
-        <div className="p-4 border-b">
-          <h3 className="font-semibold mb-3">Sources</h3>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search sources..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-3 py-2 border rounded-lg text-sm"
-            />
+    <div className="h-full flex flex-col bg-gray-50">
+      {/* Header */}
+      <div className="p-4 bg-white border-b">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FileSearch className="w-5 h-5 text-gray-600" />
+            <h3 className="font-semibold text-gray-900">Source References</h3>
+            {sourceReferences.length > 0 && (
+              <Badge variant="secondary">{sourceReferences.length} citations</Badge>
+            )}
           </div>
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
+      </div>
 
-        <ScrollArea className="flex-1">
-          <div className="p-4 space-y-3">
-            {filteredDocuments.map((doc) => (
-              <Card
-                key={doc.id}
-                className={`cursor-pointer transition-colors ${
-                  selectedDocument?.id === doc.id ? 'border-primary bg-primary/5' : 'hover:bg-gray-50'
-                }`}
-                onClick={() => setSelectedDocument(doc)}
-              >
-                <CardContent className="p-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-2 flex-1">
-                      <FileText className="w-4 h-4 mt-0.5 text-gray-500" />
+      {/* Content */}
+      <ScrollArea className="flex-1">
+        {sourceReferences.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">
+            <FileSearch className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <p className="text-sm">No source references available</p>
+            <p className="text-xs mt-1">Citations will appear here when content is generated from documents</p>
+          </div>
+        ) : (
+          <Tabs defaultValue="by-document" className="w-full">
+            <div className="px-4 pt-2">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="by-document">By Document</TabsTrigger>
+                <TabsTrigger value="all-citations">All Citations</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="by-document" className="mt-0 p-4 space-y-3">
+              {Object.entries(referencesByDocument).map(([docId, refs]) => {
+                const doc = getDocumentById(docId);
+                const isExpanded = expandedDocuments.has(docId);
+                
+                return (
+                  <Card key={docId} className="overflow-hidden">
+                    <button
+                      onClick={() => toggleDocument(docId)}
+                      className="w-full p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium text-sm text-gray-900">
+                          {doc?.fileName || 'Unknown Document'}
+                        </span>
+                        <Badge variant="outline" className="text-xs">
+                          {refs.length} citations
+                        </Badge>
+                      </div>
+                      <ChevronRight 
+                        className={`w-4 h-4 text-gray-400 transition-transform ${
+                          isExpanded ? 'rotate-90' : ''
+                        }`}
+                      />
+                    </button>
+                    
+                    {isExpanded && (
+                      <>
+                        <Separator />
+                        <div className="p-3 space-y-2 max-h-96 overflow-y-auto">
+                          {refs.map((ref, index) => (
+                            <div
+                              key={ref.id}
+                              onClick={() => setSelectedReference(ref)}
+                              className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                                selectedReference?.id === ref.id
+                                  ? 'bg-blue-50 border-blue-300'
+                                  : 'bg-white hover:bg-gray-50 border-gray-200'
+                              }`}
+                            >
+                              <div className="flex items-start gap-2">
+                                {renderCitationNumber(sourceReferences.indexOf(ref))}
+                                <div className="flex-1">
+                                  <p className="text-sm text-gray-700 line-clamp-3">
+                                    <Quote className="w-3 h-3 inline mr-1 text-gray-400" />
+                                    {ref.text}
+                                  </p>
+                                  {ref.pageNumber && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Page {ref.pageNumber}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </Card>
+                );
+              })}
+            </TabsContent>
+
+            <TabsContent value="all-citations" className="mt-0 p-4 space-y-2">
+              {sourceReferences.map((ref, index) => {
+                const doc = getDocumentById(ref.documentId);
+                
+                return (
+                  <Card
+                    key={ref.id}
+                    onClick={() => setSelectedReference(ref)}
+                    className={`p-3 cursor-pointer transition-all ${
+                      selectedReference?.id === ref.id
+                        ? 'bg-blue-50 border-blue-300'
+                        : 'bg-white hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      {renderCitationNumber(index)}
                       <div className="flex-1">
-                        <p className="font-medium text-sm truncate">{doc.fileName}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {(doc.fileSize / 1024).toFixed(1)} KB
+                        <div className="flex items-center gap-2 mb-1">
+                          <FileText className="w-3 h-3 text-blue-600" />
+                          <span className="text-xs font-medium text-gray-600">
+                            {doc?.fileName || 'Unknown Document'}
+                          </span>
+                          {ref.pageNumber && (
+                            <span className="text-xs text-gray-500">
+                              • Page {ref.pageNumber}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-700">
+                          <Quote className="w-3 h-3 inline mr-1 text-gray-400" />
+                          {ref.text}
                         </p>
-                        {doc.status === 'completed' && (
-                          <Badge variant="outline" className="mt-2 text-xs">
-                            Processed
-                          </Badge>
+                        {ref.context && (
+                          <p className="text-xs text-gray-500 mt-2 pl-4 border-l-2 border-gray-200">
+                            {highlightText(ref.context, ref.text)}
+                          </p>
                         )}
                       </div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </ScrollArea>
-
-        {/* Source Guide */}
-        {sourceGuide && sourceGuide.length > 0 && (
-          <div className="border-t p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="font-medium text-sm">Source Guide</h4>
-              <Info className="w-4 h-4 text-gray-400" />
-            </div>
-            <div className="space-y-2">
-              {sourceGuide.slice(0, 2).map((guide) => (
-                <div
-                  key={guide.id}
-                  className="text-xs p-2 bg-gray-50 rounded cursor-pointer hover:bg-gray-100"
-                  onClick={() => {
-                    const doc = documents.find(d => d.id === guide.id);
-                    if (doc) setSelectedDocument(doc);
-                  }}
-                >
-                  <p className="font-medium truncate">{guide.title}</p>
-                  <p className="text-gray-500 mt-1 line-clamp-2">{guide.summary}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+                  </Card>
+                );
+              })}
+            </TabsContent>
+          </Tabs>
         )}
-      </div>
+      </ScrollArea>
 
-      {/* Document Viewer */}
-      <div className="flex-1 flex flex-col">
-        {selectedDocument ? (
-          <>
-            <div className="p-4 border-b bg-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-gray-500" />
-                  <div>
-                    <h3 className="font-semibold">{selectedDocument.fileName}</h3>
-                    <p className="text-sm text-gray-500">
-                      {sourceReferences.filter(ref => ref.documentId === selectedDocument.id).length} citations
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedDocument(null)}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+      {/* Selected Reference Detail */}
+      {selectedReference && (
+        <div className="border-t bg-white p-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium text-gray-900">Selected Citation</h4>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedReference(null)}
+                className="h-6 px-2"
+              >
+                Clear
+              </Button>
+            </div>
+            <Card className="p-3 bg-blue-50 border-blue-200">
+              <p className="text-sm text-gray-700">{selectedReference.text}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <FileText className="w-3 h-3 text-blue-600" />
+                <span className="text-xs text-gray-600">
+                  {getDocumentById(selectedReference.documentId)?.fileName}
+                </span>
+                {selectedReference.pageNumber && (
+                  <span className="text-xs text-gray-500">
+                    • Page {selectedReference.pageNumber}
+                  </span>
+                )}
               </div>
-            </div>
-
-            <Tabs defaultValue="content" className="flex-1 flex flex-col">
-              <TabsList className="mx-4 mt-4">
-                <TabsTrigger value="content">Content</TabsTrigger>
-                <TabsTrigger value="citations">Citations</TabsTrigger>
-                <TabsTrigger value="questions">Suggested Questions</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="content" className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full">
-                  <div className="p-6">
-                    <div className="prose max-w-none">
-                      {selectedDocument.processedContent ? (
-                        <div className="whitespace-pre-wrap">
-                          {selectedDocument.processedContent}
-                        </div>
-                      ) : (
-                        <p className="text-gray-500">Content not yet processed</p>
-                      )}
-                    </div>
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-
-              <TabsContent value="citations" className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full">
-                  <div className="p-6 space-y-4">
-                    {sourceReferences
-                      .filter(ref => ref.documentId === selectedDocument.id)
-                      .map((reference, index) => (
-                        <Card
-                          key={reference.id}
-                          className="cursor-pointer hover:bg-gray-50"
-                          onClick={() => handleCitationClick(reference.id)}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-3">
-                              <Badge variant="outline">[{index + 1}]</Badge>
-                              <div className="flex-1">
-                                <Quote className="w-4 h-4 text-gray-400 mb-2" />
-                                <p className="text-sm italic">"{reference.text}"</p>
-                                {reference.context && (
-                                  <p className="text-xs text-gray-500 mt-2">
-                                    Context: {reference.context}
-                                  </p>
-                                )}
-                                {reference.pageNumber && (
-                                  <p className="text-xs text-gray-400 mt-1">
-                                    Page {reference.pageNumber}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-
-              <TabsContent value="questions" className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full">
-                  <div className="p-6">
-                    <div className="space-y-3">
-                      {sourceGuide
-                        ?.find(guide => guide.id === selectedDocument.id)
-                        ?.suggestedQuestions.map((question, index) => (
-                          <Card key={index} className="hover:bg-gray-50">
-                            <CardContent className="p-4">
-                              <div className="flex items-start gap-3">
-                                <BookOpen className="w-4 h-4 text-primary mt-0.5" />
-                                <p className="text-sm">{question}</p>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                    </div>
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-            </Tabs>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">Select a source document to view</p>
-            </div>
+            </Card>
           </div>
-        )}
-      </div>
-
-      {/* Citation Tooltip */}
-      {hoveredCitation && (
-        <div className="fixed z-50 bg-white border rounded-lg shadow-lg p-3 max-w-sm">
-          {(() => {
-            const reference = sourceReferences.find(ref => ref.id === hoveredCitation);
-            const document = documents.find(doc => doc.id === reference?.documentId);
-            return reference ? (
-              <>
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="outline" className="text-xs">[{hoveredCitation}]</Badge>
-                  <span className="text-xs text-gray-500">{document?.fileName}</span>
-                </div>
-                <p className="text-sm">"{reference.text}"</p>
-                <p className="text-xs text-gray-500 mt-2">Click to view in source</p>
-              </>
-            ) : null;
-          })()}
         </div>
       )}
     </div>

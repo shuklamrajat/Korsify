@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { geminiService, type AIGenerationOptions } from './gemini';
 import { storage } from '../storage';
-import type { InsertCourse, InsertModule, InsertLesson, InsertQuiz } from '@shared/schema';
+import type { InsertCourse, InsertModule, InsertLesson, InsertQuiz, SourceReference } from '@shared/schema';
 
 export interface ProcessingPhase {
   name: string;
@@ -163,28 +163,40 @@ export class DocumentProcessor {
     }
   }
 
-  private extractSourceReferences(content: string, documentId: string, documentName: string): any[] {
-    const references: any[] = [];
+  private extractSourceReferences(content: string, documentId: string, documentName: string): SourceReference[] {
+    const references: SourceReference[] = [];
     const citationPattern = /\[(\d+)\]/g;
     let match;
-    let citationCount = 0;
     
-    while ((match = citationPattern.exec(content)) !== null && citationCount < 10) {
-      citationCount++;
-      const citationId = match[1];
-      const startIndex = Math.max(0, match.index - 100);
-      const endIndex = Math.min(content.length, match.index + 100);
-      const contextText = content.substring(startIndex, endIndex);
+    // Extract all citations and create proper source references
+    while ((match = citationPattern.exec(content)) !== null) {
+      const citationNum = parseInt(match[1]);
+      const citationId = `ref-${documentId}-${citationNum}`;
+      
+      // Get meaningful context around the citation
+      const beforeStart = Math.max(0, match.index - 200);
+      const beforeText = content.substring(beforeStart, match.index);
+      
+      // Extract the sentence containing the citation
+      const sentences = beforeText.split(/[.!?]/);
+      const relevantText = sentences[sentences.length - 1]?.trim() || 
+                           sentences[sentences.length - 2]?.trim() || 
+                           beforeText.trim();
+      
+      // Get broader context
+      const contextStart = Math.max(0, match.index - 300);
+      const contextEnd = Math.min(content.length, match.index + 100);
+      const contextText = content.substring(contextStart, contextEnd).trim();
       
       references.push({
         id: citationId,
         documentId: documentId,
         documentName: documentName,
-        text: contextText.trim(),
-        context: `Referenced in lesson content at position ${match.index}`,
-        startOffset: startIndex,
-        endOffset: endIndex,
-        pageNumber: null
+        text: relevantText || `Reference ${citationNum}`,
+        context: contextText,
+        startOffset: contextStart,
+        endOffset: contextEnd,
+        pageNumber: undefined
       });
     }
     
@@ -340,7 +352,6 @@ export class DocumentProcessor {
       title: structure.title,
       description: structure.description,
       creatorId: userId,
-      documentId,
       status: 'draft',
       language: options.language || 'en',
       targetAudience: options.targetAudience,

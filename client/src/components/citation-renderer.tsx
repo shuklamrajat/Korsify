@@ -1,209 +1,163 @@
-import { useState, useRef, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { useState, useEffect } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card } from "@/components/ui/card";
+import { FileText, Quote } from "lucide-react";
 import type { SourceReference } from "@shared/schema";
 
 interface CitationRendererProps {
   content: string;
   sourceReferences: SourceReference[];
-  onCitationClick?: (reference: SourceReference) => void;
+  onCitationClick?: (citationId: string) => void;
 }
 
-export default function CitationRenderer({
-  content,
-  sourceReferences,
-  onCitationClick
+export function CitationRenderer({ 
+  content, 
+  sourceReferences, 
+  onCitationClick 
 }: CitationRendererProps) {
-  const [hoveredCitation, setHoveredCitation] = useState<string | null>(null);
-  const [clickedCitation, setClickedCitation] = useState<string | null>(null);
+  const [renderedContent, setRenderedContent] = useState<React.ReactNode[]>([]);
 
-  // Parse content and replace citations with interactive elements
-  const renderContentWithCitations = () => {
+  useEffect(() => {
+    // Parse content and replace citation markers with clickable citations
+    const parsedContent = parseCitations(content, sourceReferences);
+    setRenderedContent(parsedContent);
+  }, [content, sourceReferences]);
+
+  const parseCitations = (text: string, references: SourceReference[]) => {
     // Pattern to match citations like [1], [2], etc.
     const citationPattern = /\[(\d+)\]/g;
-    
-    const parts = [];
+    const parts: React.ReactNode[] = [];
     let lastIndex = 0;
     let match;
-    
-    while ((match = citationPattern.exec(content)) !== null) {
+
+    while ((match = citationPattern.exec(text)) !== null) {
       // Add text before citation
       if (match.index > lastIndex) {
         parts.push(
           <span key={`text-${lastIndex}`}>
-            {content.substring(lastIndex, match.index)}
+            {text.substring(lastIndex, match.index)}
           </span>
         );
       }
-      
-      const citationId = match[1];
-      const reference = sourceReferences.find(ref => ref.id === citationId);
+
+      // Add citation
+      const citationNumber = parseInt(match[1]) - 1;
+      const reference = references[citationNumber];
       
       if (reference) {
-        // Add interactive citation
         parts.push(
-          <Popover key={`citation-${citationId}`} open={clickedCitation === citationId}>
-            <PopoverTrigger asChild>
-              <span
-                className="inline-flex items-center px-1.5 py-0.5 mx-0.5 text-xs font-medium text-primary bg-primary/10 rounded cursor-pointer hover:bg-primary/20 transition-colors"
-                onMouseEnter={() => setHoveredCitation(citationId)}
-                onMouseLeave={() => setHoveredCitation(null)}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setClickedCitation(citationId === clickedCitation ? null : citationId);
-                  if (onCitationClick) {
-                    onCitationClick(reference);
-                  }
-                }}
-              >
-                [{citationId}]
-              </span>
-            </PopoverTrigger>
-            <PopoverContent className="w-96 p-4" align="start">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-xs">
-                    Source {citationId}
-                  </Badge>
-                  <span className="text-xs text-gray-500 truncate ml-2">
-                    {reference.documentName}
-                  </span>
-                </div>
-                
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-sm italic">"{reference.text}"</p>
-                </div>
-                
-                {reference.context && (
-                  <div className="text-xs text-gray-600">
-                    <p className="font-medium mb-1">Context:</p>
-                    <p className="line-clamp-3">{reference.context}</p>
-                  </div>
-                )}
-                
-                {reference.pageNumber && (
-                  <p className="text-xs text-gray-400">
-                    Page {reference.pageNumber}
-                  </p>
-                )}
-                
-                <div className="pt-2 border-t">
-                  <button
-                    className="text-xs text-primary hover:underline"
-                    onClick={() => {
-                      // Navigate to source document
-                      if (onCitationClick) {
-                        onCitationClick(reference);
-                      }
-                    }}
-                  >
-                    View in source document →
-                  </button>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <Citation
+            key={`citation-${match.index}`}
+            number={citationNumber + 1}
+            reference={reference}
+            onClick={() => onCitationClick?.(reference.id)}
+          />
         );
       } else {
-        // Citation without reference (fallback)
+        // If reference not found, just display the number
         parts.push(
-          <span
-            key={`citation-${citationId}`}
-            className="inline-flex items-center px-1.5 py-0.5 mx-0.5 text-xs font-medium text-gray-500 bg-gray-100 rounded"
-          >
-            [{citationId}]
+          <span key={`citation-${match.index}`} className="text-gray-400">
+            {match[0]}
           </span>
         );
       }
-      
+
       lastIndex = match.index + match[0].length;
     }
-    
+
     // Add remaining text
-    if (lastIndex < content.length) {
+    if (lastIndex < text.length) {
       parts.push(
         <span key={`text-${lastIndex}`}>
-          {content.substring(lastIndex)}
+          {text.substring(lastIndex)}
         </span>
       );
     }
-    
+
     return parts;
   };
 
-  // Render hover tooltip
-  const renderHoverTooltip = () => {
-    if (!hoveredCitation) return null;
-    
-    const reference = sourceReferences.find(ref => ref.id === hoveredCitation);
-    if (!reference) return null;
-    
-    return (
-      <div className="fixed z-50 pointer-events-none">
-        <Card className="p-3 max-w-sm shadow-lg">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
-                [{hoveredCitation}]
-              </Badge>
-              <span className="text-xs text-gray-500 truncate">
-                {reference.documentName}
-              </span>
-            </div>
-            <p className="text-sm line-clamp-3">"{reference.text}"</p>
-            <p className="text-xs text-gray-500">Click to view more</p>
-          </div>
-        </Card>
-      </div>
-    );
-  };
+  return <div className="citation-content">{renderedContent}</div>;
+}
+
+interface CitationProps {
+  number: number;
+  reference: SourceReference;
+  onClick?: () => void;
+}
+
+function Citation({ number, reference, onClick }: CitationProps) {
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="relative">
-      <div className="prose max-w-none">
-        {renderContentWithCitations()}
-      </div>
-      {renderHoverTooltip()}
-    </div>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick?.();
+          }}
+          onMouseEnter={() => setIsOpen(true)}
+          onMouseLeave={() => setIsOpen(false)}
+          className="inline-flex items-center justify-center w-5 h-5 mx-0.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors cursor-pointer"
+        >
+          {number}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent 
+        className="w-80 p-3" 
+        side="top"
+        onPointerDownOutside={() => setIsOpen(false)}
+      >
+        <div className="space-y-2">
+          <div className="flex items-start gap-2">
+            <Quote className="w-4 h-4 text-gray-400 mt-0.5" />
+            <p className="text-sm text-gray-700 flex-1">{reference.text}</p>
+          </div>
+          <div className="flex items-center gap-2 pt-2 border-t">
+            <FileText className="w-3 h-3 text-blue-600" />
+            <span className="text-xs text-gray-600">{reference.documentName}</span>
+            {reference.pageNumber && (
+              <span className="text-xs text-gray-500">• Page {reference.pageNumber}</span>
+            )}
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick?.();
+              setIsOpen(false);
+            }}
+            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+          >
+            View in source panel →
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
-// Utility function to extract citations from content
-export function extractCitations(content: string): string[] {
-  const citationPattern = /\[(\d+)\]/g;
-  const citations: string[] = [];
-  let match;
+// Helper function to add citations to plain text
+export function addCitationsToText(
+  text: string,
+  references: SourceReference[]
+): string {
+  // This function can be used by AI generation to add citation markers
+  let citedText = text;
   
-  while ((match = citationPattern.exec(content)) !== null) {
-    if (!citations.includes(match[1])) {
-      citations.push(match[1]);
+  references.forEach((ref, index) => {
+    // Find the reference text in the content and add citation
+    const refText = ref.text;
+    const citationMarker = `[${index + 1}]`;
+    
+    // Simple replacement - in production, you'd want more sophisticated matching
+    if (citedText.includes(refText)) {
+      citedText = citedText.replace(
+        refText,
+        `${refText}${citationMarker}`
+      );
     }
-  }
+  });
   
-  return citations;
-}
-
-// Utility function to generate mock source references for testing
-export function generateMockReferences(documentId: string, documentName: string, count: number): SourceReference[] {
-  const references: SourceReference[] = [];
-  
-  for (let i = 1; i <= count; i++) {
-    references.push({
-      id: i.toString(),
-      documentId,
-      documentName,
-      startOffset: i * 100,
-      endOffset: (i * 100) + 50,
-      text: `This is a sample text excerpt from the source document that provides evidence for the claim made in the lesson content.`,
-      context: `This excerpt appears in the context of discussing key concepts and principles related to the course topic.`,
-      pageNumber: Math.floor(Math.random() * 20) + 1
-    });
-  }
-  
-  return references;
+  return citedText;
 }
