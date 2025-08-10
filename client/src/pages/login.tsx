@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { BookOpen, Mail, Lock, User, ChevronLeft } from "lucide-react";
+import { FaGoogle, FaApple, FaLinkedin } from "react-icons/fa";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
@@ -192,6 +193,44 @@ export default function LoginPage() {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
+
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => window.location.href = '/api/auth/google'}
+                    disabled={isLoading}
+                  >
+                    <FaGoogle className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => window.location.href = '/api/auth/apple'}
+                    disabled={isLoading}
+                  >
+                    <FaApple className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => window.location.href = '/api/auth/linkedin'}
+                    disabled={isLoading}
+                  >
+                    <FaLinkedin className="w-4 h-4" />
+                  </Button>
+                </div>
               </form>
             </TabsContent>
             
@@ -272,6 +311,44 @@ export default function LoginPage() {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Creating account..." : "Create Account"}
                 </Button>
+
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => window.location.href = '/api/auth/google'}
+                    disabled={isLoading}
+                  >
+                    <FaGoogle className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => window.location.href = '/api/auth/apple'}
+                    disabled={isLoading}
+                  >
+                    <FaApple className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => window.location.href = '/api/auth/linkedin'}
+                    disabled={isLoading}
+                  >
+                    <FaLinkedin className="w-4 h-4" />
+                  </Button>
+                </div>
               </form>
             </TabsContent>
           </Tabs>

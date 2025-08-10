@@ -46,9 +46,13 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(email: string, passwordHash: string, firstName?: string, lastName?: string): Promise<User>;
+  createUser(userData: any): Promise<User>;
+  updateUser(id: string, updates: Partial<User>): Promise<User>;
   updateUserPassword(id: string, passwordHash: string): Promise<void>;
   updateUserRole(id: string, role: 'creator' | 'learner'): Promise<void>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  getUserByAppleId(appleId: string): Promise<User | undefined>;
+  getUserByLinkedInId(linkedinId: string): Promise<User | undefined>;
 
   // Document operations
   createDocument(document: InsertDocument): Promise<Document>;
@@ -145,15 +149,39 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(email: string, passwordHash: string, firstName?: string, lastName?: string): Promise<User> {
+  async createUser(userData: any): Promise<User> {
     const [user] = await db.insert(users).values({
-      email,
-      passwordHash,
-      firstName,
-      lastName,
-      currentRole: null, // Role will be selected after first login
-      emailVerified: false
+      ...userData,
+      currentRole: userData.currentRole || null,
+      emailVerified: userData.emailVerified || false
     }).returning();
+    return user;
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.googleId, googleId));
+    return user;
+  }
+
+  async getUserByAppleId(appleId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.appleId, appleId));
+    return user;
+  }
+
+  async getUserByLinkedInId(linkedinId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.linkedinId, linkedinId));
     return user;
   }
 

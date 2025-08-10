@@ -46,6 +46,11 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   currentRole: varchar("current_role", { enum: ['creator', 'learner'] }),
   emailVerified: boolean("email_verified").default(false),
+  // OAuth provider fields
+  googleId: varchar("google_id").unique(),
+  appleId: varchar("apple_id").unique(),
+  linkedinId: varchar("linkedin_id").unique(),
+  authProvider: varchar("auth_provider", { enum: ['local', 'google', 'apple', 'linkedin'] }).default('local'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
