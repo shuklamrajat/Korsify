@@ -368,6 +368,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Module routes
+  app.post('/api/modules', async (req: any, res) => {
+    try {
+      const { courseId, title, description, orderIndex } = req.body;
+      
+      // Verify the course exists and user has permission
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ message: 'Course not found' });
+      }
+      
+      if (course.creatorId !== req.user.id) {
+        return res.status(403).json({ message: 'Not authorized to edit this course' });
+      }
+      
+      const module = await storage.createModule({
+        courseId,
+        title,
+        description,
+        orderIndex: orderIndex || 0
+      });
+      
+      res.json(module);
+    } catch (error) {
+      console.error("Error creating module:", error);
+      res.status(500).json({ message: "Failed to create module" });
+    }
+  });
+  
+  app.patch('/api/modules/:id', async (req: any, res) => {
+    try {
+      const updated = await storage.updateModule(req.params.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating module:", error);
+      res.status(500).json({ message: "Failed to update module" });
+    }
+  });
+  
+  app.delete('/api/modules/:id', async (req: any, res) => {
+    try {
+      await storage.deleteModule(req.params.id);
+      res.json({ message: 'Module deleted successfully' });
+    } catch (error) {
+      console.error("Error deleting module:", error);
+      res.status(500).json({ message: "Failed to delete module" });
+    }
+  });
+  
+  // Lesson routes
+  app.post('/api/lessons', async (req: any, res) => {
+    try {
+      const { moduleId, title, content, orderIndex } = req.body;
+      
+      const lesson = await storage.createLesson({
+        moduleId,
+        title,
+        content,
+        orderIndex: orderIndex || 0,
+        sourceReferences: []
+      });
+      
+      res.json(lesson);
+    } catch (error) {
+      console.error("Error creating lesson:", error);
+      res.status(500).json({ message: "Failed to create lesson" });
+    }
+  });
+  
+  app.patch('/api/lessons/:id', async (req: any, res) => {
+    try {
+      const updated = await storage.updateLesson(req.params.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating lesson:", error);
+      res.status(500).json({ message: "Failed to update lesson" });
+    }
+  });
+  
+  app.delete('/api/lessons/:id', async (req: any, res) => {
+    try {
+      await storage.deleteLesson(req.params.id);
+      res.json({ message: 'Lesson deleted successfully' });
+    } catch (error) {
+      console.error("Error deleting lesson:", error);
+      res.status(500).json({ message: "Failed to delete lesson" });
+    }
+  });
+
   // Course Template routes
   app.get('/api/templates', async (req: any, res) => {
     try {
