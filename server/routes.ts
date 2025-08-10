@@ -133,6 +133,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload documents endpoint (supports multiple files and course linking)
+  app.post('/api/documents/upload', upload.array('documents', 10), async (req: any, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      const courseId = req.body.courseId;
+      
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: 'No files uploaded' });
+      }
+
+      const uploadedDocuments = [];
+      
+      // Upload all documents
+      for (const file of files) {
+        const documentData = {
+          fileName: file.originalname,
+          fileSize: file.size,
+          fileType: path.extname(file.originalname).toLowerCase(),
+          storageUrl: file.path,
+          uploadedBy: req.user.id,
+          status: 'completed' as const,
+        };
+
+        const validatedData = insertDocumentSchema.parse(documentData);
+        const document = await storage.createDocument(validatedData);
+        uploadedDocuments.push(document);
+      }
+
+      // If courseId provided, link documents to course
+      if (courseId) {
+        const documentIds = uploadedDocuments.map(doc => doc.id);
+        await storage.addMultipleDocumentsToCourse(courseId, documentIds);
+      }
+      
+      res.json({ 
+        documents: uploadedDocuments,
+        count: uploadedDocuments.length,
+        courseId: courseId || null
+      });
+    } catch (error) {
+      console.error("Error uploading documents:", error);
+      res.status(500).json({ message: "Failed to upload documents" });
+    }
+  });
+
   app.get('/api/documents', async (req: any, res) => {
     try {
       const documents = await storage.getUserDocuments(req.user.id);

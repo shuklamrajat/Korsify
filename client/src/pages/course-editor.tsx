@@ -142,21 +142,28 @@ export default function CourseEditor() {
   // Upload document mutation - supports multiple files
   const uploadDocumentMutation = useMutation({
     mutationFn: async (files: FileList) => {
-      const uploadPromises = Array.from(files).map(async (file) => {
-        const formData = new FormData();
-        formData.append('document', file);
-        formData.append('courseId', courseId!);
-        const response = await apiRequest("POST", "/api/documents/upload", formData);
-        return response.json();
+      const formData = new FormData();
+      
+      // Add all files to formData
+      Array.from(files).forEach((file) => {
+        formData.append('documents', file);
       });
-      return Promise.all(uploadPromises);
+      
+      // Add courseId if available
+      if (courseId) {
+        formData.append('courseId', courseId);
+      }
+      
+      const response = await apiRequest("POST", "/api/documents/upload", formData);
+      const result = await response.json();
+      return result;
     },
-    onSuccess: (results) => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}/documents`] });
       queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
       toast({
         title: "Documents uploaded",
-        description: `Successfully uploaded ${results.length} document(s).`,
+        description: `Successfully uploaded ${result.count} document(s).`,
       });
     },
     onError: (error) => {
@@ -528,7 +535,11 @@ export default function CourseEditor() {
                       sourceReferences={course?.modules?.flatMap(m => 
                         m.lessons?.flatMap(l => l.sourceReferences || []) || []
                       ) || []}
-                      documents={courseDocuments}
+                      documents={courseDocuments.map(doc => ({
+                        id: doc.id,
+                        fileName: doc.fileName,
+                        processedContent: doc.processedContent || undefined
+                      }))}
                       selectedCitationId={activeSourceReference || undefined}
                       onClose={() => setShowSourcePanel(false)}
                     />
@@ -1100,7 +1111,11 @@ export default function CourseEditor() {
         <Dialog open={showSourcePanel} onOpenChange={setShowSourcePanel}>
           <DialogContent className="max-w-6xl w-full h-[80vh] p-0">
             <SourceViewer
-              documents={courseDocuments}
+              documents={courseDocuments.map(doc => ({
+                id: doc.id,
+                fileName: doc.fileName,
+                processedContent: doc.processedContent || undefined
+              }))}
               sourceReferences={[]}
               activeReference={activeSourceReference || undefined}
             />
