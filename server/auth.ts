@@ -42,15 +42,11 @@ export async function authenticate(req: AuthRequest, res: Response, next: NextFu
     const token = req.cookies?.token || req.headers.authorization?.replace("Bearer ", "");
     
     if (!token) {
-      // Allow access to auth routes without token
-      if (req.path.startsWith("/api/auth/")) {
-        return next();
-      }
-      return res.status(401).json({ message: "Authentication required" });
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
     // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string; userType: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string; currentRole?: string };
     
     // Get user from database
     const user = await storage.getUser(decoded.id);
