@@ -248,11 +248,56 @@ export default function CourseEditor() {
     });
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files && files.length > 0) {
-      uploadDocumentMutation.mutate(files);
-      event.target.value = ''; // Clear input for re-upload
+    if (!files || files.length === 0) {
+      console.error('No files selected');
+      return;
+    }
+
+    // Create FormData and append files
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      formData.append('documents', files[i]);
+    }
+    
+    // Add courseId if available
+    if (courseId) {
+      formData.append('courseId', courseId);
+    }
+
+    try {
+      const response = await fetch('/api/documents/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
+
+      const result = await response.json();
+      
+      // Refresh the documents list
+      queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}/documents`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      
+      toast({
+        title: "Documents uploaded",
+        description: `Successfully uploaded ${result.count} document(s).`,
+      });
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload documents",
+        variant: "destructive",
+      });
+    } finally {
+      // Clear the input for re-upload
+      event.target.value = '';
     }
   };
 
