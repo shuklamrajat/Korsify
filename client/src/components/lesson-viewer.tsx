@@ -192,12 +192,12 @@ export function LessonViewer({
             <div className="p-8">
 
 
-              {/* Content */}
+              {/* Content - Rich Text without Citations */}
               <RichTextViewer 
                 content={lesson.content}
-                enableCitations={sourceReferences.length > 0}
-                sourceReferences={sourceReferences}
-                onCitationClick={onCitationClick}
+                enableCitations={false}
+                sourceReferences={[]}
+                onCitationClick={() => {}}
                 className="lesson-content"
               />
 
