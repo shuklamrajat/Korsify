@@ -235,8 +235,14 @@ export function setupAuthRoutes(app: Express) {
       let user;
       try {
         user = await storage.getUserByGoogleId(uid);
-      } catch (dbError) {
+      } catch (dbError: any) {
         console.error("Error checking for existing Google user:", dbError);
+        // More detailed error logging for debugging
+        console.error("Database error details:", {
+          error: dbError.message,
+          code: dbError.code,
+          detail: dbError.detail
+        });
         return res.status(500).json({ message: "Database error while checking user account" });
       }
       
