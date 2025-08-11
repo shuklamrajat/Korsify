@@ -111,22 +111,6 @@ export function LessonViewer({
   }, [lesson.id]);
 
   const formatContent = (content: string) => {
-    // Handle null or undefined content
-    if (!content) {
-      return <div className="text-gray-500 italic">No content available for this lesson.</div>;
-    }
-
-    // Decode HTML entities if present
-    const decodeHTMLEntities = (text: string) => {
-      const textarea = document.createElement('textarea');
-      textarea.innerHTML = text;
-      return textarea.value;
-    };
-
-    // Check if content contains HTML tags
-    const isHTML = /<[a-z][\s\S]*>/i.test(content);
-    const decodedContent = isHTML ? content : decodeHTMLEntities(content);
-    
     // Parse and enhance the content
     return (
       <div className="prose prose-lg max-w-none lesson-content">
@@ -322,12 +306,12 @@ export function LessonViewer({
         
         {sourceReferences.length > 0 ? (
           <CitationRenderer
-            content={decodedContent}
+            content={content}
             sourceReferences={sourceReferences}
             onCitationClick={onCitationClick}
           />
         ) : (
-          <div dangerouslySetInnerHTML={{ __html: decodedContent }} />
+          <div dangerouslySetInnerHTML={{ __html: content }} />
         )}
       </div>
     );
@@ -413,7 +397,9 @@ export function LessonViewer({
 
 
               {/* Content */}
-              {formatContent(lesson.content)}
+              <div className="lesson-content">
+                {formatContent(lesson.content)}
+              </div>
 
 
             </div>
