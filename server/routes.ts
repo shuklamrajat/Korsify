@@ -317,14 +317,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
       }
 
-      // Fetch modules and lessons for each course to get counts
+      // Fetch modules and lessons for each course to get counts and statistics
       const coursesWithCounts = await Promise.all(filteredCourses.map(async (course: any) => {
         const modules = await storage.getCourseModules(course.id);
         const modulesWithLessons = await Promise.all(modules.map(async (module: any) => {
           const lessons = await storage.getModuleLessons(module.id);
           return { ...module, lessons };
         }));
-        return { ...course, modules: modulesWithLessons };
+        
+        // Get updated statistics
+        const stats = await storage.getCourseStatistics(course.id);
+        
+        return { 
+          ...course, 
+          modules: modulesWithLessons,
+          estimatedDuration: stats.estimatedDuration,
+          enrollmentCount: stats.enrollmentCount
+        };
       }));
 
       res.json(coursesWithCounts);
@@ -357,6 +366,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!course) {
         return res.status(404).json({ message: 'Course not found' });
       }
+      
+      // Update course statistics before returning
+      const stats = await storage.getCourseStatistics(req.params.id);
+      course.estimatedDuration = stats.estimatedDuration;
+      course.enrollmentCount = stats.enrollmentCount;
+      
       res.json(course);
     } catch (error) {
       console.error("Error fetching course:", error);
@@ -631,7 +646,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      res.json({ course, message: 'Course generated successfully from template' });
+      // Update course statistics after generation
+      const stats = await storage.getCourseStatistics(course.id);
+      await storage.updateCourse(course.id, {
+        estimatedDuration: stats.estimatedDuration,
+        enrollmentCount: stats.enrollmentCount
+      });
+
+      const updatedCourse = await storage.getCourse(course.id);
+      res.json({ course: updatedCourse, message: 'Course generated successfully from template' });
     } catch (error) {
       console.error("Error generating course from template:", error);
       res.status(500).json({ message: "Failed to generate course from template" });
@@ -686,7 +709,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      res.json({ course, message: 'Custom course generated successfully' });
+      // Update course statistics after generation
+      const stats = await storage.getCourseStatistics(course.id);
+      await storage.updateCourse(course.id, {
+        estimatedDuration: stats.estimatedDuration,
+        enrollmentCount: stats.enrollmentCount
+      });
+
+      const updatedCourse = await storage.getCourse(course.id);
+      res.json({ course: updatedCourse, message: 'Custom course generated successfully' });
     } catch (error) {
       console.error("Error generating custom course:", error);
       res.status(500).json({ message: "Failed to generate custom course" });
@@ -715,6 +746,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = insertEnrollmentSchema.parse(enrollmentData);
       const enrollment = await storage.createEnrollment(validatedData);
+      
+      // Update course enrollment count
+      const stats = await storage.getCourseStatistics(courseId);
+      await storage.updateCourse(courseId, {
+        enrollmentCount: stats.enrollmentCount
+      });
       
       res.json(enrollment);
     } catch (error) {

@@ -448,71 +448,21 @@ export default function CourseViewer() {
               </Card>
             ) : selectedLessonData ? (
               <div className="relative">
-                {/* Source Sidebar and Content */}
-                <div className="flex gap-6">
-                  {/* Source Sidebar */}
-                  {showSources && documents.length > 0 && (
-                    <div className="w-96 sticky top-8 h-fit">
-                      <Card className="shadow-lg">
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <FileText className="w-5 h-5 text-blue-600" />
-                              <CardTitle className="text-lg">Source Documents</CardTitle>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setShowSources(false)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <ChevronLeft className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                          <ScrollArea className="h-[600px]">
-                            <SourceViewer
-                              sourceReferences={selectedLessonData.sourceReferences || []}
-                              documents={documents}
-                              selectedCitationId={selectedCitationId}
-                              onClose={() => setShowSources(false)}
-                            />
-                          </ScrollArea>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )}
-
-                  {/* Main Lesson Content */}
-                  <div className="flex-1 space-y-6">
-                    {/* Toggle Sources Button if not showing */}
-                    {!showSources && documents.length > 0 && selectedLessonData.sourceReferences?.length > 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowSources(true)}
-                        className="mb-4"
-                      >
-                        <SidebarOpen className="w-4 h-4 mr-2" />
-                        Show Sources
-                      </Button>
-                    )}
-                    
-                    {/* Use LessonViewer Component */}
-                    <LessonViewer
-                      lesson={selectedLessonData}
-                      moduleTitle={selectedModuleData?.title}
-                      isCompleted={false}
-                      onComplete={handleLessonComplete}
-                      onNext={navigateToNextLesson}
-                      onPrevious={navigateToPreviousLesson}
-                      hasNext={!(course.modules[course.modules.length - 1]?.lessons[course.modules[course.modules.length - 1]?.lessons.length - 1]?.id === selectedLesson)}
-                      hasPrevious={!(course.modules[0]?.lessons[0]?.id === selectedLesson)}
-                      sourceReferences={selectedLessonData.sourceReferences || []}
-                      onCitationClick={handleCitationClick}
-                    />
-                  </div>
+                {/* Main Lesson Content - No Sources */}
+                <div className="w-full">
+                  {/* Use LessonViewer Component without citations */}
+                  <LessonViewer
+                    lesson={selectedLessonData}
+                    moduleTitle={selectedModuleData?.title}
+                    isCompleted={false}
+                    onComplete={handleLessonComplete}
+                    onNext={navigateToNextLesson}
+                    onPrevious={navigateToPreviousLesson}
+                    hasNext={!(course.modules[course.modules.length - 1]?.lessons[course.modules[course.modules.length - 1]?.lessons.length - 1]?.id === selectedLesson)}
+                    hasPrevious={!(course.modules[0]?.lessons[0]?.id === selectedLesson)}
+                    sourceReferences={[]}
+                    onCitationClick={() => {}}
+                  />
                 </div>
               </div>
             ) : (
