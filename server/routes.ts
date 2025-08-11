@@ -276,10 +276,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         courses = await storage.getUserCourses(req.user.id);
       }
       
-      res.json(courses);
+      // Fetch modules and lessons for each course to get counts
+      const coursesWithCounts = await Promise.all(courses.map(async (course: any) => {
+        const modules = await storage.getCourseModules(course.id);
+        const modulesWithLessons = await Promise.all(modules.map(async (module: any) => {
+          const lessons = await storage.getModuleLessons(module.id);
+          return { ...module, lessons };
+        }));
+        return { ...course, modules: modulesWithLessons };
+      }));
+      
+      res.json(coursesWithCounts);
     } catch (error) {
       console.error("Error fetching courses:", error);
       res.status(500).json({ message: "Failed to fetch courses" });
+    }
+  });
+
+  // Course search endpoint
+  app.get('/api/courses/search', async (req: any, res) => {
+    try {
+      const { q } = req.query;
+      const searchQuery = q ? String(q).toLowerCase() : '';
+      
+      // Get all published courses
+      const courses = await storage.getPublishedCourses();
+      
+      // Filter based on search query
+      let filteredCourses = courses;
+      if (searchQuery) {
+        filteredCourses = courses.filter((course: any) => 
+          course.title.toLowerCase().includes(searchQuery) ||
+          course.description?.toLowerCase().includes(searchQuery) ||
+          course.targetAudience?.toLowerCase().includes(searchQuery) ||
+          course.difficultyLevel?.toLowerCase().includes(searchQuery)
+        );
+      }
+
+      // Fetch modules and lessons for each course to get counts
+      const coursesWithCounts = await Promise.all(filteredCourses.map(async (course: any) => {
+        const modules = await storage.getCourseModules(course.id);
+        const modulesWithLessons = await Promise.all(modules.map(async (module: any) => {
+          const lessons = await storage.getModuleLessons(module.id);
+          return { ...module, lessons };
+        }));
+        return { ...course, modules: modulesWithLessons };
+      }));
+
+      res.json(coursesWithCounts);
+    } catch (error) {
+      console.error("Error searching courses:", error);
+      res.status(500).json({ message: "Failed to search courses" });
     }
   });
 
@@ -696,7 +743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update course enrollment count
       const course = await storage.getCourse(courseId);
-      if (course && course.enrollmentCount > 0) {
+      if (course && course.enrollmentCount !== null && course.enrollmentCount > 0) {
         await storage.updateCourse(courseId, {
           enrollmentCount: course.enrollmentCount - 1,
         });
