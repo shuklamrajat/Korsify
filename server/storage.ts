@@ -155,7 +155,8 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.insert(users).values({
       ...userData,
       currentRole: userData.currentRole || null,
-      emailVerified: userData.emailVerified || false
+      emailVerified: userData.emailVerified || false,
+      authProvider: userData.authProvider || 'local'
     }).returning();
     return user;
   }
@@ -213,7 +214,8 @@ export class DatabaseStorage implements IStorage {
       lastName,
       emailVerified: true, // Google accounts are pre-verified
       currentRole: null, // Will be selected after login
-      passwordHash: null // No password for OAuth users
+      passwordHash: null, // No password for OAuth users
+      authProvider: 'google'
     }).returning();
     return user;
   }
