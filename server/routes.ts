@@ -33,8 +33,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Apply authentication middleware to protected API routes
   // Note: auth routes themselves don't need this middleware
   app.use('/api', (req, res, next) => {
-    // Skip auth middleware for auth routes
-    if (req.path.startsWith('/api/auth/')) {
+    // Skip auth middleware for auth routes - ensure the path check is correct
+    if (req.path.startsWith('/auth/')) {
       return next();
     }
     // Apply authentication for all other API routes
