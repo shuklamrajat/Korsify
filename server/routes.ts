@@ -682,6 +682,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Unenroll from course
+  app.delete('/api/enrollments/:courseId', async (req: any, res) => {
+    try {
+      const { courseId } = req.params;
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      await storage.unenrollFromCourse(userId, courseId);
+
+      // Update course enrollment count
+      const course = await storage.getCourse(courseId);
+      if (course && course.enrollmentCount > 0) {
+        await storage.updateCourse(courseId, {
+          enrollmentCount: course.enrollmentCount - 1,
+        });
+      }
+
+      res.json({ message: "Successfully unenrolled from course" });
+    } catch (error) {
+      console.error("Error unenrolling from course:", error);
+      res.status(500).json({ message: "Failed to unenroll from course" });
+    }
+  });
+
   // Progress routes
   app.post('/api/progress', async (req: any, res) => {
     try {
@@ -693,6 +720,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating progress:", error);
       res.status(500).json({ message: "Failed to update progress" });
+    }
+  });
+
+  // Analytics routes
+  app.get('/api/analytics/course/:courseId', async (req: any, res) => {
+    try {
+      const stats = await storage.getCourseStatistics(req.params.courseId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching course statistics:", error);
+      res.status(500).json({ message: "Failed to fetch course statistics" });
+    }
+  });
+
+  app.get('/api/analytics/creator', async (req: any, res) => {
+    try {
+      const analytics = await storage.getCreatorAnalytics(req.user.id);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching creator analytics:", error);
+      res.status(500).json({ message: "Failed to fetch creator analytics" });
+    }
+  });
+
+  app.get('/api/analytics/learner', async (req: any, res) => {
+    try {
+      const analytics = await storage.getLearnerAnalytics(req.user.id);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching learner analytics:", error);
+      res.status(500).json({ message: "Failed to fetch learner analytics" });
+    }
+  });
+
+  // Search routes
+  app.get('/api/courses/search', async (req: any, res) => {
+    try {
+      const { q } = req.query;
+      if (!q) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+      
+      const courses = await storage.searchCourses(q);
+      res.json(courses);
+    } catch (error) {
+      console.error("Error searching courses:", error);
+      res.status(500).json({ message: "Failed to search courses" });
     }
   });
 
