@@ -37,6 +37,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (req.path.startsWith('/auth/')) {
       return next();
     }
+    // Skip auth middleware for password reset
+    if (req.path === '/auth/reset-password') {
+      return next();
+    }
     // Apply authentication for all other API routes
     return authenticate(req as AuthRequest, res, next);
   });

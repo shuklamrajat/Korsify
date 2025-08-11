@@ -166,6 +166,37 @@ export function setupAuthRoutes(app: Express) {
     res.json({ message: "Logout successful" });
   });
 
+  // Password reset endpoint (temporary - for fixing existing accounts)
+  app.post('/api/auth/reset-password', async (req: Request, res: Response) => {
+    try {
+      const { email, newPassword } = req.body;
+      
+      if (!email || !newPassword) {
+        return res.status(400).json({ message: "Email and new password required" });
+      }
+      
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      
+      // Get user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Hash new password and update
+      const passwordHash = await hashPassword(newPassword);
+      await storage.updateUserPassword(user.id, passwordHash);
+      
+      console.log(`Password reset for user: ${email}`);
+      res.json({ message: "Password reset successful. You can now login with your new password." });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ message: "Password reset failed" });
+    }
+  });
+
   // Get current user endpoint
   app.get('/api/auth/me', authenticate, async (req: AuthRequest, res: Response) => {
     if (!req.user) {
