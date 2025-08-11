@@ -47,6 +47,10 @@ export const signInWithGoogle = async () => {
     };
   } catch (error: any) {
     console.error("Error signing in with Google:", error);
+    // Provide helpful error message for unauthorized domain
+    if (error.code === 'auth/unauthorized-domain') {
+      throw new Error('This domain is not authorized for Firebase authentication. Please add it to the authorized domains in Firebase Console.');
+    }
     throw error;
   }
 };
