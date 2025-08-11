@@ -11,6 +11,17 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (January 2025)
 
 **Latest Updates (January 27, 2025):**
+- **Research-Based Learning Time Estimation**
+  - Implemented scientific learning time calculations based on 125 words/minute comprehension rate
+  - Research shows: General reading 200-250 wpm, Educational content 100-150 wpm, Technical material 50-125 wpm
+  - Course cards now display accurate completion times aggregated from lesson → module → course level
+  - Time calculations based on actual lesson content word count for precision
+- **Personalized Welcome Widget Implementation**
+  - Daily rotating inspirational quotes from famous educators and thought leaders
+  - Personalized learning tips with 7 different focus areas (Deep Learning, Growth Mindset, etc.)
+  - Smart goal recommendations based on current enrollment and progress
+  - Quick stats display showing enrolled courses, completed courses, and average progress
+  - Time-based greetings and motivational messages
 - **Firebase Google Authentication Implementation**
   - Integrated Firebase SDK for Google sign-in authentication
   - Removed LinkedIn and Apple OAuth providers per user request
