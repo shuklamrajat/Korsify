@@ -113,16 +113,20 @@ export function LessonViewer({
   const formatContent = (content: string) => {
     // Parse and enhance the content
     return (
-      <div className="prose prose-lg max-w-none">
+      <div className="prose prose-lg max-w-none lesson-content">
         <style dangerouslySetInnerHTML={{ __html: `
-          .prose h1 {
+          .lesson-content {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          }
+          .lesson-content h1 {
             color: #1a202c;
             font-size: 2.25rem;
             margin-top: 2rem;
             margin-bottom: 1rem;
             font-weight: 700;
+            line-height: 1.2;
           }
-          .prose h2 {
+          .lesson-content h2 {
             color: #2d3748;
             font-size: 1.875rem;
             margin-top: 1.75rem;
@@ -130,85 +134,173 @@ export function LessonViewer({
             font-weight: 600;
             border-bottom: 2px solid #e2e8f0;
             padding-bottom: 0.5rem;
+            line-height: 1.3;
           }
-          .prose h3 {
+          .lesson-content h3 {
             color: #4a5568;
             font-size: 1.5rem;
             margin-top: 1.5rem;
             margin-bottom: 0.5rem;
             font-weight: 600;
+            line-height: 1.4;
           }
-          .prose p {
+          .lesson-content p {
             color: #4a5568;
             line-height: 1.8;
             margin-bottom: 1.25rem;
             font-size: 1.125rem;
           }
-          .prose ul, .prose ol {
+          .lesson-content strong, .lesson-content b {
+            font-weight: 600;
+            color: #2d3748;
+          }
+          .lesson-content em, .lesson-content i {
+            font-style: italic;
+          }
+          .lesson-content u {
+            text-decoration: underline;
+          }
+          .lesson-content s {
+            text-decoration: line-through;
+          }
+          .lesson-content ul, .lesson-content ol {
             margin: 1.5rem 0;
             padding-left: 2rem;
+            color: #4a5568;
           }
-          .prose li {
+          .lesson-content ul {
+            list-style-type: disc;
+          }
+          .lesson-content ol {
+            list-style-type: decimal;
+          }
+          .lesson-content li {
             margin: 0.5rem 0;
             line-height: 1.7;
           }
-          .prose blockquote {
+          .lesson-content blockquote {
             border-left: 4px solid #4299e1;
             background: #ebf8ff;
             padding: 1rem 1.5rem;
             margin: 1.5rem 0;
             font-style: italic;
             color: #2c5282;
+            border-radius: 0 0.5rem 0.5rem 0;
           }
-          .prose code {
+          .lesson-content code {
             background: #f7fafc;
             color: #e53e3e;
             padding: 0.125rem 0.375rem;
             border-radius: 0.25rem;
             font-size: 0.875rem;
+            font-family: 'Courier New', Courier, monospace;
           }
-          .prose pre {
+          .lesson-content pre {
             background: #1a202c;
             color: #e2e8f0;
             padding: 1.5rem;
             border-radius: 0.5rem;
             overflow-x: auto;
             margin: 1.5rem 0;
+            font-family: 'Courier New', Courier, monospace;
           }
-          .prose img {
+          .lesson-content pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+          }
+          .lesson-content img {
             border-radius: 0.75rem;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
             margin: 2rem auto;
             max-width: 100%;
             height: auto;
+            display: block;
           }
-          .prose a {
+          .lesson-content a {
             color: #4299e1;
             text-decoration: underline;
             transition: color 0.2s;
           }
-          .prose a:hover {
+          .lesson-content a:hover {
             color: #3182ce;
           }
-          .prose table {
+          .lesson-content table {
             width: 100%;
             margin: 1.5rem 0;
             border-collapse: collapse;
+            overflow: hidden;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
           }
-          .prose th {
+          .lesson-content th {
             background: #f7fafc;
             padding: 0.75rem;
             text-align: left;
             font-weight: 600;
             border: 1px solid #e2e8f0;
+            color: #2d3748;
           }
-          .prose td {
+          .lesson-content td {
             padding: 0.75rem;
             border: 1px solid #e2e8f0;
+            color: #4a5568;
           }
-          .prose hr {
+          .lesson-content hr {
             margin: 2rem 0;
-            border-color: #e2e8f0;
+            border: none;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #e2e8f0, transparent);
+          }
+          .lesson-content mark {
+            background-color: #fef3c7;
+            color: #92400e;
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.125rem;
+          }
+          
+          /* Special content blocks from rich text editor */
+          .lesson-content .key-concept {
+            background: #f0f9ff;
+            border-left: 4px solid #0369a1;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 0.5rem;
+          }
+          .lesson-content .example {
+            background: #f0fdf4;
+            border-left: 4px solid #16a34a;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 0.5rem;
+          }
+          .lesson-content .warning {
+            background: #fef2f2;
+            border-left: 4px solid #dc2626;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 0.5rem;
+          }
+          .lesson-content .tip {
+            background: #fefce8;
+            border-left: 4px solid #ca8a04;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 0.5rem;
+          }
+          
+          /* Text alignment classes */
+          .lesson-content .text-left {
+            text-align: left;
+          }
+          .lesson-content .text-center {
+            text-align: center;
+          }
+          .lesson-content .text-right {
+            text-align: right;
+          }
+          .lesson-content .text-justify {
+            text-align: justify;
           }
         `}} />
         
