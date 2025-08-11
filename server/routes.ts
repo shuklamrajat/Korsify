@@ -774,6 +774,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Learning metrics endpoints
+  app.get("/api/learner/metrics", async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const metrics = await storage.getLearningMetrics(req.user.id);
+      
+      // Get today's activity
+      const today = new Date();
+      const todayActivity = await storage.getDailyActivity(req.user.id, today);
+      
+      // Get enrolled courses count
+      const enrollments = await storage.getUserEnrollments(req.user.id);
+      const completedCourses = enrollments.filter(e => e.progress === 100).length;
+      
+      res.json({
+        metrics,
+        todayStudyTime: todayActivity?.studyTime || 0,
+        enrolledCourses: enrollments.length,
+        completedCourses
+      });
+    } catch (error) {
+      console.error("Error fetching learning metrics:", error);
+      res.status(500).json({ error: "Failed to fetch learning metrics" });
+    }
+  });
+
+  // Track lesson progress with time
+  app.post("/api/learner/track-progress", async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { lessonId, timeSpent } = req.body;
+      
+      if (!lessonId || typeof timeSpent !== 'number') {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      // Record the progress and update metrics
+      await storage.recordLessonProgress(req.user.id, lessonId, Math.round(timeSpent));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error tracking progress:", error);
+      res.status(500).json({ error: "Failed to track progress" });
+    }
+  });
+
   // Analytics routes
   app.get('/api/analytics/course/:courseId', async (req: any, res) => {
     try {

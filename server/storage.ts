@@ -11,6 +11,8 @@ import {
   progress,
   quizAttempts,
   aiProcessingJobs,
+  learningMetrics,
+  dailyActivity,
   type User,
   type UpsertUser,
   type InsertDocument,
@@ -37,6 +39,8 @@ import {
   type AiProcessingJob,
   type CourseWithDetails,
   type LearnerProgress,
+  type LearningMetrics,
+  type DailyActivity,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lt, or } from "drizzle-orm";
@@ -122,6 +126,12 @@ export interface IStorage {
   createAiProcessingJob(job: InsertAiProcessingJob): Promise<AiProcessingJob>;
   updateAiProcessingJob(id: string, updates: Partial<AiProcessingJob>): Promise<AiProcessingJob>;
   getAiProcessingJob(id: string): Promise<AiProcessingJob | undefined>;
+
+  // Learning metrics operations
+  getLearningMetrics(userId: string): Promise<LearningMetrics | undefined>;
+  updateLearningMetrics(userId: string, studyTime: number): Promise<void>;
+  getDailyActivity(userId: string, date: Date): Promise<DailyActivity | undefined>;
+  recordLessonProgress(userId: string, lessonId: string, timeSpent: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -822,6 +832,158 @@ export class DatabaseStorage implements IStorage {
   async getAiProcessingJob(id: string): Promise<AiProcessingJob | undefined> {
     const [job] = await db.select().from(aiProcessingJobs).where(eq(aiProcessingJobs.id, id));
     return job;
+  }
+
+  // Learning metrics operations
+  async getLearningMetrics(userId: string): Promise<LearningMetrics | undefined> {
+    let [metrics] = await db.select().from(learningMetrics).where(eq(learningMetrics.userId, userId));
+    
+    // If no metrics exist, create initial metrics for the user
+    if (!metrics) {
+      const [newMetrics] = await db.insert(learningMetrics).values({
+        userId,
+        totalStudyTime: 0,
+        weeklyStudyTime: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastActiveDate: null,
+        streakStartDate: null,
+        weekStartDate: new Date(),
+        dailyGoal: 30
+      }).returning();
+      metrics = newMetrics;
+    }
+    
+    return metrics;
+  }
+
+  async updateLearningMetrics(userId: string, studyTimeMinutes: number): Promise<void> {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Get or create metrics
+    let metrics = await this.getLearningMetrics(userId);
+    if (!metrics) return;
+    
+    // Check if we need to reset weekly study time (new week started)
+    const weekStart = metrics.weekStartDate ? new Date(metrics.weekStartDate) : today;
+    const daysSinceWeekStart = Math.floor((today.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
+    const shouldResetWeek = daysSinceWeekStart >= 7;
+    
+    // Calculate streak
+    let newStreak = metrics.currentStreak;
+    let streakStart = metrics.streakStartDate;
+    
+    if (metrics.lastActiveDate) {
+      const lastActive = new Date(metrics.lastActiveDate);
+      const daysSinceLastActive = Math.floor((today.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysSinceLastActive === 0) {
+        // Same day, just update time
+      } else if (daysSinceLastActive === 1) {
+        // Consecutive day, increment streak
+        newStreak += 1;
+      } else {
+        // Streak broken, reset to 1
+        newStreak = 1;
+        streakStart = today;
+      }
+    } else {
+      // First time activity
+      newStreak = 1;
+      streakStart = today;
+    }
+    
+    // Update metrics
+    await db.update(learningMetrics)
+      .set({
+        totalStudyTime: sql`${learningMetrics.totalStudyTime} + ${studyTimeMinutes}`,
+        weeklyStudyTime: shouldResetWeek ? studyTimeMinutes : sql`${learningMetrics.weeklyStudyTime} + ${studyTimeMinutes}`,
+        currentStreak: newStreak,
+        longestStreak: sql`GREATEST(${learningMetrics.longestStreak}, ${newStreak})`,
+        lastActiveDate: today,
+        streakStartDate: streakStart,
+        weekStartDate: shouldResetWeek ? today : metrics.weekStartDate,
+        updatedAt: now
+      })
+      .where(eq(learningMetrics.userId, userId));
+    
+    // Update or create daily activity
+    await this.updateDailyActivity(userId, today, studyTimeMinutes);
+  }
+
+  async getDailyActivity(userId: string, date: Date): Promise<DailyActivity | undefined> {
+    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+    
+    const [activity] = await db.select()
+      .from(dailyActivity)
+      .where(and(
+        eq(dailyActivity.userId, userId),
+        gte(dailyActivity.date, startOfDay),
+        lt(dailyActivity.date, endOfDay)
+      ));
+    
+    return activity;
+  }
+
+  private async updateDailyActivity(userId: string, date: Date, studyTimeMinutes: number): Promise<void> {
+    const existing = await this.getDailyActivity(userId, date);
+    
+    if (existing) {
+      // Update existing activity
+      await db.update(dailyActivity)
+        .set({
+          studyTime: sql`${dailyActivity.studyTime} + ${studyTimeMinutes}`,
+          goalMet: sql`${dailyActivity.studyTime} + ${studyTimeMinutes} >= 30`
+        })
+        .where(eq(dailyActivity.id, existing.id));
+    } else {
+      // Create new activity
+      await db.insert(dailyActivity).values({
+        userId,
+        date,
+        studyTime: studyTimeMinutes,
+        lessonsCompleted: 0,
+        coursesAccessed: [],
+        goalMet: studyTimeMinutes >= 30
+      });
+    }
+  }
+
+  async recordLessonProgress(userId: string, lessonId: string, timeSpentMinutes: number): Promise<void> {
+    // Update learning metrics with study time
+    await this.updateLearningMetrics(userId, timeSpentMinutes);
+    
+    // Also update the progress record with time spent
+    const enrollment = await db.select()
+      .from(enrollments)
+      .innerJoin(lessons, eq(lessons.id, lessonId))
+      .innerJoin(modules, eq(modules.id, lessons.moduleId))
+      .where(and(
+        eq(enrollments.learnerId, userId),
+        eq(modules.courseId, enrollments.courseId)
+      ))
+      .limit(1);
+    
+    if (enrollment.length > 0) {
+      // Update or create progress record
+      const existingProgress = await db.select()
+        .from(progress)
+        .where(and(
+          eq(progress.enrollmentId, enrollment[0].enrollments.id),
+          eq(progress.lessonId, lessonId)
+        ))
+        .limit(1);
+      
+      if (existingProgress.length > 0) {
+        await db.update(progress)
+          .set({
+            timeSpent: sql`COALESCE(${progress.timeSpent}, 0) + ${timeSpentMinutes}`
+          })
+          .where(eq(progress.id, existingProgress[0].id));
+      }
+    }
   }
 }
 

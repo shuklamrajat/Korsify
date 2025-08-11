@@ -11,6 +11,14 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (January 2025)
 
 **Latest Updates (January 28, 2025):**
+- **Real-Time Learning Metrics Implementation**
+  - Created database tables for tracking study time, learning streaks, and daily activity
+  - Implemented automatic time tracking in lesson viewer that records study time as users read
+  - Added API endpoints for fetching and updating learning metrics (/api/learner/metrics, /api/learner/track-progress)
+  - Updated learner dashboard to display actual learning data instead of mock values
+  - Tracks time spent on each lesson with periodic updates every 2 minutes
+  - Records progress when users navigate between lessons or complete content
+  - Shows real learning streaks, total study time, and weekly study progress
 - **Fixed Course Unenrollment and Browse Courses Platform-Wide Display**
   - Unenrolled courses now immediately disappear from learner dashboard with forced refetch
   - Browse courses section now shows ALL published courses from ALL users platform-wide
