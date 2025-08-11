@@ -321,6 +321,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPublishedCourses(): Promise<Course[]> {
+    // Returns ALL published courses from ALL users on the entire platform
+    // No user filtering - this is for the global course catalog
     return db.select().from(courses).where(eq(courses.status, 'published')).orderBy(desc(courses.createdAt));
   }
 

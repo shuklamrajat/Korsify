@@ -99,8 +99,10 @@ export default function LearnerDashboard() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/enrollments"] });
+      // Force immediate refetch instead of just invalidation for instant UI update
+      queryClient.refetchQueries({ queryKey: ["/api/enrollments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/courses/search", searchQuery] });
+      queryClient.invalidateQueries({ queryKey: ["/api/courses/search"] }); // Also invalidate without search query
       toast({
         title: "Unenrolled successfully",
         description: "You have been removed from this course.",
@@ -380,11 +382,11 @@ export default function LearnerDashboard() {
           </TabsContent>
 
           <TabsContent value="browse" className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 mb-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Search courses..."
+                  placeholder="Search all courses on the platform..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -395,6 +397,7 @@ export default function LearnerDashboard() {
                 Filters
               </Button>
             </div>
+            <p className="text-sm text-gray-600 mb-4">Browse all published courses from all creators on Korsify</p>
 
             {/* Display filtered courses */}
             {coursesLoading ? (

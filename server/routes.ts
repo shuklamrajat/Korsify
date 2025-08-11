@@ -293,13 +293,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Course search endpoint
+  // Course search endpoint - Returns ALL published courses from ALL users platform-wide
   app.get('/api/courses/search', async (req: any, res) => {
     try {
       const { q } = req.query;
       const searchQuery = q ? String(q).toLowerCase() : '';
       
-      // Get all published courses
+      // Get ALL published courses from ALL users on the platform (not filtered by current user)
       const courses = await storage.getPublishedCourses();
       
       // Filter based on search query
