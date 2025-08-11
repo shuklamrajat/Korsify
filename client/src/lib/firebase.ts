@@ -6,13 +6,13 @@ import { getAnalytics } from "firebase/analytics";
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCVSLYG2-4kByi7K5IxiP4o240LRa1YphI",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "korsify-app.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "korsify-app",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "korsify-app.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "171712092792",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:171712092792:web:a3160bf28dfe4746a9eb8d",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-W7B0X9LS6Z"
+  apiKey: "AIzaSyCVSLYG2-4kByi7K5IxiP4o240LRa1YphI",
+  authDomain: "korsify-app.firebaseapp.com",
+  projectId: "korsify-app",
+  storageBucket: "korsify-app.firebasestorage.app",
+  messagingSenderId: "171712092792",
+  appId: "1:171712092792:web:a3160bf28dfe4746a9eb8d",
+  measurementId: "G-W7B0X9LS6Z"
 };
 
 // Initialize Firebase
