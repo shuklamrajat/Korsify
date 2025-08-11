@@ -91,9 +91,10 @@ export default function LoginPage() {
         });
         setLocation("/select-role");
       } else {
+        console.error("Google sign-in backend error:", data);
         toast({
           title: "Sign in failed",
-          description: data.message || "Could not sign in with Google",
+          description: data.message || "Could not sign in with Google. Please try again.",
           variant: "destructive"
         });
       }
