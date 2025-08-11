@@ -39,7 +39,7 @@ import {
   type LearnerProgress,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lt, or } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -337,9 +337,264 @@ export class DatabaseStorage implements IStorage {
     await db.delete(courses).where(eq(courses.id, id));
   }
 
+  // Analytics and Course Statistics
+  async getCourseStatistics(courseId: string): Promise<{
+    totalModules: number;
+    totalLessons: number;
+    estimatedDuration: number;
+    enrollmentCount: number;
+    completionRate: number;
+    averageProgress: number;
+  }> {
+    const courseModules = await this.getCourseModules(courseId);
+    let totalLessons = 0;
+    let estimatedDuration = 0;
+
+    for (const module of courseModules) {
+      const lessons = await this.getModuleLessons(module.id);
+      totalLessons += lessons.length;
+      
+      // Calculate duration based on word count (125 words per minute for educational content)
+      for (const lesson of lessons) {
+        const wordCount = lesson.content ? lesson.content.split(/\s+/).length : 0;
+        const readingTime = Math.ceil(wordCount / 125); // 125 words per minute
+        estimatedDuration += readingTime;
+      }
+    }
+
+    // Get enrollment statistics
+    const courseEnrollments = await db.select()
+      .from(enrollments)
+      .where(eq(enrollments.courseId, courseId));
+    
+    const enrollmentCount = courseEnrollments.length;
+    const completedEnrollments = courseEnrollments.filter(e => e.completedAt).length;
+    const completionRate = enrollmentCount > 0 ? (completedEnrollments / enrollmentCount) * 100 : 0;
+
+    // Calculate average progress
+    let totalProgress = 0;
+    for (const enrollment of courseEnrollments) {
+      totalProgress += enrollment.progress || 0;
+    }
+    const averageProgress = enrollmentCount > 0 ? totalProgress / enrollmentCount : 0;
+
+    return {
+      totalModules: courseModules.length,
+      totalLessons,
+      estimatedDuration,
+      enrollmentCount,
+      completionRate,
+      averageProgress
+    };
+  }
+
+  async getCreatorAnalytics(creatorId: string): Promise<{
+    totalCourses: number;
+    totalLearners: number;
+    totalLessons: number;
+    averageRating: number;
+    completionRate: number;
+    engagementRate: number;
+    recentActivity: Array<{
+      date: string;
+      enrollments: number;
+      completions: number;
+    }>;
+  }> {
+    const creatorCourses = await this.getUserCourses(creatorId);
+    let totalLearners = 0;
+    let totalLessons = 0;
+    let totalRating = 0;
+    let totalCompletions = 0;
+    let totalEnrollments = 0;
+
+    for (const course of creatorCourses) {
+      const stats = await this.getCourseStatistics(course.id);
+      totalLessons += stats.totalLessons;
+      totalLearners += stats.enrollmentCount;
+      totalRating += course.rating || 0;
+      totalEnrollments += stats.enrollmentCount;
+      totalCompletions += Math.floor((stats.completionRate / 100) * stats.enrollmentCount);
+    }
+
+    const averageRating = creatorCourses.length > 0 ? totalRating / creatorCourses.length : 0;
+    const completionRate = totalEnrollments > 0 ? (totalCompletions / totalEnrollments) * 100 : 0;
+    const engagementRate = totalLearners > 0 ? Math.min((totalCompletions / totalLearners) * 100, 100) : 0;
+
+    // Get recent activity (last 7 days)
+    const recentActivity = [];
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      const dayEnrollments = await db.select()
+        .from(enrollments)
+        .innerJoin(courses, eq(enrollments.courseId, courses.id))
+        .where(and(
+          eq(courses.creatorId, creatorId),
+          gte(enrollments.enrolledAt, date),
+          lt(enrollments.enrolledAt, nextDate)
+        ));
+
+      const dayCompletions = dayEnrollments.filter(e => 
+        e.enrollments.completedAt && 
+        e.enrollments.completedAt >= date && 
+        e.enrollments.completedAt < nextDate
+      ).length;
+
+      recentActivity.push({
+        date: date.toISOString().split('T')[0],
+        enrollments: dayEnrollments.length,
+        completions: dayCompletions
+      });
+    }
+
+    return {
+      totalCourses: creatorCourses.length,
+      totalLearners,
+      totalLessons,
+      averageRating,
+      completionRate,
+      engagementRate,
+      recentActivity
+    };
+  }
+
+  async getLearnerAnalytics(learnerId: string): Promise<{
+    totalEnrolledCourses: number;
+    completedCourses: number;
+    totalLearningTime: number;
+    averageProgress: number;
+    streakDays: number;
+    achievements: number;
+    recentActivity: Array<{
+      date: string;
+      minutesLearned: number;
+      lessonsCompleted: number;
+    }>;
+  }> {
+    const learnerEnrollments = await this.getUserEnrollments(learnerId);
+    const completedCourses = learnerEnrollments.filter(e => e.enrollment.completedAt).length;
+    
+    let totalLearningTime = 0;
+    let totalProgress = 0;
+
+    for (const enrollment of learnerEnrollments) {
+      totalProgress += enrollment.progressPercentage;
+      
+      // Calculate learning time from completed lessons
+      const progressRecords = await this.getEnrollmentProgress(enrollment.enrollment.id);
+      for (const record of progressRecords) {
+        totalLearningTime += (record.timeSpent || 0) / 60; // Convert to minutes
+      }
+    }
+
+    const averageProgress = learnerEnrollments.length > 0 
+      ? totalProgress / learnerEnrollments.length 
+      : 0;
+
+    // Calculate streak (simplified - consecutive days with activity)
+    const recentProgress = await db.select()
+      .from(progress)
+      .innerJoin(enrollments, eq(progress.enrollmentId, enrollments.id))
+      .where(eq(enrollments.learnerId, learnerId))
+      .orderBy(desc(progress.completedAt));
+
+    let streakDays = 0;
+    if (recentProgress.length > 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      for (let i = 0; i < 30; i++) {
+        const checkDate = new Date(today);
+        checkDate.setDate(checkDate.getDate() - i);
+        
+        const hasActivity = recentProgress.some(p => {
+          if (!p.progress.completedAt) return false;
+          const activityDate = new Date(p.progress.completedAt);
+          activityDate.setHours(0, 0, 0, 0);
+          return activityDate.getTime() === checkDate.getTime();
+        });
+        
+        if (hasActivity) {
+          streakDays++;
+        } else if (i > 0) {
+          break;
+        }
+      }
+    }
+
+    // Calculate achievements (simple count based on milestones)
+    let achievements = 0;
+    if (completedCourses >= 1) achievements++;
+    if (completedCourses >= 5) achievements++;
+    if (completedCourses >= 10) achievements++;
+    if (streakDays >= 7) achievements++;
+    if (streakDays >= 30) achievements++;
+    if (totalLearningTime >= 600) achievements++; // 10 hours
+
+    // Get recent activity (last 7 days)
+    const recentActivity = [];
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      const dayProgress = await db.select()
+        .from(progress)
+        .innerJoin(enrollments, eq(progress.enrollmentId, enrollments.id))
+        .where(and(
+          eq(enrollments.learnerId, learnerId),
+          gte(progress.completedAt, date),
+          lt(progress.completedAt, nextDate)
+        ));
+
+      const minutesLearned = dayProgress.reduce((sum, p) => 
+        sum + ((p.progress.timeSpent || 0) / 60), 0
+      );
+
+      recentActivity.push({
+        date: date.toISOString().split('T')[0],
+        minutesLearned: Math.round(minutesLearned),
+        lessonsCompleted: dayProgress.filter(p => p.progress.completed).length
+      });
+    }
+
+    return {
+      totalEnrolledCourses: learnerEnrollments.length,
+      completedCourses,
+      totalLearningTime: Math.round(totalLearningTime),
+      averageProgress,
+      streakDays,
+      achievements,
+      recentActivity
+    };
+  }
+
+  async searchCourses(query: string): Promise<Course[]> {
+    const searchTerm = `%${query.toLowerCase()}%`;
+    return db.select()
+      .from(courses)
+      .where(and(
+        eq(courses.status, 'published'),
+        or(
+          sql`LOWER(${courses.title}) LIKE ${searchTerm}`,
+          sql`LOWER(${courses.description}) LIKE ${searchTerm}`
+        )
+      ))
+      .orderBy(desc(courses.enrollmentCount), desc(courses.rating));
+  }
+
   // Course Template operations
   async createCourseTemplate(template: InsertCourseTemplate): Promise<CourseTemplate> {
-    const [created] = await db.insert(courseTemplates).values(template).returning();
+    const [created] = await db.insert(courseTemplates).values([template]).returning();
     return created;
   }
 
@@ -389,10 +644,10 @@ export class DatabaseStorage implements IStorage {
   // Lesson operations
   async createLesson(lesson: InsertLesson): Promise<Lesson> {
     const [created] = await db.insert(lessons).values({
-      moduleId: lesson.moduleId,
       title: lesson.title,
       content: lesson.content,
       orderIndex: lesson.orderIndex,
+      moduleId: lesson.moduleId,
       estimatedDuration: lesson.estimatedDuration,
       videoUrl: lesson.videoUrl,
       attachments: lesson.attachments || [],
@@ -478,6 +733,14 @@ export class DatabaseStorage implements IStorage {
 
   async updateEnrollmentProgress(id: string, progressPercentage: number): Promise<void> {
     await db.update(enrollments).set({ progress: progressPercentage }).where(eq(enrollments.id, id));
+  }
+
+  async unenrollFromCourse(learnerId: string, courseId: string): Promise<void> {
+    await db.delete(enrollments)
+      .where(and(
+        eq(enrollments.learnerId, learnerId),
+        eq(enrollments.courseId, courseId)
+      ));
   }
 
   // Progress operations

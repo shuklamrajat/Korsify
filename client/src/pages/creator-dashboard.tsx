@@ -64,6 +64,13 @@ export default function CreatorDashboard() {
     queryKey: ["/api/documents"],
   });
 
+  // Fetch creator analytics
+  const { data: analytics } = useQuery({
+    queryKey: ['/api/analytics/creator'],
+    enabled: !!user?.id,
+    refetchInterval: 30000 // Refetch every 30 seconds
+  });
+
   // Upload document mutation
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -177,29 +184,29 @@ export default function CreatorDashboard() {
   const stats = [
     {
       title: "Total Courses",
-      value: courses?.length?.toString() || "0",
-      change: "+2 this month",
+      value: analytics?.totalCourses?.toString() || courses?.length?.toString() || "0",
+      change: analytics?.recentActivity ? `${analytics.recentActivity.slice(-1)[0]?.enrollments || 0} today` : "No activity",
       icon: BookOpen,
       color: "text-blue-600"
     },
     {
-      title: "Total Students",
-      value: "1,247",
-      change: "+124 this month",
+      title: "Total Learners",
+      value: analytics?.totalLearners?.toString() || "0",
+      change: analytics?.engagementRate ? `${Math.round(analytics.engagementRate)}% engaged` : "No data",
       icon: Users,
       color: "text-green-600"
     },
     {
       title: "Completion Rate",
-      value: "78%",
-      change: "+5% this month",
+      value: analytics?.completionRate ? `${Math.round(analytics.completionRate)}%` : "0%",
+      change: analytics?.totalLessons ? `${analytics.totalLessons} lessons` : "No lessons",
       icon: TrendingUp,
       color: "text-purple-600"
     },
     {
       title: "Avg. Rating",
-      value: "4.8",
-      change: "Excellent",
+      value: analytics?.averageRating ? analytics.averageRating.toFixed(1) : "N/A",
+      change: analytics?.averageRating >= 4 ? "Excellent" : analytics?.averageRating >= 3 ? "Good" : "Needs improvement",
       icon: Star,
       color: "text-yellow-600"
     }
@@ -266,10 +273,6 @@ export default function CreatorDashboard() {
           <TabsContent value="courses" className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">My Courses</h2>
-              <Button variant="outline">
-                <BarChart3 className="w-4 h-4 mr-2" />
-                View Analytics
-              </Button>
             </div>
 
             {coursesLoading ? (
@@ -332,18 +335,34 @@ export default function CreatorDashboard() {
               <CardContent>
                 <div className="grid md:grid-cols-3 gap-6">
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-gray-900">1,247</p>
-                    <p className="text-gray-600">Total Students</p>
+                    <p className="text-3xl font-bold text-gray-900">{analytics?.totalLearners || 0}</p>
+                    <p className="text-gray-600">Total Learners</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-gray-900">78%</p>
+                    <p className="text-3xl font-bold text-gray-900">{analytics?.completionRate ? `${Math.round(analytics.completionRate)}%` : "0%"}</p>
                     <p className="text-gray-600">Completion Rate</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-gray-900">4.8</p>
+                    <p className="text-3xl font-bold text-gray-900">{analytics?.averageRating ? analytics.averageRating.toFixed(1) : "N/A"}</p>
                     <p className="text-gray-600">Average Rating</p>
                   </div>
                 </div>
+                {analytics?.recentActivity && analytics.recentActivity.length > 0 && (
+                  <div className="mt-8">
+                    <h4 className="font-semibold mb-4">Recent Activity (Last 7 Days)</h4>
+                    <div className="space-y-2">
+                      {analytics.recentActivity.map((day, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-2 rounded-lg bg-gray-50">
+                          <span className="text-sm text-gray-600">{new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                          <div className="flex gap-4">
+                            <span className="text-sm font-medium">{day.enrollments} enrollments</span>
+                            <span className="text-sm font-medium text-green-600">{day.completions} completions</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

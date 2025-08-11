@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Navigation from "@/components/navigation";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,16 @@ import CourseCard from "@/components/ui/course-card";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Search,
   BookOpen,
@@ -32,6 +42,10 @@ export default function LearnerDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [unenrollDialogOpen, setUnenrollDialogOpen] = useState(false);
+  const [courseToUnenroll, setCourseToUnenroll] = useState<any>(null);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const [isLongPressed, setIsLongPressed] = useState(false);
 
   // Fetch user data
   const { data: user } = useQuery({
@@ -43,9 +57,14 @@ export default function LearnerDashboard() {
     queryKey: ["/api/enrollments"],
   });
 
-  // Fetch published courses
-  const { data: publishedCourses = [], isLoading: coursesLoading } = useQuery({
-    queryKey: ["/api/courses", { type: 'published' }],
+  // Fetch all available courses with search query
+  const { data: searchResults = [], isLoading: coursesLoading } = useQuery({
+    queryKey: ["/api/courses/search", searchQuery],
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/courses/search?q=${encodeURIComponent(searchQuery)}`);
+      return response.json();
+    },
+    enabled: true, // Always fetch to show all courses
   });
 
   // Enroll mutation
@@ -56,6 +75,7 @@ export default function LearnerDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/enrollments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/courses/search", searchQuery] });
       toast({
         title: "Enrolled successfully!",
         description: "You can now start learning this course.",
@@ -65,6 +85,32 @@ export default function LearnerDashboard() {
       toast({
         title: "Enrollment failed",
         description: error.message || "Failed to enroll in course",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Unenroll mutation
+  const unenrollMutation = useMutation({
+    mutationFn: async (enrollmentId: string) => {
+      const response = await apiRequest("DELETE", `/api/enrollments/${enrollmentId}`);
+      if (!response.ok) throw new Error("Failed to unenroll");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/enrollments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/courses/search", searchQuery] });
+      toast({
+        title: "Unenrolled successfully",
+        description: "You have been removed from this course.",
+      });
+      setUnenrollDialogOpen(false);
+      setCourseToUnenroll(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to unenroll",
+        description: error.message || "Could not unenroll from the course",
         variant: "destructive",
       });
     },
@@ -86,6 +132,48 @@ export default function LearnerDashboard() {
       return;
     }
     setLocation(`/courses/${courseId}`);
+  };
+
+  // Long press handlers for unenroll
+  const handleMouseDown = (enrollment: any) => {
+    longPressTimer.current = setTimeout(() => {
+      setIsLongPressed(true);
+      setCourseToUnenroll(enrollment);
+      setUnenrollDialogOpen(true);
+    }, 800); // 800ms for long press
+  };
+
+  const handleMouseUp = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    setIsLongPressed(false);
+  };
+
+  const handleMouseLeave = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    setIsLongPressed(false);
+  };
+
+  // Touch event handlers for mobile
+  const handleTouchStart = (enrollment: any) => {
+    longPressTimer.current = setTimeout(() => {
+      setIsLongPressed(true);
+      setCourseToUnenroll(enrollment);
+      setUnenrollDialogOpen(true);
+    }, 800);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    setIsLongPressed(false);
   };
 
   const stats = [
@@ -241,7 +329,16 @@ export default function LearnerDashboard() {
             ) : (
               <div className="space-y-6">
                 {enrollments.map((enrollment: any) => (
-                  <Card key={enrollment.enrollment.id} className="hover:shadow-lg transition-shadow">
+                  <Card 
+                    key={enrollment.enrollment.id} 
+                    className="hover:shadow-lg transition-shadow select-none"
+                    onMouseDown={() => handleMouseDown(enrollment)}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseLeave}
+                    onTouchStart={() => handleTouchStart(enrollment)}
+                    onTouchEnd={handleTouchEnd}
+                    style={{ userSelect: 'none' }}
+                  >
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4 flex-1">
@@ -261,6 +358,7 @@ export default function LearnerDashboard() {
                                 {Math.round(enrollment.progressPercentage)}%
                               </span>
                             </div>
+                            <p className="text-xs text-gray-500 mt-2">Hold to unenroll</p>
                           </div>
                         </div>
                         <Button 
@@ -304,6 +402,7 @@ export default function LearnerDashboard() {
               </Button>
             </div>
 
+            {/* Display filtered courses */}
             {coursesLoading ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[...Array(6)].map((_, i) => (
@@ -317,7 +416,7 @@ export default function LearnerDashboard() {
                   </Card>
                 ))}
               </div>
-            ) : filteredCourses.length === 0 ? (
+            ) : searchResults.length === 0 ? (
               <Card>
                 <CardContent className="p-12 text-center">
                   <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -327,7 +426,7 @@ export default function LearnerDashboard() {
               </Card>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredCourses.map((course: any) => {
+                {searchResults.map((course: any) => {
                   const isEnrolled = enrollments.some((e: any) => e.course.id === course.id);
                   console.log('Course in browse:', course); // Debug log
                   return (
@@ -393,6 +492,32 @@ export default function LearnerDashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Unenroll Confirmation Dialog */}
+        <AlertDialog open={unenrollDialogOpen} onOpenChange={setUnenrollDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Unenroll from Course?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to unenroll from "{courseToUnenroll?.course?.title}"? 
+                Your progress will be saved but you'll need to re-enroll to continue learning.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (courseToUnenroll?.enrollment?.id) {
+                    unenrollMutation.mutate(courseToUnenroll.enrollment.id);
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Unenroll
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
