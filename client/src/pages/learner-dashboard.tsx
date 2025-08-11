@@ -48,12 +48,12 @@ export default function LearnerDashboard() {
   const [isLongPressed, setIsLongPressed] = useState(false);
 
   // Fetch user data
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<any>({
     queryKey: ["/api/user"],
   });
 
   // Fetch user enrollments
-  const { data: enrollments = [], isLoading: enrollmentsLoading } = useQuery({
+  const { data: enrollments = [], isLoading: enrollmentsLoading } = useQuery<any[]>({
     queryKey: ["/api/enrollments"],
   });
 
@@ -228,7 +228,7 @@ export default function LearnerDashboard() {
     }
   ];
 
-  const filteredCourses = publishedCourses.filter((course: any) =>
+  const filteredCourses = searchResults.filter((course: any) =>
     course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     course.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
