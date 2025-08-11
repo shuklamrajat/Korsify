@@ -27,9 +27,13 @@ import {
   BarChart3,
   Target,
   Brain,
-  Globe
+  Globe,
+  ChevronLeft,
+  ChevronRight,
+  SidebarOpen
 } from "lucide-react";
 import { LessonViewer } from "@/components/lesson-viewer";
+import { SourceViewer } from "@/components/source-viewer";
 
 export default function CourseViewer() {
   const params = useParams();
@@ -46,6 +50,8 @@ export default function CourseViewer() {
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [showSources, setShowSources] = useState(false);
+  const [selectedCitationId, setSelectedCitationId] = useState<string | null>(null);
 
   // Fetch course details
   const { data: course, isLoading, error } = useQuery({
@@ -63,6 +69,12 @@ export default function CourseViewer() {
   // Fetch enrollments to check if user is enrolled
   const { data: enrollments = [] } = useQuery({
     queryKey: ["/api/enrollments"],
+  });
+
+  // Fetch course documents for source references
+  const { data: documents = [] } = useQuery({
+    queryKey: [`/api/courses/${courseId}/documents`],
+    enabled: !!courseId && isEnrolled,
   });
 
   // Check enrollment status
@@ -139,6 +151,11 @@ export default function CourseViewer() {
         timeSpent: Math.floor(currentTime),
       });
     }
+  };
+
+  const handleCitationClick = (citationId: string) => {
+    setSelectedCitationId(citationId);
+    setShowSources(true);
   };
 
   const navigateToNextLesson = () => {
@@ -430,99 +447,73 @@ export default function CourseViewer() {
                 </CardContent>
               </Card>
             ) : selectedLessonData ? (
-              <div className="space-y-6">
-                {/* Lesson Header */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-xl">{selectedLessonData.title}</CardTitle>
-                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            <span>{selectedLessonData.estimatedDuration || 5} min</span>
-                          </div>
-                          {selectedLessonData.videoUrl && (
-                            <div className="flex items-center gap-1">
-                              <Video className="w-4 h-4" />
-                              <span>Video included</span>
+              <div className="relative">
+                {/* Source Sidebar and Content */}
+                <div className="flex gap-6">
+                  {/* Source Sidebar */}
+                  {showSources && documents.length > 0 && (
+                    <div className="w-96 sticky top-8 h-fit">
+                      <Card className="shadow-lg">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <FileText className="w-5 h-5 text-blue-600" />
+                              <CardTitle className="text-lg">Source Documents</CardTitle>
                             </div>
-                          )}
-                        </div>
-                      </div>
-                      <Button
-                        onClick={handleLessonComplete}
-                        disabled={updateProgressMutation.isPending}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Mark Complete
-                      </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowSources(false)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          <ScrollArea className="h-[600px]">
+                            <SourceViewer
+                              sourceReferences={selectedLessonData.sourceReferences || []}
+                              documents={documents}
+                              selectedCitationId={selectedCitationId}
+                              onClose={() => setShowSources(false)}
+                            />
+                          </ScrollArea>
+                        </CardContent>
+                      </Card>
                     </div>
-                  </CardHeader>
-                </Card>
+                  )}
 
-                {/* Video Player */}
-                {selectedLessonData.videoUrl && (
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="aspect-video bg-black rounded-lg flex items-center justify-center">
-                        <div className="text-center text-white">
-                          <Play className="w-16 h-16 mx-auto mb-4 opacity-70" />
-                          <p className="text-lg font-medium">Video Player</p>
-                          <p className="text-sm opacity-70">
-                            Video URL: {selectedLessonData.videoUrl}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Lesson Content */}
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="prose max-w-none">
-                      <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                        {selectedLessonData.content || "No content available for this lesson."}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Navigation */}
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
+                  {/* Main Lesson Content */}
+                  <div className="flex-1 space-y-6">
+                    {/* Toggle Sources Button if not showing */}
+                    {!showSources && documents.length > 0 && selectedLessonData.sourceReferences?.length > 0 && (
                       <Button
                         variant="outline"
-                        onClick={navigateToPreviousLesson}
-                        disabled={course.modules[0]?.lessons[0]?.id === selectedLesson}
+                        size="sm"
+                        onClick={() => setShowSources(true)}
+                        className="mb-4"
                       >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Previous Lesson
+                        <SidebarOpen className="w-4 h-4 mr-2" />
+                        Show Sources
                       </Button>
-                      
-                      <div className="text-center">
-                        <div className="text-sm text-gray-600 mb-1">Course Progress</div>
-                        <div className="flex items-center gap-2">
-                          <Progress value={progressPercentage} className="w-32 h-2" />
-                          <span className="text-sm font-medium">
-                            {Math.round(progressPercentage)}%
-                          </span>
-                        </div>
-                      </div>
-
-                      <Button
-                        onClick={navigateToNextLesson}
-                        disabled={course.modules[course.modules.length - 1]?.lessons[course.modules[course.modules.length - 1]?.lessons.length - 1]?.id === selectedLesson}
-                      >
-                        Next Lesson
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                    )}
+                    
+                    {/* Use LessonViewer Component */}
+                    <LessonViewer
+                      lesson={selectedLessonData}
+                      moduleTitle={selectedModuleData?.title}
+                      isCompleted={false}
+                      onComplete={handleLessonComplete}
+                      onNext={navigateToNextLesson}
+                      onPrevious={navigateToPreviousLesson}
+                      hasNext={!(course.modules[course.modules.length - 1]?.lessons[course.modules[course.modules.length - 1]?.lessons.length - 1]?.id === selectedLesson)}
+                      hasPrevious={!(course.modules[0]?.lessons[0]?.id === selectedLesson)}
+                      sourceReferences={selectedLessonData.sourceReferences || []}
+                      onCitationClick={handleCitationClick}
+                    />
+                  </div>
+                </div>
               </div>
             ) : (
               <Card>
