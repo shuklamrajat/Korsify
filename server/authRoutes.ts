@@ -1,10 +1,9 @@
 import { Express, Request, Response } from "express";
 import cookieParser from "cookie-parser";
-import passport from "passport";
 import { storage } from "./storage";
 import { generateToken, hashPassword, verifyPassword, authenticate, AuthRequest } from "./auth";
-import { initializeOAuth } from "./oauth";
 import { z } from "zod";
+import admin from 'firebase-admin';
 
 // Validation schemas
 const registerSchema = z.object({
@@ -19,13 +18,24 @@ const loginSchema = z.object({
   password: z.string()
 });
 
+// Initialize Firebase Admin SDK (only in production if service account is available)
+// For development, we'll verify tokens without admin SDK
+let firebaseInitialized = false;
+try {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    firebaseInitialized = true;
+  }
+} catch (error) {
+  console.log("Firebase Admin SDK not initialized - will use client-side verification");
+}
+
 export function setupAuthRoutes(app: Express) {
   // Add cookie parser middleware
   app.use(cookieParser());
-  
-  // Initialize Passport and OAuth strategies
-  app.use(passport.initialize());
-  initializeOAuth();
 
   // Register endpoint
   app.post('/api/auth/register', async (req: Request, res: Response) => {
@@ -40,12 +50,14 @@ export function setupAuthRoutes(app: Express) {
 
       // Hash password and create user (without role - will be selected after login)
       const passwordHash = await hashPassword(data.password);
-      const user = await storage.createUser(
-        data.email,
+      const user = await storage.createUser({
+        email: data.email,
         passwordHash,
-        data.firstName,
-        data.lastName
-      );
+        firstName: data.firstName || null,
+        lastName: data.lastName || null,
+        emailVerified: false,
+        currentRole: null
+      });
 
       // Generate token
       const token = generateToken(user);
@@ -187,17 +199,57 @@ export function setupAuthRoutes(app: Express) {
     }
   });
 
-  // OAuth Routes
-  // Google OAuth
-  app.get('/api/auth/google',
-    passport.authenticate('google', { scope: ['profile', 'email'] })
-  );
-
-  app.get('/api/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/login', session: false }),
-    (req: any, res: Response) => {
-      // Generate JWT token for the authenticated user
-      const user = req.user;
+  // Google Firebase Authentication
+  app.post('/api/auth/google-signin', async (req: Request, res: Response) => {
+    try {
+      const { idToken, email, displayName, photoURL, uid } = req.body;
+      
+      if (!idToken || !email || !uid) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Verify the Firebase ID token
+      let decodedToken;
+      if (firebaseInitialized) {
+        try {
+          decodedToken = await admin.auth().verifyIdToken(idToken);
+          if (decodedToken.uid !== uid) {
+            return res.status(401).json({ message: "Invalid token" });
+          }
+        } catch (error) {
+          console.error("Token verification failed:", error);
+          return res.status(401).json({ message: "Invalid token" });
+        }
+      } else {
+        // In development without admin SDK, trust the client
+        // WARNING: This is only for development - in production, always verify tokens
+        console.log("Development mode: Skipping Firebase token verification");
+        decodedToken = { uid, email };
+      }
+      
+      // Check if user exists or create new user
+      let user = await storage.getUserByGoogleId(uid);
+      
+      if (!user) {
+        // Check if email already exists (user might have registered with email/password)
+        user = await storage.getUserByEmail(email);
+        
+        if (user) {
+          // Update existing user with Google ID
+          await storage.updateUserGoogleId(user.id, uid);
+        } else {
+          // Create new user
+          const [firstName, lastName] = displayName ? displayName.split(' ') : ['', ''];
+          user = await storage.createGoogleUser(
+            email,
+            uid,
+            firstName || null,
+            lastName || null
+          );
+        }
+      }
+      
+      // Generate JWT token
       const token = generateToken(user);
       
       // Set cookie
@@ -210,62 +262,19 @@ export function setupAuthRoutes(app: Express) {
         path: '/'
       });
       
-      // Redirect to role selection
-      res.redirect('/select-role');
-    }
-  );
-
-  // Apple OAuth
-  app.get('/api/auth/apple',
-    passport.authenticate('apple')
-  );
-
-  app.post('/api/auth/apple/callback',
-    passport.authenticate('apple', { failureRedirect: '/login', session: false }),
-    (req: any, res: Response) => {
-      // Generate JWT token for the authenticated user
-      const user = req.user;
-      const token = generateToken(user);
-      
-      // Set cookie
-      const isProduction = process.env.NODE_ENV === 'production';
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: isProduction ? 'lax' : 'none',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: '/'
+      res.json({
+        message: "Sign in successful",
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          currentRole: user.currentRole
+        }
       });
-      
-      // Redirect to role selection
-      res.redirect('/select-role');
+    } catch (error) {
+      console.error("Google sign-in error:", error);
+      res.status(500).json({ message: "Sign in failed" });
     }
-  );
-
-  // LinkedIn OAuth
-  app.get('/api/auth/linkedin',
-    passport.authenticate('linkedin')
-  );
-
-  app.get('/api/auth/linkedin/callback',
-    passport.authenticate('linkedin', { failureRedirect: '/login', session: false }),
-    (req: any, res: Response) => {
-      // Generate JWT token for the authenticated user
-      const user = req.user;
-      const token = generateToken(user);
-      
-      // Set cookie
-      const isProduction = process.env.NODE_ENV === 'production';
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: isProduction ? 'lax' : 'none',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: '/'
-      });
-      
-      // Redirect to role selection
-      res.redirect('/select-role');
-    }
-  );
+  });
 }

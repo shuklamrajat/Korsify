@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,12 +9,52 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { BookOpen, Mail, Lock, User, ChevronLeft } from "lucide-react";
-import { FaGoogle, FaApple, FaLinkedin } from "react-icons/fa";
+import { FaGoogle } from "react-icons/fa";
+import { signInWithGoogle, handleRedirectResult } from "@/lib/firebase";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Check for Firebase redirect result on mount
+  useEffect(() => {
+    const checkRedirectResult = async () => {
+      try {
+        const result = await handleRedirectResult();
+        if (result) {
+          // Send the Firebase ID token to our backend
+          const response = await apiRequest("POST", "/api/auth/google-signin", {
+            idToken: result.idToken,
+            email: result.user.email,
+            displayName: result.user.displayName,
+            photoURL: result.user.photoURL,
+            uid: result.user.uid
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok) {
+            toast({
+              title: "Welcome!",
+              description: "Signed in with Google successfully"
+            });
+            setLocation("/select-role");
+          } else {
+            toast({
+              title: "Sign in failed",
+              description: data.message || "Could not sign in with Google",
+              variant: "destructive"
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error handling redirect:", error);
+      }
+    };
+    
+    checkRedirectResult();
+  }, [setLocation, toast]);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
@@ -27,6 +67,47 @@ export default function LoginPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [userType, setUserType] = useState<"learner" | "creator">("learner");
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      const result = await signInWithGoogle();
+      
+      // Send the Firebase ID token to our backend
+      const response = await apiRequest("POST", "/api/auth/google-signin", {
+        idToken: result.idToken,
+        email: result.user.email,
+        displayName: result.user.displayName,
+        photoURL: result.user.photoURL,
+        uid: result.user.uid
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Welcome!",
+          description: "Signed in with Google successfully"
+        });
+        setLocation("/select-role");
+      } else {
+        toast({
+          title: "Sign in failed",
+          description: data.message || "Could not sign in with Google",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      console.error("Google sign-in error:", error);
+      toast({
+        title: "Sign in failed",
+        description: error.message || "Could not sign in with Google",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,32 +286,16 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => window.location.href = '/api/auth/google'}
-                    disabled={isLoading}
-                  >
-                    <FaGoogle className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => window.location.href = '/api/auth/apple'}
-                    disabled={isLoading}
-                  >
-                    <FaApple className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => window.location.href = '/api/auth/linkedin'}
-                    disabled={isLoading}
-                  >
-                    <FaLinkedin className="w-4 h-4" />
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleGoogleSignIn}
+                  disabled={isLoading}
+                >
+                  <FaGoogle className="w-4 h-4 mr-2" />
+                  Continue with Google
+                </Button>
               </form>
             </TabsContent>
             
@@ -323,32 +388,16 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => window.location.href = '/api/auth/google'}
-                    disabled={isLoading}
-                  >
-                    <FaGoogle className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => window.location.href = '/api/auth/apple'}
-                    disabled={isLoading}
-                  >
-                    <FaApple className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => window.location.href = '/api/auth/linkedin'}
-                    disabled={isLoading}
-                  >
-                    <FaLinkedin className="w-4 h-4" />
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleGoogleSignIn}
+                  disabled={isLoading}
+                >
+                  <FaGoogle className="w-4 h-4 mr-2" />
+                  Continue with Google
+                </Button>
               </form>
             </TabsContent>
           </Tabs>

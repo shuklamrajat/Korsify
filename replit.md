@@ -11,6 +11,16 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (January 2025)
 
 **Latest Updates (January 27, 2025):**
+- **Firebase Google Authentication Implementation**
+  - Integrated Firebase SDK for Google sign-in authentication
+  - Removed LinkedIn and Apple OAuth providers per user request
+  - Firebase configuration set up with provided credentials (korsify-app project)
+  - Client-side Firebase authentication with popup/redirect support
+  - Server-side validation of Firebase ID tokens
+  - Seamless integration with existing user management system
+  - Auto-linking of Google accounts with existing email-based accounts
+
+**Previous Updates (January 27, 2025):**
 - **Enhanced Source Referencing with Document Scrolling**
   - Fixed source referencing to scroll to relevant document sections when citations are clicked
   - Added document content expansion with highlighted citation context

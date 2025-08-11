@@ -53,6 +53,8 @@ export interface IStorage {
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
   getUserByAppleId(appleId: string): Promise<User | undefined>;
   getUserByLinkedInId(linkedinId: string): Promise<User | undefined>;
+  updateUserGoogleId(userId: string, googleId: string): Promise<void>;
+  createGoogleUser(email: string, googleId: string, firstName: string | null, lastName: string | null): Promise<User>;
 
   // Document operations
   createDocument(document: InsertDocument): Promise<Document>;
@@ -195,6 +197,25 @@ export class DatabaseStorage implements IStorage {
     await db.update(users)
       .set({ passwordHash, updatedAt: new Date() })
       .where(eq(users.id, id));
+  }
+
+  async updateUserGoogleId(userId: string, googleId: string): Promise<void> {
+    await db.update(users)
+      .set({ googleId, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async createGoogleUser(email: string, googleId: string, firstName: string | null, lastName: string | null): Promise<User> {
+    const [user] = await db.insert(users).values({
+      email,
+      googleId,
+      firstName,
+      lastName,
+      emailVerified: true, // Google accounts are pre-verified
+      currentRole: null, // Will be selected after login
+      passwordHash: null // No password for OAuth users
+    }).returning();
+    return user;
   }
 
   // Document operations
