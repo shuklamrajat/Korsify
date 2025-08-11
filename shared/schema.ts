@@ -182,6 +182,34 @@ export const quizAttempts = pgTable("quiz_attempts", {
   completedAt: timestamp("completed_at").defaultNow(),
 });
 
+// Learning Metrics table for tracking study time and streaks
+export const learningMetrics = pgTable("learning_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(),
+  totalStudyTime: integer("total_study_time").default(0), // Total study time in minutes
+  weeklyStudyTime: integer("weekly_study_time").default(0), // Study time this week in minutes
+  currentStreak: integer("current_streak").default(0), // Current consecutive days
+  longestStreak: integer("longest_streak").default(0), // Longest streak ever
+  lastActiveDate: timestamp("last_active_date"), // Last date user was active
+  streakStartDate: timestamp("streak_start_date"), // When current streak started
+  weekStartDate: timestamp("week_start_date"), // Start of current week for weekly tracking
+  dailyGoal: integer("daily_goal").default(30), // Daily study goal in minutes
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Daily Activity table for tracking each day's learning
+export const dailyActivity = pgTable("daily_activity", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  date: timestamp("date").notNull(),
+  studyTime: integer("study_time").default(0), // Study time for this day in minutes
+  lessonsCompleted: integer("lessons_completed").default(0),
+  coursesAccessed: jsonb("courses_accessed").$type<string[]>().default([]),
+  goalMet: boolean("goal_met").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // AI processing jobs table
 export const aiProcessingJobs = pgTable("ai_processing_jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -208,6 +236,8 @@ export const insertEnrollmentSchema = createInsertSchema(enrollments).omit({ id:
 export const insertProgressSchema = createInsertSchema(progress).omit({ id: true });
 export const insertQuizAttemptSchema = createInsertSchema(quizAttempts).omit({ id: true, completedAt: true });
 export const insertAiProcessingJobSchema = createInsertSchema(aiProcessingJobs).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertLearningMetricsSchema = createInsertSchema(learningMetrics).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertDailyActivitySchema = createInsertSchema(dailyActivity).omit({ id: true, createdAt: true });
 
 // Types
 export type UpsertUser = typeof users.$inferInsert;
@@ -234,6 +264,10 @@ export type InsertQuizAttempt = z.infer<typeof insertQuizAttemptSchema>;
 export type QuizAttempt = typeof quizAttempts.$inferSelect;
 export type InsertAiProcessingJob = z.infer<typeof insertAiProcessingJobSchema>;
 export type AiProcessingJob = typeof aiProcessingJobs.$inferSelect;
+export type InsertLearningMetrics = z.infer<typeof insertLearningMetricsSchema>;
+export type LearningMetrics = typeof learningMetrics.$inferSelect;
+export type InsertDailyActivity = z.infer<typeof insertDailyActivitySchema>;
+export type DailyActivity = typeof dailyActivity.$inferSelect;
 
 // Extended types for API responses
 export type CourseWithDetails = Course & {

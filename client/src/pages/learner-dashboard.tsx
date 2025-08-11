@@ -58,6 +58,16 @@ export default function LearnerDashboard() {
     queryKey: ["/api/enrollments"],
   });
 
+  // Fetch learning metrics
+  const { data: metricsData, isLoading: metricsLoading } = useQuery({
+    queryKey: ["/api/learner/metrics"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/learner/metrics");
+      return response.json();
+    },
+    refetchInterval: 60000, // Refresh every minute
+  });
+
   // Fetch all available courses with search query
   const { data: searchResults = [], isLoading: coursesLoading } = useQuery({
     queryKey: ["/api/courses/search", searchQuery],
@@ -179,6 +189,22 @@ export default function LearnerDashboard() {
     setIsLongPressed(false);
   };
 
+  // Helper function to format time
+  const formatTime = (minutes: number) => {
+    if (!minutes || minutes === 0) return "0m";
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0) {
+      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    }
+    return `${mins}m`;
+  };
+
+  // Extract metrics from API response
+  const metrics = metricsData?.metrics || {};
+  const todayStudyTime = metricsData?.todayStudyTime || 0;
+  const completedCourses = metricsData?.completedCourses || 0;
+
   const stats = [
     {
       title: "Enrolled Courses",
@@ -189,22 +215,22 @@ export default function LearnerDashboard() {
     },
     {
       title: "Completed",
-      value: enrollments.filter((e: any) => e.progressPercentage === 100).length.toString(),
-      change: `${enrollments.filter((e: any) => e.progressPercentage === 100).length} certificates`,
+      value: completedCourses.toString(),
+      change: `${completedCourses} certificate${completedCourses !== 1 ? 's' : ''}`,
       icon: CheckCircle,
       color: "text-green-600"
     },
     {
       title: "Learning Streak",
-      value: "12",
-      change: "days active",
+      value: (metrics.currentStreak || 0).toString(),
+      change: `${metrics.currentStreak || 0} day${metrics.currentStreak !== 1 ? 's' : ''} active`,
       icon: Zap,
       color: "text-orange-600"
     },
     {
       title: "Study Time",
-      value: "47h",
-      change: "8h this week",
+      value: formatTime(metrics.totalStudyTime || 0),
+      change: `${formatTime(metrics.weeklyStudyTime || 0)} this week`,
       icon: Clock,
       color: "text-purple-600"
     }

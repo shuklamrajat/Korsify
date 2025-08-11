@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import type { Lesson } from "@shared/schema";
 import { CitationRenderer } from "@/components/citation-renderer";
+import { apiRequest } from "@/lib/queryClient";
 
 interface LessonViewerProps {
   lesson: Lesson;
@@ -52,9 +53,30 @@ export function LessonViewer({
 }: LessonViewerProps) {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [readingProgress, setReadingProgress] = useState(0);
+  const timeTrackerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Function to track time spent on lesson
+  const trackLessonTime = async () => {
+    if (startTime && lesson.id) {
+      const endTime = new Date();
+      const timeSpentMinutes = Math.round((endTime.getTime() - startTime.getTime()) / 60000);
+      
+      if (timeSpentMinutes > 0) {
+        try {
+          await apiRequest("POST", "/api/learner/track-progress", {
+            lessonId: lesson.id,
+            timeSpent: timeSpentMinutes
+          });
+        } catch (error) {
+          console.error("Failed to track lesson progress:", error);
+        }
+      }
+    }
+  };
 
   useEffect(() => {
-    setStartTime(new Date());
+    const lessonStartTime = new Date();
+    setStartTime(lessonStartTime);
     
     // Track reading progress
     const handleScroll = () => {
@@ -68,8 +90,23 @@ export function LessonViewer({
     const contentElement = document.getElementById('lesson-content');
     contentElement?.addEventListener('scroll', handleScroll);
     
+    // Set up periodic tracking (every 2 minutes)
+    timeTrackerRef.current = setInterval(() => {
+      trackLessonTime();
+      setStartTime(new Date()); // Reset start time after tracking
+    }, 120000); // 2 minutes
+    
+    // Cleanup function
     return () => {
       contentElement?.removeEventListener('scroll', handleScroll);
+      
+      // Track time when leaving the lesson
+      trackLessonTime();
+      
+      // Clear the interval
+      if (timeTrackerRef.current) {
+        clearInterval(timeTrackerRef.current);
+      }
     };
   }, [lesson.id]);
 
@@ -286,7 +323,10 @@ export function LessonViewer({
               {hasPrevious && (
                 <Button
                   variant="outline"
-                  onClick={onPrevious}
+                  onClick={async () => {
+                    await trackLessonTime();
+                    onPrevious?.();
+                  }}
                   className="flex items-center gap-2"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -298,7 +338,10 @@ export function LessonViewer({
             <div className="flex gap-2">
               {!isCompleted && onComplete && (
                 <Button
-                  onClick={onComplete}
+                  onClick={async () => {
+                    await trackLessonTime();
+                    onComplete();
+                  }}
                   variant="default"
                   className="flex items-center gap-2"
                 >
@@ -309,7 +352,10 @@ export function LessonViewer({
               
               {hasNext && (
                 <Button
-                  onClick={onNext}
+                  onClick={async () => {
+                    await trackLessonTime();
+                    onNext?.();
+                  }}
                   variant={isCompleted ? "default" : "outline"}
                   className="flex items-center gap-2"
                 >
