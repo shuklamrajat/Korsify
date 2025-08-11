@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import CourseCard from "@/components/ui/course-card";
+import { WelcomeWidget } from "@/components/WelcomeWidget";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -238,24 +239,17 @@ export default function LearnerDashboard() {
       <Navigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">My Learning Dashboard</h1>
-            <p className="text-gray-600">Welcome back, {user?.firstName || 'Learner'}! Track your progress and continue learning.</p>
-          </div>
-          <Button 
-            size="lg" 
-            className="mt-4 lg:mt-0"
-            onClick={() => {
+        {/* Welcome Widget */}
+        <div className="mb-8">
+          <WelcomeWidget 
+            user={user} 
+            enrollments={enrollments}
+            onBrowseCourses={() => {
               const tabList = document.querySelector('[role="tablist"]');
               const browseTab = tabList?.querySelector('[value="browse"]') as HTMLElement;
               browseTab?.click();
             }}
-          >
-            <Search className="w-5 h-5 mr-2" />
-            Browse Courses
-          </Button>
+          />
         </div>
 
         {/* Stats Cards */}
