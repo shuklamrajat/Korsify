@@ -10,7 +10,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 
-**Latest Updates (January 27, 2025):**
+**Latest Updates (January 28, 2025):**
+- **Fixed Course Unenrollment and Browse Courses Platform-Wide Display**
+  - Unenrolled courses now immediately disappear from learner dashboard with forced refetch
+  - Browse courses section now shows ALL published courses from ALL users platform-wide
+  - Added clarifying text that browse section displays all platform courses from all creators
+  - Enhanced search to work across all published courses on the entire platform
+  - Fixed UI refresh issue where unenrolled courses remained visible until page refresh
+
+**Previous Updates (January 27, 2025):**
 - **Research-Based Learning Time Estimation**
   - Implemented scientific learning time calculations based on 125 words/minute comprehension rate
   - Research shows: General reading 200-250 wpm, Educational content 100-150 wpm, Technical material 50-125 wpm
