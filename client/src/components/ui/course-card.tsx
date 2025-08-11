@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+import { cn, calculateCourseLearningTime, formatLearningTime } from "@/lib/utils";
 import { 
   BookOpen, 
   Clock, 
@@ -97,6 +97,10 @@ export default function CourseCard({
   const lessonCount = course.modules?.reduce((total, module) => 
     total + (module.lessons?.length || 0), 0) || 0;
 
+  // Calculate total learning time based on lesson content
+  const totalLearningMinutes = calculateCourseLearningTime(course);
+  const formattedLearningTime = formatLearningTime(totalLearningMinutes);
+
   return (
     <Card className={cn(
       "group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer",
@@ -158,7 +162,7 @@ export default function CourseCard({
           </div>
           <div className="flex items-center gap-1">
             <Clock className="w-4 h-4" />
-            <span>{course.estimatedDuration || 0} min</span>
+            <span>{totalLearningMinutes > 0 ? formattedLearningTime : 'Calculating...'}</span>
           </div>
           <div className="flex items-center gap-1">
             <Users className="w-4 h-4" />
