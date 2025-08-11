@@ -99,9 +99,20 @@ export default function LoginPage() {
       }
     } catch (error: any) {
       console.error("Google sign-in error:", error);
+      let errorMessage = error.message || "Could not sign in with Google";
+      
+      // Provide helpful message for common Firebase errors
+      if (error.code === 'auth/unauthorized-domain' || errorMessage.includes('unauthorized domain')) {
+        errorMessage = "This domain is not authorized. Please add this Replit domain to Firebase Console → Authentication → Settings → Authorized domains";
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = "Popup was blocked. Please allow popups for this site.";
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMessage = "Sign-in was cancelled.";
+      }
+      
       toast({
         title: "Sign in failed",
-        description: error.message || "Could not sign in with Google",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
