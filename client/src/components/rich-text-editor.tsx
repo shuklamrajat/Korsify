@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -22,7 +23,7 @@ import {
   Underline as UnderlineIcon,
   Strikethrough,
   Link2,
-  LinkOff,
+  Link2Off,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -109,6 +110,13 @@ export default function RichTextEditor({
       onChange(editor.getHTML());
     },
   });
+
+  // Update editor content when prop changes
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
 
   if (!editor) {
     return null;

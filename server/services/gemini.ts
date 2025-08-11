@@ -103,6 +103,14 @@ export class GeminiService {
        - Use clear analogies and metaphors to explain complex concepts
        - Include "Key Concepts" and "Important Notes" sections
        - Provide practical examples and case studies from the source
+       
+       FORMAT CONTENT AS HTML:
+       - Use proper HTML tags for structure: <h2>, <h3>, <p>, <ul>, <ol>, <li>
+       - Wrap key concepts in styled divs: <div class="bg-blue-50 border-l-4 border-blue-500 p-4 my-4 rounded">
+       - Format examples in green boxes: <div class="bg-green-50 border-l-4 border-green-500 p-4 my-4 rounded">
+       - Use <strong> for emphasis and <em> for italics
+       - Include structured sections with clear headings
+       - Format lists properly with <ul> or <ol> tags
 
     3. LESSON STRUCTURE BY POSITION:
        - FOUNDATIONAL LESSONS (First in module): Establish core concepts, definitions, and fundamental principles

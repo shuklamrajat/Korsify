@@ -789,7 +789,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get enrolled courses count
       const enrollments = await storage.getUserEnrollments(req.user.id);
-      const completedCourses = enrollments.filter(e => e.progress === 100).length;
+      const completedCourses = enrollments.filter(e => e.progressPercentage === 100).length;
       
       res.json({
         metrics,
@@ -993,16 +993,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting lesson:", error);
       res.status(500).json({ message: "Failed to delete lesson" });
-    }
-  });
-
-  app.patch('/api/lessons/:id', async (req: any, res) => {
-    try {
-      const updated = await storage.updateLesson(req.params.id, req.body);
-      res.json(updated);
-    } catch (error) {
-      console.error("Error updating lesson:", error);
-      res.status(500).json({ message: "Failed to update lesson" });
     }
   });
 
