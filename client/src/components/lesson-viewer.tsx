@@ -20,12 +20,15 @@ import {
   Lightbulb,
   AlertCircle,
   FileText,
-  MessageCircle
+  MessageCircle,
+  Brain
 } from "lucide-react";
 import type { Lesson } from "@shared/schema";
 import { CitationRenderer } from "@/components/citation-renderer";
 import RichTextViewer from "@/components/rich-text-viewer";
 import { apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
+import { QuizViewer } from "@/components/quiz-viewer";
 
 interface LessonViewerProps {
   lesson: Lesson;
@@ -54,7 +57,28 @@ export function LessonViewer({
 }: LessonViewerProps) {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [readingProgress, setReadingProgress] = useState(0);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [quizScore, setQuizScore] = useState<number | null>(null);
   const timeTrackerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Fetch quiz for this lesson
+  const { data: quiz } = useQuery<{
+    id: string;
+    title: string;
+    questions: Array<{
+      question: string;
+      type: 'multiple_choice' | 'true_false';
+      options?: string[];
+      correctAnswer: string;
+      explanation?: string;
+    }>;
+    passingScore: number;
+    maxAttempts?: number;
+  }>({
+    queryKey: [`/api/quizzes/lesson/${lesson.id}`],
+    enabled: !!lesson.id
+  });
 
   // Function to track time spent on lesson
   const trackLessonTime = async () => {
@@ -207,8 +231,70 @@ export function LessonViewer({
         </CardContent>
       </Card>
 
+      {/* Quiz Section */}
+      {quiz && !showQuiz && (
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                  <Brain className="w-6 h-6 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Test Your Knowledge</h3>
+                  <p className="text-gray-600 text-sm">
+                    {quizCompleted 
+                      ? `You scored ${quizScore}% on the quiz`
+                      : "Take a quiz to reinforce your learning"}
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => setShowQuiz(true)}
+                variant={quizCompleted ? "outline" : "default"}
+                className="flex items-center gap-2"
+              >
+                <Target className="w-4 h-4" />
+                {quizCompleted ? "Retake Quiz" : "Take Quiz"}
+              </Button>
+            </div>
+            {quizCompleted && quizScore !== null && (
+              <div className="mt-4 p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-green-800 font-medium">
+                    Quiz completed with {quizScore}%
+                  </span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Display Quiz */}
+      {showQuiz && quiz && (
+        <QuizViewer
+          quiz={quiz}
+          lessonId={lesson.id}
+          onComplete={(passed, score) => {
+            setQuizCompleted(true);
+            setQuizScore(score);
+            setShowQuiz(false);
+            if (passed && !isCompleted) {
+              onComplete?.();
+            }
+          }}
+          onRetry={() => {
+            setQuizCompleted(false);
+            setQuizScore(null);
+          }}
+        />
+      )}
+
       {/* Navigation and Actions */}
-      <Card className="border-0 shadow-lg">
+      {!showQuiz && (
+        <Card className="border-0 shadow-lg">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div className="flex gap-2">
@@ -268,6 +354,7 @@ export function LessonViewer({
           )}
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

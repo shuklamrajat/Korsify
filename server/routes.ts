@@ -924,6 +924,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Quiz routes
+  app.get('/api/quizzes/lesson/:lessonId', async (req: any, res) => {
+    try {
+      const { lessonId } = req.params;
+      const quiz = await storage.getQuizByLessonId(lessonId);
+      res.json(quiz);
+    } catch (error) {
+      console.error("Error fetching quiz for lesson:", error);
+      res.status(500).json({ message: "Failed to fetch quiz" });
+    }
+  });
+
+  app.get('/api/quizzes/module/:moduleId', async (req: any, res) => {
+    try {
+      const { moduleId } = req.params;
+      const quiz = await storage.getQuizByModuleId(moduleId);
+      res.json(quiz);
+    } catch (error) {
+      console.error("Error fetching quiz for module:", error);
+      res.status(500).json({ message: "Failed to fetch quiz" });
+    }
+  });
+
+  app.post('/api/quiz-attempts', async (req: any, res) => {
+    try {
+      const { quizId, lessonId, moduleId, score, answers, attemptNumber } = req.body;
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const attempt = await storage.createQuizAttempt({
+        quizId,
+        learnerId: userId,
+        score,
+        answers,
+        attemptNumber: attemptNumber || 1
+      });
+
+      res.json(attempt);
+    } catch (error) {
+      console.error("Error saving quiz attempt:", error);
+      res.status(500).json({ message: "Failed to save quiz attempt" });
+    }
+  });
+
+  app.get('/api/quiz-attempts/:quizId', async (req: any, res) => {
+    try {
+      const { quizId } = req.params;
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const attempts = await storage.getUserQuizAttempts(userId, quizId);
+      res.json(attempts);
+    } catch (error) {
+      console.error("Error fetching quiz attempts:", error);
+      res.status(500).json({ message: "Failed to fetch quiz attempts" });
+    }
+  });
+
   // Create module
   app.post('/api/courses/:courseId/modules', async (req: any, res) => {
     try {

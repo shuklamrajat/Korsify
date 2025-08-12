@@ -43,7 +43,7 @@ import {
   type DailyActivity,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, gte, lt, or } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lt, or, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -105,6 +105,8 @@ export interface IStorage {
   // Quiz operations
   createQuiz(quiz: InsertQuiz): Promise<Quiz>;
   getLessonQuiz(lessonId: string): Promise<Quiz | undefined>;
+  getQuizByLessonId(lessonId: string): Promise<Quiz | undefined>;
+  getQuizByModuleId(moduleId: string): Promise<Quiz | undefined>;
   updateQuiz(id: string, updates: Partial<Quiz>): Promise<Quiz>;
 
   // Enrollment operations
@@ -698,6 +700,20 @@ export class DatabaseStorage implements IStorage {
 
   async getLessonQuiz(lessonId: string): Promise<Quiz | undefined> {
     const [quiz] = await db.select().from(quizzes).where(eq(quizzes.lessonId, lessonId));
+    return quiz;
+  }
+
+  async getQuizByLessonId(lessonId: string): Promise<Quiz | undefined> {
+    const [quiz] = await db.select().from(quizzes).where(eq(quizzes.lessonId, lessonId));
+    return quiz;
+  }
+
+  async getQuizByModuleId(moduleId: string): Promise<Quiz | undefined> {
+    const [quiz] = await db.select().from(quizzes)
+      .where(and(
+        eq(quizzes.moduleId, moduleId),
+        isNull(quizzes.lessonId)
+      ));
     return quiz;
   }
 

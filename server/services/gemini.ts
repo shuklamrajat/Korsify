@@ -33,8 +33,13 @@ export interface AIGenerationOptions {
   language?: string;
   targetAudience?: string;
   contentFocus?: string;
-  difficultyLevel?: 'beginner' | 'intermediate' | 'advanced';
+  difficultyLevel?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   moduleCount?: number;
+  generateQuizzes?: boolean;
+  quizFrequency?: 'module' | 'lesson';
+  questionsPerQuiz?: number;
+  includeExercises?: boolean;
+  includeExamples?: boolean;
 }
 
 export class GeminiService {
