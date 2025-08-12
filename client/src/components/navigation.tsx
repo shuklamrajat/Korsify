@@ -32,7 +32,8 @@ import {
   BarChart3,
   Search,
   Bell,
-  HelpCircle
+  HelpCircle,
+  School
 } from "lucide-react";
 
 export default function Navigation() {
@@ -162,15 +163,24 @@ export default function Navigation() {
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 </Button>
 
-                {/* Create Course Button for Creators */}
-                {user.currentRole === 'creator' && (
+                {/* Mode Switching Buttons */}
+                {user.currentRole === 'creator' ? (
+                  <Button
+                    size="sm"
+                    onClick={() => setLocation('/learner')}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Learner Dashboard
+                  </Button>
+                ) : (
                   <Button
                     size="sm"
                     onClick={() => setLocation('/creator')}
                     className="bg-primary hover:bg-primary/90"
                   >
-                    <PlusCircle className="w-4 h-4 mr-2" />
-                    Create Course
+                    <School className="w-4 h-4 mr-2" />
+                    Creator Dashboard
                   </Button>
                 )}
 

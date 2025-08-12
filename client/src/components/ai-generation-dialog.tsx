@@ -6,6 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -100,8 +104,17 @@ export default function AiGenerationDialog({
   const [processing, setProcessing] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<ProcessingPhase | null>(null);
   const [processingJobId, setProcessingJobId] = useState<string | null>(null);
-  const [customOptions, setCustomOptions] = useState<any>({});
   const [showCustomization, setShowCustomization] = useState(false);
+  
+  // Customization options state
+  const [customOptions, setCustomOptions] = useState({
+    difficultyLevel: 'beginner',
+    generateQuizzes: true,
+    quizFrequency: 'module', // 'module' or 'lesson'
+    questionsPerQuiz: 5,
+    includeExercises: true,
+    includeExamples: true
+  });
 
   // Auto-select all documents when dialog opens or documents change
   useEffect(() => {
@@ -236,28 +249,182 @@ export default function AiGenerationDialog({
                 </p>
               </div>
 
-              {/* Options Summary */}
-              {Object.keys(customOptions).length > 0 && (
+              {/* Customization Settings Panel */}
+              {showCustomization ? (
+                <Card className="bg-gradient-to-r from-primary/5 to-purple-600/5 border-primary/20">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-semibold">Generation Settings</h4>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowCustomization(false)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    
+                    {/* Difficulty Level */}
+                    <div className="space-y-2">
+                      <Label htmlFor="difficulty">Difficulty Level</Label>
+                      <Select
+                        value={customOptions.difficultyLevel}
+                        onValueChange={(value) => setCustomOptions({...customOptions, difficultyLevel: value})}
+                      >
+                        <SelectTrigger id="difficulty">
+                          <SelectValue placeholder="Select difficulty" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="beginner">Beginner</SelectItem>
+                          <SelectItem value="intermediate">Intermediate</SelectItem>
+                          <SelectItem value="advanced">Advanced</SelectItem>
+                          <SelectItem value="expert">Expert</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Quiz Generation Settings */}
+                    <div className="space-y-4 border-t pt-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="quizzes">Generate Quizzes</Label>
+                          <p className="text-sm text-gray-500">Include quiz questions in the course</p>
+                        </div>
+                        <Switch
+                          id="quizzes"
+                          checked={customOptions.generateQuizzes}
+                          onCheckedChange={(checked) => setCustomOptions({...customOptions, generateQuizzes: checked})}
+                        />
+                      </div>
+
+                      {customOptions.generateQuizzes && (
+                        <>
+                          <div className="space-y-2 pl-4">
+                            <Label htmlFor="quiz-frequency">Quiz Frequency</Label>
+                            <Select
+                              value={customOptions.quizFrequency}
+                              onValueChange={(value) => setCustomOptions({...customOptions, quizFrequency: value})}
+                            >
+                              <SelectTrigger id="quiz-frequency">
+                                <SelectValue placeholder="Select frequency" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="module">One quiz per module</SelectItem>
+                                <SelectItem value="lesson">One quiz per lesson</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2 pl-4">
+                            <Label htmlFor="questions-count">
+                              Questions per Quiz: {customOptions.questionsPerQuiz}
+                            </Label>
+                            <Slider
+                              id="questions-count"
+                              min={1}
+                              max={10}
+                              step={1}
+                              value={[customOptions.questionsPerQuiz]}
+                              onValueChange={(value) => setCustomOptions({...customOptions, questionsPerQuiz: value[0]})}
+                              className="w-full"
+                            />
+                            <div className="flex justify-between text-xs text-gray-500">
+                              <span>1</span>
+                              <span>5</span>
+                              <span>10</span>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Additional Options */}
+                    <div className="space-y-3 border-t pt-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="exercises">Include Practice Exercises</Label>
+                          <p className="text-sm text-gray-500">Add hands-on exercises in lessons</p>
+                        </div>
+                        <Switch
+                          id="exercises"
+                          checked={customOptions.includeExercises}
+                          onCheckedChange={(checked) => setCustomOptions({...customOptions, includeExercises: checked})}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="examples">Include Real-World Examples</Label>
+                          <p className="text-sm text-gray-500">Add practical examples to concepts</p>
+                        </div>
+                        <Switch
+                          id="examples"
+                          checked={customOptions.includeExamples}
+                          onCheckedChange={(checked) => setCustomOptions({...customOptions, includeExamples: checked})}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCustomOptions({
+                            difficultyLevel: 'beginner',
+                            generateQuizzes: true,
+                            quizFrequency: 'module',
+                            questionsPerQuiz: 5,
+                            includeExercises: true,
+                            includeExamples: true
+                          });
+                        }}
+                      >
+                        Reset to Defaults
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setShowCustomization(false)}
+                      >
+                        Apply Settings
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                /* Options Summary Card */
                 <Card className="bg-gradient-to-r from-primary/10 to-purple-600/10">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium">
-                        Customized Options ({Object.keys(customOptions).length})
-                      </h4>
+                      <h4 className="font-medium">Generation Settings</h4>
                       <Button 
                         variant="ghost" 
                         size="sm"
                         onClick={() => setShowCustomization(true)}
                       >
-                        Edit
+                        <Settings className="w-4 h-4 mr-1" />
+                        Customize
                       </Button>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(customOptions).map(([key, value]) => (
-                        <Badge key={key} variant="secondary">
-                          {key}: {value as string}
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-500">Difficulty:</span>
+                        <Badge variant="secondary" className="ml-2 capitalize">{customOptions.difficultyLevel}</Badge>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Quizzes:</span>
+                        <Badge variant="secondary" className="ml-2">
+                          {customOptions.generateQuizzes ? `${customOptions.questionsPerQuiz} per ${customOptions.quizFrequency}` : 'None'}
                         </Badge>
-                      ))}
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Exercises:</span>
+                        <Badge variant="secondary" className="ml-2">{customOptions.includeExercises ? 'Yes' : 'No'}</Badge>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Examples:</span>
+                        <Badge variant="secondary" className="ml-2">{customOptions.includeExamples ? 'Yes' : 'No'}</Badge>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

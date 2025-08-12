@@ -110,6 +110,9 @@ export class DocumentProcessor {
         };
         const createdModule = await storage.createModule(moduleData);
 
+        // Store lesson IDs for quiz generation
+        const createdLessonIds: string[] = [];
+
         // Create lessons for this module
         for (let lessonIndex = 0; lessonIndex < module.lessons.length; lessonIndex++) {
           const lesson = module.lessons[lessonIndex];
@@ -129,11 +132,51 @@ export class DocumentProcessor {
             attachments: [],
             sourceReferences: sourceReferences
           };
-          await storage.createLesson(lessonData);
+          const createdLesson = await storage.createLesson(lessonData);
+          createdLessonIds.push(createdLesson.id);
+
+          // Generate quiz per lesson if requested
+          if (options.generateQuizzes && options.quizFrequency === 'lesson') {
+            const quizQuestions = await geminiService.generateQuizQuestions(
+              lesson.content,
+              options.questionsPerQuiz || 5
+            );
+
+            if (quizQuestions && quizQuestions.length > 0) {
+              const quizData: InsertQuiz = {
+                moduleId: createdModule.id,
+                lessonId: createdLesson.id,
+                title: `${lesson.title} - Quiz`,
+                questions: quizQuestions,
+                passingScore: 70,
+              };
+              await storage.createQuiz(quizData);
+            }
+          }
         }
 
-        // Create quiz if available
-        if (module.quiz) {
+        // Generate quiz per module if requested
+        if (options.generateQuizzes && options.quizFrequency === 'module') {
+          // Combine all lesson content for module quiz
+          const moduleContent = module.lessons.map(l => l.content).join('\n\n');
+          const quizQuestions = await geminiService.generateQuizQuestions(
+            moduleContent,
+            options.questionsPerQuiz || 5
+          );
+
+          if (quizQuestions && quizQuestions.length > 0) {
+            const quizData: InsertQuiz = {
+              moduleId: createdModule.id,
+              title: `${module.title} - Quiz`,
+              questions: quizQuestions,
+              passingScore: 70,
+            };
+            await storage.createQuiz(quizData);
+          }
+        }
+
+        // Legacy support: Create quiz if available in the module structure
+        if (module.quiz && !options.generateQuizzes) {
           const quizData: InsertQuiz = {
             moduleId: createdModule.id,
             title: module.quiz.title,
