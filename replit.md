@@ -10,7 +10,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 
-**Latest Updates (January 28, 2025):**
+**Latest Updates (January 12, 2025):**
+- **Document Upload Integration Enhancement**
+  - Documents uploaded during course creation now automatically appear in course editor's Documents section
+  - Fixed document linking process to immediately associate uploaded documents with courses
+  - Removed "AI-Powered Course Creation" section from Content tab for cleaner interface
+  - Streamlined course creation workflow for better user experience
+
+**Previous Updates (January 28, 2025):**
 - **Real-Time Learning Metrics Implementation**
   - Created database tables for tracking study time, learning streaks, and daily activity
   - Implemented automatic time tracking in lesson viewer that records study time as users read
