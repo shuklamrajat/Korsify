@@ -63,7 +63,7 @@ export function LessonViewer({
   const timeTrackerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Fetch quiz for this lesson
-  const { data: quiz } = useQuery<{
+  const { data: quiz, error: quizError } = useQuery<{
     id: string;
     title: string;
     questions: Array<{
@@ -77,8 +77,20 @@ export function LessonViewer({
     maxAttempts?: number;
   }>({
     queryKey: [`/api/quizzes/lesson/${lesson.id}`],
-    enabled: !!lesson.id
+    enabled: !!lesson.id,
+    retry: false // Don't retry on 401 errors
   });
+
+  // Debug logging
+  useEffect(() => {
+    if (quizError) {
+      console.log('Quiz fetch error:', quizError);
+    }
+    if (quiz) {
+      console.log('Quiz loaded:', quiz.title);
+      console.log('Number of questions:', quiz.questions?.length);
+    }
+  }, [quiz, quizError]);
 
   // Function to track time spent on lesson
   const trackLessonTime = async () => {
@@ -268,6 +280,25 @@ export function LessonViewer({
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Authentication Error Message for Quiz */}
+      {quizError && !quiz && !showQuiz && (
+        <Card className="border-0 shadow-lg border-yellow-200 bg-yellow-50">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                <Brain className="w-6 h-6 text-yellow-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Quiz Available</h3>
+                <p className="text-gray-600 text-sm">
+                  A quiz is available for this lesson. Please ensure you're logged in to access it.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

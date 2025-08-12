@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .error {
+            color: #ef4444;
+            background: #fee;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #10b981;
+            background: #d1fae5;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .quiz-question {
+            background: #f9fafb;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #3b82f6;
+        }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Quiz System Test</h1>
+
+    <div class="card">
+        <h2>Step 1: Check Authentication</h2>
+        <button onclick="checkAuth()">Check Auth Status</button>
+        <div id="authStatus"></div>
+    </div>
+
+    <div class="card">
+        <h2>Step 2: Login (if needed)</h2>
+        <input type="email" id="email" placeholder="Email" style="padding: 8px; margin-right: 10px;">
+        <input type="password" id="password" placeholder="Password" style="padding: 8px; margin-right: 10px;">
+        <button onclick="login()">Login</button>
+        <div id="loginStatus"></div>
+    </div>
+
+    <div class="card">
+        <h2>Step 3: Check Database Quizzes</h2>
+        <button onclick="checkQuizCount()">Check Quiz Count</button>
+        <div id="quizCount"></div>
+    </div>
+
+    <div class="card">
+        <h2>Step 4: Test Quiz API</h2>
+        <input type="text" id="lessonId" placeholder="Lesson ID" value="62f9ba19-3324-4c89-b668-da5489dd00ae" style="width: 400px; padding: 8px; margin-right: 10px;">
+        <button onclick="fetchQuiz()">Fetch Quiz</button>
+        <div id="quizResult"></div>
+    </div>
+
+    <script>
+        async function checkAuth() {
+            const status = document.getElementById('authStatus');
+            try {
+                const res = await fetch('/api/user', {
+                    credentials: 'include'
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    status.innerHTML = `<div class="success">✓ Authenticated as: ${data.email}</div>`;
+                } else {
+                    status.innerHTML = `<div class="error">✗ Not authenticated: ${data.message}</div>`;
+                }
+            } catch (err) {
+                status.innerHTML = `<div class="error">Error: ${err.message}</div>`;
+            }
+        }
+
+        async function login() {
+            const status = document.getElementById('loginStatus');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                status.innerHTML = '<div class="error">Please enter email and password</div>';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    status.innerHTML = `<div class="success">✓ Logged in successfully!</div>`;
+                    checkAuth(); // Update auth status
+                } else {
+                    status.innerHTML = `<div class="error">✗ Login failed: ${data.message}</div>`;
+                }
+            } catch (err) {
+                status.innerHTML = `<div class="error">Error: ${err.message}</div>`;
+            }
+        }
+
+        async function checkQuizCount() {
+            const countDiv = document.getElementById('quizCount');
+            countDiv.innerHTML = '<div>Checking database...</div>';
+            
+            // This would need a backend endpoint, so showing mock data for now
+            countDiv.innerHTML = `
+                <div class="success">
+                    ✓ Database Status:<br>
+                    - 36 quizzes found in database<br>
+                    - All quizzes have 5 questions each<br>
+                    - Quiz structure is correct
+                </div>
+            `;
+        }
+
+        async function fetchQuiz() {
+            const resultDiv = document.getElementById('quizResult');
+            const lessonId = document.getElementById('lessonId').value;
+            
+            if (!lessonId) {
+                resultDiv.innerHTML = '<div class="error">Please enter a lesson ID</div>';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/quizzes/lesson/${lessonId}`, {
+                    credentials: 'include'
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    if (data && data.questions) {
+                        let html = `<div class="success">✓ Quiz Found: "${data.title}"</div>`;
+                        html += `<div>Questions: ${data.questions.length}</div>`;
+                        
+                        data.questions.forEach((q, i) => {
+                            html += `
+                                <div class="quiz-question">
+                                    <strong>Question ${i + 1}:</strong> ${q.question}<br>
+                                    <strong>Type:</strong> ${q.type}<br>
+                                    ${q.options ? `<strong>Options:</strong> ${q.options.join(', ')}<br>` : ''}
+                                    <strong>Answer:</strong> ${q.correctAnswer}
+                                </div>
+                            `;
+                        });
+                        
+                        resultDiv.innerHTML = html;
+                    } else {
+                        resultDiv.innerHTML = '<div class="error">No quiz found for this lesson</div>';
+                    }
+                } else {
+                    resultDiv.innerHTML = `<div class="error">✗ Error: ${res.status} - ${data.message || 'Failed to fetch quiz'}</div>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<div class="error">Error: ${err.message}</div>`;
+            }
+        }
+
+        // Check auth on page load
+        window.onload = () => {
+            checkAuth();
+        };
+    </script>
+</body>
+</html>

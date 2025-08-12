@@ -307,6 +307,10 @@ export class DocumentProcessor {
         options
       );
 
+      // Log the structure to debug quiz generation
+      console.log('Generated course structure:', JSON.stringify(courseStructure, null, 2));
+      console.log('Quiz generation options:', options);
+
       await this.updatePhase(job.id, 'content_generation', 85, 'completed', onProgressUpdate);
 
       // Phase 4: Validation (85-95%)
@@ -435,6 +439,7 @@ export class DocumentProcessor {
         
         // Create lesson-level quiz if present
         if (lessonData.quiz) {
+          console.log(`Creating quiz for lesson: ${lesson.title}`);
           const quizRecord: InsertQuiz = {
             lessonId: lesson.id,
             moduleId: module.id,
@@ -444,7 +449,8 @@ export class DocumentProcessor {
             maxAttempts: 3,
           };
 
-          await storage.createQuiz(quizRecord);
+          const createdQuiz = await storage.createQuiz(quizRecord);
+          console.log(`Quiz created with ID: ${createdQuiz.id}`);
         }
       }
 
