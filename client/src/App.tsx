@@ -11,6 +11,10 @@ import CourseEditor from "@/pages/course-editor";
 import CourseViewer from "@/pages/course-viewer";
 import LoginPage from "@/pages/login";
 import RoleSelection from "@/pages/role-selection";
+import LearnerAnalytics from "@/pages/learner-analytics";
+import LearnerProfile from "@/pages/learner-profile";
+import LearnerSettings from "@/pages/learner-settings";
+import LearnerHelp from "@/pages/learner-help";
 
 function Router() {
   return (
@@ -20,6 +24,10 @@ function Router() {
       <Route path="/select-role" component={RoleSelection} />
       <Route path="/creator" component={CreatorDashboard} />
       <Route path="/learner" component={LearnerDashboard} />
+      <Route path="/learner/analytics" component={LearnerAnalytics} />
+      <Route path="/learner/profile" component={LearnerProfile} />
+      <Route path="/learner/settings" component={LearnerSettings} />
+      <Route path="/learner/help" component={LearnerHelp} />
       <Route path="/courses/:id/edit" component={CourseEditor} />
       <Route path="/courses/:id" component={CourseViewer} />
       <Route component={NotFound} />
