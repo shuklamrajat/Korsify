@@ -432,9 +432,23 @@ export class DocumentProcessor {
         };
 
         const lesson = await storage.createLesson(lessonRecord);
+        
+        // Create lesson-level quiz if present
+        if (lessonData.quiz) {
+          const quizRecord: InsertQuiz = {
+            lessonId: lesson.id,
+            moduleId: module.id,
+            title: lessonData.quiz.title,
+            questions: lessonData.quiz.questions,
+            passingScore: 70,
+            maxAttempts: 3,
+          };
+
+          await storage.createQuiz(quizRecord);
+        }
       }
 
-      // Create quiz if present
+      // Create module-level quiz if present
       if (moduleData.quiz) {
         const quizRecord: InsertQuiz = {
           moduleId: module.id,

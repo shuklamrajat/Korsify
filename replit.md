@@ -11,6 +11,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (January 2025)
 
 **Latest Updates (January 12, 2025):**
+- **Quiz Generation System Fix**
+  - Fixed quiz generation to properly respect user customization settings during AI course creation
+  - Updated Gemini service to dynamically generate quizzes based on user preferences (generateQuizzes, quizFrequency, questionsPerQuiz)
+  - Modified document processor to handle both lesson-level and module-level quiz creation
+  - Added quiz count display to course cards showing total quizzes per course with FileQuestion icon
+  - Dynamic response schema in Gemini service adapts based on quiz settings for proper AI generation
 - **Document Upload Integration Enhancement**
   - Documents uploaded during course creation now automatically appear in course editor's Documents section
   - Fixed document linking process to immediately associate uploaded documents with courses

@@ -16,7 +16,8 @@ import {
   Calendar,
   Target,
   Globe,
-  Trash2
+  Trash2,
+  FileQuestion
 } from "lucide-react";
 
 interface Course {
@@ -97,6 +98,20 @@ export default function CourseCard({
   const lessonCount = course.modules?.reduce((total, module) => 
     total + (module.lessons?.length || 0), 0) || 0;
 
+  // Calculate quiz count from modules and lessons
+  const quizCount = course.modules?.reduce((total, module) => {
+    let count = 0;
+    // Check for module-level quiz
+    if (module.quiz) count++;
+    // Check for lesson-level quizzes
+    if (module.lessons) {
+      module.lessons.forEach((lesson: any) => {
+        if (lesson.quiz) count++;
+      });
+    }
+    return total + count;
+  }, 0) || 0;
+
   // Calculate total learning time based on lesson content
   const totalLearningMinutes = calculateCourseLearningTime(course);
   const formattedLearningTime = formatLearningTime(totalLearningMinutes);
@@ -164,10 +179,17 @@ export default function CourseCard({
             <Clock className="w-4 h-4" />
             <span>{totalLearningMinutes > 0 ? formattedLearningTime : 'Calculating...'}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Users className="w-4 h-4" />
-            <span>{course.enrollmentCount || 0} students</span>
-          </div>
+          {quizCount > 0 ? (
+            <div className="flex items-center gap-1">
+              <FileQuestion className="w-4 h-4" />
+              <span>{quizCount} quiz{quizCount !== 1 ? 'zes' : ''}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1">
+              <Users className="w-4 h-4" />
+              <span>{course.enrollmentCount || 0} students</span>
+            </div>
+          )}
         </div>
 
         {/* Additional Info */}
