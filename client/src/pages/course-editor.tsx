@@ -782,33 +782,7 @@ export default function CourseEditor() {
               </CardContent>
             </Card>
 
-            {/* AI Help Section */}
-            <Card className="bg-amber-50 border-amber-200">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-amber-900 mb-1">AI-Powered Course Creation</h3>
-                    <p className="text-amber-800 text-sm mb-3">
-                      Let AI help you create your course content! Upload documents and our AI will analyze them to suggest modules and lessons.
-                    </p>
-                    {courseDocuments.length > 0 && (
-                      <div className="bg-amber-100 rounded p-3 mb-3">
-                        <p className="text-sm text-amber-900">
-                          <ChevronRight className="w-4 h-4 inline mr-1" />
-                          Click to preview what Gemini AI would generate
-                        </p>
-                      </div>
-                    )}
-                    <Button variant="outline" size="sm" className="border-amber-300 text-amber-700 hover:bg-amber-100">
-                      Customize AI Settings
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+
               </div>
             </div>
           </TabsContent>
