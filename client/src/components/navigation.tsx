@@ -76,23 +76,35 @@ export default function Navigation() {
       label: 'Learner Dashboard',
       icon: BookOpen,
       action: () => setLocation('/learner'),
+      showFor: ['learner']
     },
     {
       label: 'Creator Dashboard',
       icon: PlusCircle,
       action: () => setLocation('/creator'),
+      showFor: ['creator']
     },
     {
       label: 'Browse Courses',
       icon: Search,
-      action: () => setLocation('/learner'),
+      action: () => {
+        setLocation('/learner');
+        // Trigger the Browse Courses tab after navigation
+        setTimeout(() => {
+          const tabList = document.querySelector('[role="tablist"]');
+          const browseTab = tabList?.querySelector('[value="browse"]') as HTMLElement;
+          browseTab?.click();
+        }, 100);
+      },
+      showFor: ['learner']
     },
     {
       label: 'Analytics',
       icon: BarChart3,
-      action: () => setLocation('/analytics'),
+      action: () => setLocation(user.currentRole === 'creator' ? '/analytics' : '/learner/analytics'),
+      showFor: ['learner', 'creator']
     },
-  ] : [];
+  ].filter(item => !item.showFor || item.showFor.includes(user.currentRole || 'learner')) : [];
 
   const handleSignIn = () => {
     setLocation('/login');
@@ -151,7 +163,7 @@ export default function Navigation() {
                 </Button>
 
                 {/* Create Course Button for Creators */}
-                {user.userType === 'creator' && (
+                {user.currentRole === 'creator' && (
                   <Button
                     size="sm"
                     onClick={() => setLocation('/creator')}
@@ -196,15 +208,15 @@ export default function Navigation() {
                     
                     <DropdownMenuSeparator />
                     
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLocation(user.currentRole === 'creator' ? '/creator/profile' : '/learner/profile')}>
                       <UserIcon className="mr-2 h-4 w-4" />
                       <span>Profile</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLocation(user.currentRole === 'creator' ? '/creator/settings' : '/learner/settings')}>
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Settings</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLocation(user.currentRole === 'creator' ? '/creator/help' : '/learner/help')}>
                       <HelpCircle className="mr-2 h-4 w-4" />
                       <span>Help</span>
                     </DropdownMenuItem>
