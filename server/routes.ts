@@ -929,6 +929,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { lessonId } = req.params;
       const quiz = await storage.getQuizByLessonId(lessonId);
+      console.log(`Quiz for lesson ${lessonId}:`, quiz);
       res.json(quiz);
     } catch (error) {
       console.error("Error fetching quiz for lesson:", error);
