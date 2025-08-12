@@ -80,7 +80,10 @@ export class GeminiService {
       targetAudience = 'General learners',
       contentFocus = 'Comprehensive understanding',
       difficultyLevel = 'intermediate',
-      moduleCount = 3
+      moduleCount = 3,
+      generateQuizzes = true,
+      quizFrequency = 'module',
+      questionsPerQuiz = 5
     } = options;
 
     const systemPrompt = `
@@ -155,6 +158,17 @@ export class GeminiService {
        - Include "Key Takeaways" sections summarizing essential points
        - Add "Further Reading" suggestions based on document references
        
+    8. QUIZ GENERATION REQUIREMENTS:
+       ${generateQuizzes ? `
+       - Generate comprehensive quizzes for assessment
+       - Quiz Frequency: ${quizFrequency === 'lesson' ? 'Create a quiz for EVERY lesson' : 'Create ONE quiz per module'}
+       - Questions per quiz: Generate exactly ${questionsPerQuiz} questions
+       - Question types: Multiple choice questions with 4 options each
+       - Include detailed explanations for correct answers
+       - Base all questions directly on lesson/module content
+       - Ensure questions test key concepts and understanding
+       ` : '- Do not generate any quizzes'}
+       
     IMPORTANT: Module titles should NOT include "Module 1:", "Module 2:", etc. prefixes. 
     Just provide the descriptive title (e.g., "Introduction to Pricing Strategy" not "Module 1: Introduction to Pricing Strategy").
 
@@ -169,6 +183,63 @@ export class GeminiService {
 
     Generate a comprehensive course structure based on this document content.
     `;
+
+    // Build dynamic schema based on quiz settings
+    const quizSchema = {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        questions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              question: { type: "string" },
+              type: { type: "string", enum: ["multiple_choice", "true_false", "short_answer"] },
+              options: { type: "array", items: { type: "string" } },
+              correctAnswer: { type: "string" },
+              explanation: { type: "string" }
+            },
+            required: ["question", "type", "correctAnswer"]
+          }
+        }
+      },
+      required: ["title", "questions"]
+    };
+
+    const lessonSchema: any = {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        content: { type: "string" },
+        estimatedDuration: { type: "number" }
+      },
+      required: ["title", "content", "estimatedDuration"]
+    };
+
+    // Add quiz to lessons if frequency is 'lesson'
+    if (generateQuizzes && quizFrequency === 'lesson') {
+      lessonSchema.properties.quiz = quizSchema;
+    }
+
+    const moduleSchema: any = {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        description: { type: "string" },
+        estimatedDuration: { type: "number" },
+        lessons: {
+          type: "array",
+          items: lessonSchema
+        }
+      },
+      required: ["title", "description", "estimatedDuration", "lessons"]
+    };
+
+    // Add quiz to modules if frequency is 'module'
+    if (generateQuizzes && quizFrequency === 'module') {
+      moduleSchema.properties.quiz = quizSchema;
+    }
 
     try {
       const response = await ai.models.generateContent({
@@ -185,48 +256,7 @@ export class GeminiService {
               difficultyLevel: { type: "string", enum: ["beginner", "intermediate", "advanced"] },
               modules: {
                 type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    description: { type: "string" },
-                    estimatedDuration: { type: "number" },
-                    lessons: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          title: { type: "string" },
-                          content: { type: "string" },
-                          estimatedDuration: { type: "number" }
-                        },
-                        required: ["title", "content", "estimatedDuration"]
-                      }
-                    },
-                    quiz: {
-                      type: "object",
-                      properties: {
-                        title: { type: "string" },
-                        questions: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            properties: {
-                              question: { type: "string" },
-                              type: { type: "string", enum: ["multiple_choice", "true_false", "short_answer"] },
-                              options: { type: "array", items: { type: "string" } },
-                              correctAnswer: { type: "string" },
-                              explanation: { type: "string" }
-                            },
-                            required: ["question", "type", "correctAnswer"]
-                          }
-                        }
-                      },
-                      required: ["title", "questions"]
-                    }
-                  },
-                  required: ["title", "description", "estimatedDuration", "lessons"]
-                }
+                items: moduleSchema
               }
             },
             required: ["title", "description", "estimatedDuration", "difficultyLevel", "modules"]
