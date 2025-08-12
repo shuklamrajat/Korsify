@@ -35,8 +35,7 @@ import {
   Award,
   Play,
   Users,
-  BarChart3,
-  PlusCircle
+  BarChart3
 } from "lucide-react";
 
 export default function LearnerDashboard() {
@@ -268,18 +267,6 @@ export default function LearnerDashboard() {
       <Navigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Switch to Creator Dashboard Button */}
-        <div className="mb-6 flex justify-end">
-          <Button
-            onClick={() => setLocation('/creator-dashboard')}
-            variant="outline"
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-none hover:from-blue-600 hover:to-purple-700"
-          >
-            <PlusCircle className="w-4 h-4 mr-2" />
-            Switch to Creator Dashboard
-          </Button>
-        </div>
-
         {/* Welcome Widget */}
         <div className="mb-8">
           <WelcomeWidget 
