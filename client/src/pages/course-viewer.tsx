@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import { LessonViewer } from "@/components/lesson-viewer";
 import { SourceViewer } from "@/components/source-viewer";
+import { QuizViewer } from "@/components/quiz-viewer";
+import { FileQuestion } from "lucide-react";
 
 export default function CourseViewer() {
   const params = useParams();
@@ -48,13 +50,17 @@ export default function CourseViewer() {
   
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
+  const [selectedQuiz, setSelectedQuiz] = useState<string | null>(null);
+  const [selectedQuizType, setSelectedQuizType] = useState<'lesson' | 'module' | null>(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [showSources, setShowSources] = useState(false);
   const [selectedCitationId, setSelectedCitationId] = useState<string | null>(null);
+  const [moduleQuizzes, setModuleQuizzes] = useState<Record<string, any>>({});
+  const [lessonQuizzes, setLessonQuizzes] = useState<Record<string, any>>({});
 
   // Fetch course details
-  const { data: course, isLoading, error } = useQuery({
+  const { data: course, isLoading, error } = useQuery<any>({
     queryKey: [`/api/courses/${courseId}`],
     enabled: !!courseId,
   });
@@ -67,7 +73,7 @@ export default function CourseViewer() {
   }, [error]);
 
   // Fetch enrollments to check if user is enrolled
-  const { data: enrollments = [] } = useQuery({
+  const { data: enrollments = [] } = useQuery<any[]>({
     queryKey: ["/api/enrollments"],
   });
 
@@ -84,6 +90,57 @@ export default function CourseViewer() {
       setIsEnrolled(!!enrollment);
     }
   }, [enrollments, courseId]);
+
+  // Fetch quizzes for all lessons and modules
+  useEffect(() => {
+    if (course && course.modules && isEnrolled) {
+      const fetchQuizzes = async () => {
+        const lessonQuizzesTemp: Record<string, any> = {};
+        const moduleQuizzesTemp: Record<string, any> = {};
+        
+        for (const module of course.modules) {
+          // Try to fetch module quiz
+          try {
+            const moduleQuizRes = await fetch(`/api/quizzes/module/${module.id}`, {
+              credentials: 'include'
+            });
+            if (moduleQuizRes.ok) {
+              const moduleQuiz = await moduleQuizRes.json();
+              if (moduleQuiz) {
+                moduleQuizzesTemp[module.id] = moduleQuiz;
+              }
+            }
+          } catch (err) {
+            console.log(`No module quiz for ${module.id}`);
+          }
+          
+          // Fetch quizzes for each lesson
+          if (module.lessons) {
+            for (const lesson of module.lessons) {
+              try {
+                const lessonQuizRes = await fetch(`/api/quizzes/lesson/${lesson.id}`, {
+                  credentials: 'include'
+                });
+                if (lessonQuizRes.ok) {
+                  const lessonQuiz = await lessonQuizRes.json();
+                  if (lessonQuiz) {
+                    lessonQuizzesTemp[lesson.id] = lessonQuiz;
+                  }
+                }
+              } catch (err) {
+                console.log(`No quiz for lesson ${lesson.id}`);
+              }
+            }
+          }
+        }
+        
+        setLessonQuizzes(lessonQuizzesTemp);
+        setModuleQuizzes(moduleQuizzesTemp);
+      };
+      
+      fetchQuizzes();
+    }
+  }, [course, isEnrolled]);
 
   // Auto-select first module and lesson when course loads
   useEffect(() => {
@@ -362,6 +419,12 @@ export default function CourseViewer() {
                               <div className="font-medium truncate">{module.title}</div>
                               <div className="text-xs text-gray-500">
                                 {module.lessons?.length || 0} lessons
+                                {(() => {
+                                  const lessonQuizCount = module.lessons?.filter((l: any) => lessonQuizzes[l.id]).length || 0;
+                                  const hasModuleQuiz = moduleQuizzes[module.id] ? 1 : 0;
+                                  const totalQuizzes = lessonQuizCount || hasModuleQuiz;
+                                  return totalQuizzes > 0 ? ` • ${totalQuizzes} quiz${totalQuizzes > 1 ? 'zes' : ''}` : '';
+                                })()}
                               </div>
                             </div>
                           </div>
@@ -370,24 +433,77 @@ export default function CourseViewer() {
                         {selectedModule === module.id && module.lessons && isEnrolled && (
                           <div className="ml-6 space-y-1">
                             {module.lessons.map((lesson: any, lessonIndex: number) => (
+                              <>
+                                {/* Lesson Button */}
+                                <Button
+                                  key={lesson.id}
+                                  variant={selectedLesson === lesson.id && !selectedQuiz ? "secondary" : "ghost"}
+                                  size="sm"
+                                  className="w-full justify-start text-left h-auto p-2"
+                                  onClick={() => {
+                                    setSelectedLesson(lesson.id);
+                                    setSelectedQuiz(null);
+                                    setSelectedQuizType(null);
+                                  }}
+                                >
+                                  <div className="flex items-center gap-2 w-full">
+                                    <div className="w-4 h-4 bg-gray-100 rounded text-xs flex items-center justify-center">
+                                      {lessonIndex + 1}
+                                    </div>
+                                    <span className="truncate text-sm">{lesson.title}</span>
+                                    {lesson.videoUrl && (
+                                      <Video className="w-3 h-3 text-blue-500 ml-auto" />
+                                    )}
+                                  </div>
+                                </Button>
+                                
+                                {/* Quiz for this lesson (if exists) */}
+                                {lessonQuizzes[lesson.id] && (
+                                  <Button
+                                    key={`quiz-${lesson.id}`}
+                                    variant={selectedQuiz === lessonQuizzes[lesson.id].id ? "secondary" : "ghost"}
+                                    size="sm"
+                                    className="w-full justify-start text-left h-auto p-2 ml-4"
+                                    onClick={() => {
+                                      setSelectedQuiz(lessonQuizzes[lesson.id].id);
+                                      setSelectedQuizType('lesson');
+                                      setSelectedLesson(lesson.id);
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-2 w-full">
+                                      <FileQuestion className="w-4 h-4 text-purple-500" />
+                                      <span className="truncate text-sm text-purple-600">
+                                        Quiz: {lessonQuizzes[lesson.id].title || 'Lesson Quiz'}
+                                      </span>
+                                    </div>
+                                  </Button>
+                                )}
+                              </>
+                            ))}
+                            
+                            {/* Module Quiz (if exists and no lesson quizzes) */}
+                            {moduleQuizzes[module.id] && !Object.keys(lessonQuizzes).some(lessonId => 
+                              module.lessons.some((l: any) => l.id === lessonId)
+                            ) && (
                               <Button
-                                key={lesson.id}
-                                variant={selectedLesson === lesson.id ? "secondary" : "ghost"}
+                                key={`module-quiz-${module.id}`}
+                                variant={selectedQuiz === moduleQuizzes[module.id].id ? "secondary" : "ghost"}
                                 size="sm"
                                 className="w-full justify-start text-left h-auto p-2"
-                                onClick={() => setSelectedLesson(lesson.id)}
+                                onClick={() => {
+                                  setSelectedQuiz(moduleQuizzes[module.id].id);
+                                  setSelectedQuizType('module');
+                                  setSelectedLesson(null);
+                                }}
                               >
                                 <div className="flex items-center gap-2 w-full">
-                                  <div className="w-4 h-4 bg-gray-100 rounded text-xs flex items-center justify-center">
-                                    {lessonIndex + 1}
-                                  </div>
-                                  <span className="truncate text-sm">{lesson.title}</span>
-                                  {lesson.videoUrl && (
-                                    <Video className="w-3 h-3 text-blue-500 ml-auto" />
-                                  )}
+                                  <FileQuestion className="w-4 h-4 text-purple-500" />
+                                  <span className="truncate text-sm text-purple-600">
+                                    Module Quiz: {moduleQuizzes[module.id].title || 'Module Quiz'}
+                                  </span>
                                 </div>
                               </Button>
-                            ))}
+                            )}
                           </div>
                         )}
                       </div>
@@ -446,6 +562,32 @@ export default function CourseViewer() {
                   </Button>
                 </CardContent>
               </Card>
+            ) : selectedQuiz ? (
+              // Display Quiz when selected
+              <div className="relative">
+                <div className="w-full">
+                  <QuizViewer
+                    quiz={selectedQuizType === 'lesson' ? lessonQuizzes[selectedLesson!] : moduleQuizzes[selectedModule!]}
+                    lessonId={selectedQuizType === 'lesson' && selectedLesson ? selectedLesson : undefined}
+                    moduleId={selectedQuizType === 'module' && selectedModule ? selectedModule : undefined}
+                    onComplete={(passed, score) => {
+                      toast({
+                        title: passed ? "Quiz Passed!" : "Quiz Completed",
+                        description: `You scored ${score}%`,
+                        variant: passed ? "default" : "destructive"
+                      });
+                      // Navigate to next lesson or quiz
+                      if (passed) {
+                        navigateToNextLesson();
+                      }
+                    }}
+                    onRetry={() => {
+                      // Handle retry
+                      console.log('Retrying quiz');
+                    }}
+                  />
+                </div>
+              </div>
             ) : selectedLessonData ? (
               <div className="relative">
                 {/* Main Lesson Content - No Sources */}
