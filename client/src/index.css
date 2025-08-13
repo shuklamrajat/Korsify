@@ -234,6 +234,23 @@
   }
 }
 
+/* Citation highlight animation */
+@keyframes citationHighlight {
+  0% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: rgb(147 197 253 / 0.5);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.highlight-animation {
+  animation: citationHighlight 2s ease-in-out;
+}
+
 @layer components {
   /* Hero section gradient background matching design */
   .hero-gradient {
