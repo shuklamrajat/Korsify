@@ -622,7 +622,7 @@ export class DatabaseStorage implements IStorage {
       ...template,
       tags: template.tags || []
     };
-    const [created] = await db.insert(courseTemplates).values(templateData).returning();
+    const [created] = await db.insert(courseTemplates).values([templateData]).returning();
     return created;
   }
 
@@ -677,7 +677,7 @@ export class DatabaseStorage implements IStorage {
       attachments: lesson.attachments || [],
       sourceReferences: lesson.sourceReferences || []
     };
-    const [created] = await db.insert(lessons).values(lessonData).returning();
+    const [created] = await db.insert(lessons).values([lessonData]).returning();
     return created;
   }
 
@@ -898,7 +898,7 @@ export class DatabaseStorage implements IStorage {
     const shouldResetWeek = daysSinceWeekStart >= 7;
     
     // Calculate streak
-    let newStreak = metrics.currentStreak;
+    let newStreak = metrics.currentStreak || 0;
     let streakStart = metrics.streakStartDate;
     
     if (metrics.lastActiveDate) {

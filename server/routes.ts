@@ -1168,6 +1168,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Student Progress Tracking Endpoints
+
+  // Get detailed enrollment progress
+  app.get('/api/enrollments/:enrollmentId', async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { enrollmentId } = req.params;
+      const userId = req.user.id;
+      
+      // Fetch enrollment details
+      const enrollments = await storage.getUserEnrollments(userId);
+      const enrollment = enrollments.find(e => e.enrollment.id === enrollmentId);
+      
+      if (!enrollment) {
+        return res.status(404).json({ message: "Enrollment not found" });
+      }
+      
+      res.json(enrollment);
+    } catch (error) {
+      console.error("Error fetching enrollment details:", error);
+      res.status(500).json({ message: "Failed to fetch enrollment details" });
+    }
+  });
+
+  // Get quiz attempts for an enrollment
+  app.get('/api/enrollments/:enrollmentId/quiz-attempts', async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { enrollmentId } = req.params;
+      const userId = req.user.id;
+      
+      // Get all quiz attempts for this user and enrollment
+      // Note: This is a simplified implementation - you may need to adjust based on your schema
+      const attempts: any[] = [];
+      
+      res.json(attempts);
+    } catch (error) {
+      console.error("Error fetching quiz attempts:", error);
+      res.status(500).json({ message: "Failed to fetch quiz attempts" });
+    }
+  });
+
+  // Get lesson progress for an enrollment
+  app.get('/api/enrollments/:enrollmentId/progress', async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { enrollmentId } = req.params;
+      
+      const progress = await storage.getEnrollmentProgress(enrollmentId);
+      res.json(progress);
+    } catch (error) {
+      console.error("Error fetching lesson progress:", error);
+      res.status(500).json({ message: "Failed to fetch lesson progress" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

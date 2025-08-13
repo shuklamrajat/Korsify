@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import CourseCard from "@/components/ui/course-card";
 import { WelcomeWidget } from "@/components/WelcomeWidget";
 import { apiRequest } from "@/lib/queryClient";
@@ -35,7 +37,9 @@ import {
   Award,
   Play,
   Users,
-  BarChart3
+  BarChart3,
+  Target,
+  FileQuestion
 } from "lucide-react";
 
 export default function LearnerDashboard() {
@@ -45,6 +49,8 @@ export default function LearnerDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [unenrollDialogOpen, setUnenrollDialogOpen] = useState(false);
   const [courseToUnenroll, setCourseToUnenroll] = useState<any>(null);
+  const [progressDialogOpen, setProgressDialogOpen] = useState(false);
+  const [selectedCourseProgress, setSelectedCourseProgress] = useState<any>(null);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const [isLongPressed, setIsLongPressed] = useState(false);
 
@@ -313,7 +319,20 @@ export default function LearnerDashboard() {
           <TabsContent value="learning" className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">Continue Learning</h2>
-              <Button variant="outline">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  if (enrollments.length > 0) {
+                    setSelectedCourseProgress(enrollments[0]);
+                    setProgressDialogOpen(true);
+                  } else {
+                    toast({
+                      title: "No enrolled courses",
+                      description: "Enroll in a course to view your progress.",
+                    });
+                  }
+                }}
+              >
                 <BarChart3 className="w-4 h-4 mr-2" />
                 View Progress
               </Button>
@@ -515,6 +534,182 @@ export default function LearnerDashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Progress Dialog */}
+        <Dialog open={progressDialogOpen} onOpenChange={setProgressDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                Learning Progress Overview
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedCourseProgress && (
+              <div className="space-y-6">
+                {/* Overall Course Progress */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center justify-between">
+                      <span>{selectedCourseProgress.course.title}</span>
+                      <Badge variant="outline" className="text-lg">
+                        {Math.round(selectedCourseProgress.progressPercentage)}%
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Progress value={selectedCourseProgress.progressPercentage} className="h-3 mb-4" />
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {selectedCourseProgress.completedLessons}
+                        </p>
+                        <p className="text-sm text-gray-600">Lessons Completed</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-green-600">
+                          {selectedCourseProgress.totalLessons}
+                        </p>
+                        <p className="text-sm text-gray-600">Total Lessons</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-purple-600">
+                          {selectedCourseProgress.totalLessons - selectedCourseProgress.completedLessons}
+                        </p>
+                        <p className="text-sm text-gray-600">Lessons Remaining</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Module Progress */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <BookOpen className="w-5 h-5" />
+                      Module Progress
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[200px]">
+                      <div className="space-y-3">
+                        {selectedCourseProgress.course.modules?.map((module: any, index: number) => {
+                          const moduleCompletedLessons = module.lessons?.filter((lesson: any) => 
+                            selectedCourseProgress.progress?.some((p: any) => 
+                              p.lessonId === lesson.id && p.completed
+                            )
+                          ).length || 0;
+                          const moduleTotalLessons = module.lessons?.length || 0;
+                          const moduleProgress = moduleTotalLessons > 0 
+                            ? (moduleCompletedLessons / moduleTotalLessons) * 100 
+                            : 0;
+
+                          return (
+                            <div key={module.id} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                    moduleProgress === 100 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700'
+                                  }`}>
+                                    {moduleProgress === 100 ? (
+                                      <CheckCircle className="w-5 h-5" />
+                                    ) : (
+                                      index + 1
+                                    )}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{module.title}</p>
+                                    <p className="text-xs text-gray-500">
+                                      {moduleCompletedLessons}/{moduleTotalLessons} lessons
+                                    </p>
+                                  </div>
+                                </div>
+                                <Badge variant={moduleProgress === 100 ? "default" : "outline"} className="text-xs">
+                                  {Math.round(moduleProgress)}%
+                                </Badge>
+                              </div>
+                              <Progress value={moduleProgress} className="h-1.5" />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+
+                {/* Learning Achievements */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Trophy className="w-5 h-5" />
+                      Achievements
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className={`p-3 rounded-lg border ${
+                        selectedCourseProgress.progressPercentage >= 25 
+                          ? 'border-green-500 bg-green-50' 
+                          : 'border-gray-300 bg-gray-50'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          <Target className={`w-4 h-4 ${
+                            selectedCourseProgress.progressPercentage >= 25 
+                              ? 'text-green-600' 
+                              : 'text-gray-400'
+                          }`} />
+                          <span className="text-sm font-medium">First Quarter</span>
+                        </div>
+                      </div>
+                      <div className={`p-3 rounded-lg border ${
+                        selectedCourseProgress.progressPercentage >= 50 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-300 bg-gray-50'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          <Zap className={`w-4 h-4 ${
+                            selectedCourseProgress.progressPercentage >= 50 
+                              ? 'text-blue-600' 
+                              : 'text-gray-400'
+                          }`} />
+                          <span className="text-sm font-medium">Halfway There</span>
+                        </div>
+                      </div>
+                      <div className={`p-3 rounded-lg border ${
+                        selectedCourseProgress.progressPercentage >= 75 
+                          ? 'border-purple-500 bg-purple-50' 
+                          : 'border-gray-300 bg-gray-50'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          <Star className={`w-4 h-4 ${
+                            selectedCourseProgress.progressPercentage >= 75 
+                              ? 'text-purple-600' 
+                              : 'text-gray-400'
+                          }`} />
+                          <span className="text-sm font-medium">Almost Done</span>
+                        </div>
+                      </div>
+                      <div className={`p-3 rounded-lg border ${
+                        selectedCourseProgress.progressPercentage === 100 
+                          ? 'border-yellow-500 bg-yellow-50' 
+                          : 'border-gray-300 bg-gray-50'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          <Award className={`w-4 h-4 ${
+                            selectedCourseProgress.progressPercentage === 100 
+                              ? 'text-yellow-600' 
+                              : 'text-gray-400'
+                          }`} />
+                          <span className="text-sm font-medium">Course Complete</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Unenroll Confirmation Dialog */}
         <AlertDialog open={unenrollDialogOpen} onOpenChange={setUnenrollDialogOpen}>

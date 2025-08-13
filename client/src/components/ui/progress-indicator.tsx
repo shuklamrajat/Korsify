@@ -182,7 +182,7 @@ export default function ProgressIndicator({
             <span className="font-medium text-blue-900">AI Enhancement</span>
           </div>
           <p className="text-sm text-blue-700">
-            Powered by Google Gemini 2.5 Flash with expert-level pedagogical design and 
+            Powered by World Class Fine-Tuned AI with expert-level pedagogical design and 
             cross-disciplinary content optimization.
           </p>
         </div>

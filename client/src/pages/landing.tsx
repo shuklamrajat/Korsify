@@ -34,7 +34,7 @@ export default function Landing() {
     {
       icon: Brain,
       title: "5-Phase AI Pipeline",
-      description: "Advanced document analysis with Google Gemini 2.5 Flash, featuring intelligent content extraction and structure recognition.",
+      description: "Advanced document analysis with World Class Fine-Tuned AI, featuring intelligent content extraction and structure recognition.",
       tags: ["Document Analysis", "Content Generation", "Validation"],
       gradient: "from-blue-500 to-blue-600"
     },
@@ -86,8 +86,8 @@ export default function Landing() {
     {
       number: 2,
       title: "AI Analysis & Processing",
-      description: "Google Gemini 2.5 Flash analyzes your document through our 5-phase pipeline: Document Analysis, Content Analysis, Content Generation, Validation, and Finalization.",
-      tags: ["Gemini 2.5 Flash", "Expert Persona", "5-Phase Pipeline"],
+      description: "World Class Fine-Tuned AI analyzes your document through our 5-phase pipeline: Document Analysis, Content Analysis, Content Generation, Validation, and Finalization.",
+      tags: ["World Class AI", "Expert Persona", "5-Phase Pipeline"],
       icon: Settings
     },
     {
@@ -162,7 +162,7 @@ export default function Landing() {
                 </span>
               </h1>
               <p className="text-xl lg:text-2xl mb-8 text-blue-100">
-                Upload any document and watch Google Gemini AI create structured, interactive courses with modules, lessons, and quizzes in minutes.
+                Upload any document and watch World Class Fine-Tuned AI create structured, interactive courses with modules, lessons, and quizzes in minutes.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
                 <Button
@@ -193,7 +193,7 @@ export default function Landing() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Brain className="w-5 h-5" />
-                  <span>Gemini 2.5 Flash</span>
+                  <span>World Class AI</span>
                 </div>
               </div>
             </div>
@@ -735,7 +735,7 @@ export default function Landing() {
                 <span className="text-2xl font-bold">Korsify</span>
               </div>
               <p className="text-gray-300 mb-6 max-w-md">
-                Transform any document into engaging, AI-powered courses with Google Gemini 2.5 Flash. Join the future of educational content creation.
+                Transform any document into engaging, AI-powered courses with World Class Fine-Tuned AI. Join the future of educational content creation.
               </p>
             </div>
 

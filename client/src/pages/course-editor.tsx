@@ -366,7 +366,12 @@ export default function CourseEditor() {
           title: "Module deleted",
           description: "The module has been deleted successfully.",
         });
+        // Invalidate all related caches to ensure UI updates promptly
         queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/courses', courseId] });
+        queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}/details`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
+        refetchCourse();
       } catch (error: any) {
         toast({
           title: "Failed to delete module",
@@ -983,10 +988,10 @@ export default function CourseEditor() {
                               Processing
                             </Badge>
                           )}
-                          {doc.status === 'completed' && (
+                          {(doc.status === 'completed' || doc.status === 'processed') && (
                             <Badge variant="default" className="bg-green-100 text-green-700">
                               <CheckCircle className="w-3 h-3 mr-1" />
-                              Completed
+                              Processed
                             </Badge>
                           )}
                           {doc.status === 'failed' && (
@@ -1050,7 +1055,7 @@ export default function CourseEditor() {
               </CardHeader>
               <CardContent>
                 <p className="text-amber-800">
-                  Use Gemini AI to automatically generate modules and lessons from your uploaded documents. 
+                  Use World Class Fine-Tuned AI to automatically generate modules and lessons from your uploaded documents. 
                   The AI will analyze document content and create a structured learning experience for your students.
                 </p>
                 {courseDocuments.length > 0 && (
