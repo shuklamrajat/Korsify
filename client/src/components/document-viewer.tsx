@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Search, Hash } from "lucide-react";
+import { FileText, Search, Hash, FileIcon, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
 import type { SourceReference } from "@shared/schema";
 
 interface DocumentViewerProps {
@@ -25,6 +27,8 @@ export function DocumentViewer({
 }: DocumentViewerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [highlightedLines, setHighlightedLines] = useState<Set<number>>(new Set());
+  const [viewMode, setViewMode] = useState<"text" | "document">("text");
+  const [isLoading, setIsLoading] = useState(false);
   const lineRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -120,33 +124,64 @@ export function DocumentViewer({
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="p-3 border-b bg-white">
-        <div className="flex items-center gap-2 mb-2">
-          <FileText className="w-4 h-4 text-blue-600" />
-          <span className="font-medium text-sm">{document.fileName}</span>
-          {sourceReferences.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {sourceReferences.length} citations
-            </Badge>
-          )}
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-blue-600" />
+            <span className="font-medium text-sm">{document.fileName}</span>
+            {sourceReferences.length > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {sourceReferences.length} citations
+              </Badge>
+            )}
+          </div>
+          
+          {/* View Mode Toggle */}
+          <div className="flex gap-1">
+            <Button
+              variant={viewMode === "text" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("text")}
+              className="h-7 px-2 text-xs"
+            >
+              <Hash className="w-3 h-3 mr-1" />
+              Text View
+            </Button>
+            <Button
+              variant={viewMode === "document" ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setViewMode("document");
+                setIsLoading(true);
+              }}
+              className="h-7 px-2 text-xs"
+            >
+              <FileIcon className="w-3 h-3 mr-1" />
+              Document
+            </Button>
+          </div>
         </div>
         
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Search document..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 h-9 text-sm"
-          />
-        </div>
+        {/* Search - only show in text view */}
+        {viewMode === "text" && (
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search document..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 h-9 text-sm"
+            />
+          </div>
+        )}
       </div>
 
-      {/* Document Content with Line Numbers */}
-      <ScrollArea className="flex-1" ref={contentRef}>
-        <div className="font-mono text-xs">
-          {lines.map((line, index) => {
+      {/* Content Area */}
+      {viewMode === "text" ? (
+        /* Text View with Line Numbers */
+        <ScrollArea className="flex-1" ref={contentRef}>
+          <div className="font-mono text-xs">
+            {lines.map((line, index) => {
             const lineNumber = index + 1;
             const hasReference = referenceLines.has(lineNumber);
             const references = referenceLines.get(lineNumber) || [];
@@ -201,17 +236,64 @@ export function DocumentViewer({
                 </div>
               </div>
             );
-          })}
+            })}
+          </div>
+        </ScrollArea>
+      ) : (
+        /* Document Viewer */
+        <div className="flex-1 overflow-hidden">
+          {isLoading ? (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Loading document...</p>
+              </div>
+            </div>
+          ) : (
+            <DocViewer
+              documents={[
+                {
+                  uri: `/api/documents/${document.id}/file`,
+                  fileType: document.fileName.split('.').pop()?.toLowerCase() || 'txt',
+                  fileName: document.fileName
+                }
+              ]}
+              pluginRenderers={DocViewerRenderers}
+              config={{
+                header: {
+                  disableHeader: true,
+                  disableFileName: true,
+                  retainURLParams: false
+                },
+                pdfZoom: {
+                  defaultZoom: 1.0,
+                  zoomJump: 0.1
+                },
+                pdfVerticalScrollByDefault: true
+              }}
+              style={{
+                height: '100%',
+                backgroundColor: '#f9fafb'
+              }}
+              onDocumentLoadSuccess={() => setIsLoading(false)}
+              onDocumentLoadError={() => {
+                setIsLoading(false);
+                console.error('Failed to load document');
+              }}
+            />
+          )}
         </div>
-      </ScrollArea>
+      )}
 
       {/* Footer with document stats */}
-      <div className="p-2 border-t bg-gray-50 text-xs text-gray-600">
-        <div className="flex justify-between">
-          <span>{lines.length} lines</span>
-          <span>{referenceLines.size} referenced sections</span>
+      {viewMode === "text" && (
+        <div className="p-2 border-t bg-gray-50 text-xs text-gray-600">
+          <div className="flex justify-between">
+            <span>{lines.length} lines</span>
+            <span>{referenceLines.size} referenced sections</span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
