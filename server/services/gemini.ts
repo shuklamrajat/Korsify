@@ -83,7 +83,9 @@ export class GeminiService {
       moduleCount = 3,
       generateQuizzes = true,
       quizFrequency = 'module',
-      questionsPerQuiz = 5
+      questionsPerQuiz = 5,
+      includeExercises = true,
+      includeExamples = true
     } = options;
 
     const systemPrompt = `
@@ -168,6 +170,25 @@ export class GeminiService {
        - Base all questions directly on lesson/module content
        - Ensure questions test key concepts and understanding
        ` : '- Do not generate any quizzes'}
+
+    9. PRACTICAL EXERCISES AND EXAMPLES:
+       ${includeExercises ? `
+       - Include HANDS-ON PRACTICE EXERCISES in each lesson
+       - Add practice problems with step-by-step solutions
+       - Create practical activities that reinforce concepts
+       - Include self-assessment exercises with clear instructions
+       - Format exercises in styled boxes: <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 my-4 rounded"><h4>Practice Exercise</h4>[exercise content]</div>
+       - Provide detailed solution explanations after each exercise
+       ` : '- Do not include practice exercises'}
+       
+       ${includeExamples ? `
+       - Include REAL-WORLD EXAMPLES throughout each lesson
+       - Add practical scenarios and case studies from the source material
+       - Use concrete examples to illustrate abstract concepts
+       - Show applications of concepts in real situations
+       - Format examples in green boxes: <div class="bg-green-50 border-l-4 border-green-500 p-4 my-4 rounded"><h4>Real-World Example</h4>[example content]</div>
+       - Connect examples to learner's potential experiences
+       ` : '- Minimize use of examples, focus on core concepts only'}
        
     IMPORTANT: Module titles should NOT include "Module 1:", "Module 2:", etc. prefixes. 
     Just provide the descriptive title (e.g., "Introduction to Pricing Strategy" not "Module 1: Introduction to Pricing Strategy").
