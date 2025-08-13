@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { CourseWithDetails, Document } from "@shared/schema";
 import { 
   ArrowLeft,
@@ -98,6 +99,7 @@ export default function CourseEditor() {
   const [courseTitle, setCourseTitle] = useState("");
   const [courseDescription, setCourseDescription] = useState("");
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [difficultyLevel, setDifficultyLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
 
   // Fetch course data
   const { data: course, isLoading: courseLoading, refetch: refetchCourse } = useQuery<CourseWithDetails>({
@@ -122,6 +124,7 @@ export default function CourseEditor() {
       setCourseTitle(course.title || "");
       setCourseDescription(course.description || "");
       setCoverImage(course.thumbnailUrl || null);
+      setDifficultyLevel(course.difficultyLevel || 'beginner');
     }
   }, [course]);
 
@@ -276,6 +279,7 @@ export default function CourseEditor() {
       title: courseTitle,
       description: courseDescription,
       thumbnailUrl: coverImage,
+      difficultyLevel: difficultyLevel,
     });
   };
 
@@ -596,6 +600,35 @@ export default function CourseEditor() {
                     rows={3}
                     maxLength={500}
                   />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Difficulty Level</label>
+                  <Select value={difficultyLevel} onValueChange={(value: 'beginner' | 'intermediate' | 'advanced') => setDifficultyLevel(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select difficulty level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="beginner">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          Beginner
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="intermediate">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                          Intermediate
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="advanced">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                          Advanced
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="flex justify-end">

@@ -304,6 +304,7 @@ export default function CreatorDashboard() {
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {courses.map((course: any) => {
                   console.log('Course data:', course); // Debug log
+                  console.log('Course difficulty level:', course.difficultyLevel); // Debug difficulty
                   return (
                     <CourseCard
                       key={course.id}
