@@ -193,6 +193,9 @@ export class DocumentProcessor {
       if (jobId) {
         await storage.updateAiProcessingJob(jobId, { status: 'completed' });
       }
+      
+      // Update document status to completed
+      await storage.updateDocument(documentId, { status: 'completed' });
 
     } catch (error) {
       console.error('Document processing error:', error);
@@ -202,6 +205,10 @@ export class DocumentProcessor {
           error: error instanceof Error ? error.message : 'Unknown error occurred'
         });
       }
+      
+      // Update document status to failed
+      await storage.updateDocument(documentId, { status: 'failed' });
+      
       throw error;
     }
   }
