@@ -16,6 +16,7 @@ import { SourceViewer } from "@/components/source-viewer";
 import { CitationRenderer } from "@/components/citation-renderer";
 import ModuleEditorDialog from "@/components/module-editor-dialog";
 import LessonEditorDialog from "@/components/lesson-editor-dialog";
+import QuizEditorDialog from "@/components/quiz-editor-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,7 +61,9 @@ import {
   Image as ImageIcon,
   X,
   FileUp,
-  Link
+  Link,
+  FileQuestion,
+  ListChecks
 } from "lucide-react";
 
 export default function CourseEditor() {
@@ -77,11 +80,15 @@ export default function CourseEditor() {
   const [showSourcePanel, setShowSourcePanel] = useState(false);
   const [showModuleEditor, setShowModuleEditor] = useState(false);
   const [showLessonEditor, setShowLessonEditor] = useState(false);
+  const [showQuizEditor, setShowQuizEditor] = useState(false);
   const [editingModule, setEditingModule] = useState(null);
   const [editingLesson, setEditingLesson] = useState(null);
+  const [editingQuiz, setEditingQuiz] = useState(null);
   const [selectedModuleId, setSelectedModuleId] = useState("");
+  const [selectedLessonId, setSelectedLessonId] = useState<string | undefined>(undefined);
   const [activeSourceReference, setActiveSourceReference] = useState<string | null>(null);
   const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
+  const [moduleQuizzes, setModuleQuizzes] = useState<Record<string, any[]>>({});
   
   // Debug logging
   console.log('CourseEditor params:', params);
@@ -115,6 +122,30 @@ export default function CourseEditor() {
       setCourseTitle(course.title || "");
       setCourseDescription(course.description || "");
       setCoverImage(course.thumbnailUrl || null);
+    }
+  }, [course]);
+
+  // Fetch quizzes for all modules
+  useEffect(() => {
+    if (course?.modules) {
+      const fetchQuizzes = async () => {
+        const quizzesByModule: Record<string, any[]> = {};
+        for (const module of course.modules) {
+          try {
+            const response = await fetch(`/api/modules/${module.id}/quizzes`, {
+              credentials: 'include'
+            });
+            if (response.ok) {
+              const quizzes = await response.json();
+              quizzesByModule[module.id] = quizzes;
+            }
+          } catch (error) {
+            console.error(`Error fetching quizzes for module ${module.id}:`, error);
+          }
+        }
+        setModuleQuizzes(quizzesByModule);
+      };
+      fetchQuizzes();
     }
   }, [course]);
 
@@ -365,6 +396,43 @@ export default function CourseEditor() {
     }
   };
 
+  const handleDeleteQuiz = async (quizId: string) => {
+    if (confirm("Are you sure you want to delete this quiz?")) {
+      try {
+        await apiRequest("DELETE", `/api/quizzes/${quizId}`);
+        toast({
+          title: "Quiz deleted",
+          description: "The quiz has been deleted successfully.",
+        });
+        // Refresh quizzes
+        if (course?.modules) {
+          const quizzesByModule: Record<string, any[]> = {};
+          for (const module of course.modules) {
+            try {
+              const response = await fetch(`/api/modules/${module.id}/quizzes`, {
+                credentials: 'include'
+              });
+              if (response.ok) {
+                const quizzes = await response.json();
+                quizzesByModule[module.id] = quizzes;
+              }
+            } catch (error) {
+              console.error(`Error fetching quizzes for module ${module.id}:`, error);
+            }
+          }
+          setModuleQuizzes(quizzesByModule);
+        }
+        queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}`] });
+      } catch (error: any) {
+        toast({
+          title: "Failed to delete quiz",
+          description: error.message || "An error occurred while deleting the quiz.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   if (courseLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -395,7 +463,7 @@ export default function CourseEditor() {
     learners: course.enrollmentCount || 0,
     modules: course.modules?.length || 0,
     lessons: course.modules?.reduce((acc: number, mod: any) => acc + (mod.lessons?.length || 0), 0) || 0,
-    quizzes: course.modules?.reduce((acc: number, mod: any) => acc + (mod.quiz ? 1 : 0), 0) || 0,
+    quizzes: Object.values(moduleQuizzes).reduce((acc: number, quizzes: any[]) => acc + quizzes.length, 0),
   };
 
   return (
@@ -669,9 +737,32 @@ export default function CourseEditor() {
                           </div>
                         </CardHeader>
                         <CardContent className="pt-4">
-                          <div className="flex items-center gap-6 text-sm text-gray-600 mb-4">
-                            <span>{module.lessons?.length || 0} lessons</span>
-                            <span>{module.quiz ? '1 quiz' : 'No quiz'}</span>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-6 text-sm text-gray-600">
+                              <span className="flex items-center gap-1">
+                                <BookOpen className="w-4 h-4" />
+                                {module.lessons?.length || 0} lessons
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <FileQuestion className="w-4 h-4" />
+                                {moduleQuizzes[module.id]?.length || 0} quizzes
+                              </span>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingQuiz(null);
+                                  setSelectedModuleId(module.id);
+                                  setSelectedLessonId(undefined);
+                                  setShowQuizEditor(true);
+                                }}
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add Quiz
+                              </Button>
+                            </div>
                           </div>
                           <Separator className="mb-4" />
                           {module.lessons && module.lessons.length > 0 ? (
@@ -746,6 +837,54 @@ export default function CourseEditor() {
                           ) : (
                             <p className="text-sm text-gray-500 text-center py-4">No lessons yet</p>
                           )}
+                          
+                          {/* Quizzes Section */}
+                          {moduleQuizzes[module.id] && moduleQuizzes[module.id].length > 0 && (
+                            <>
+                              <Separator className="my-4" />
+                              <div className="space-y-2">
+                                <h5 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                                  <FileQuestion className="w-4 h-4" />
+                                  Module Quizzes
+                                </h5>
+                                {moduleQuizzes[module.id].map((quiz: any) => (
+                                  <div key={quiz.id} className="flex items-center justify-between p-2 bg-purple-50 hover:bg-purple-100 rounded">
+                                    <div className="flex items-center gap-3">
+                                      <ListChecks className="w-4 h-4 text-purple-600" />
+                                      <div>
+                                        <span className="text-sm font-medium">{quiz.title}</span>
+                                        <span className="text-xs text-gray-500 ml-2">
+                                          ({quiz.questions?.length || 0} questions)
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-1">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={() => {
+                                          setEditingQuiz(quiz);
+                                          setSelectedModuleId(module.id);
+                                          setSelectedLessonId(quiz.lessonId);
+                                          setShowQuizEditor(true);
+                                        }}
+                                      >
+                                        <Edit className="w-3 h-3" />
+                                      </Button>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={() => handleDeleteQuiz(quiz.id)}
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                          
                           <Button 
                             variant="outline" 
                             size="sm" 
@@ -1186,6 +1325,18 @@ export default function CourseEditor() {
               setShowLessonEditor(false);
               setEditingLesson(null);
             }}
+          />
+        )}
+
+        {/* Quiz Editor Dialog */}
+        {showQuizEditor && (
+          <QuizEditorDialog
+            open={showQuizEditor}
+            onOpenChange={setShowQuizEditor}
+            quiz={editingQuiz}
+            moduleId={selectedModuleId}
+            lessonId={selectedLessonId}
+            courseId={courseId!}
           />
         )}
       </div>

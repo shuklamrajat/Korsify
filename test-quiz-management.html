@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Management Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #007bff;
+      padding-bottom: 10px;
+    }
+    h2 {
+      color: #555;
+      margin-top: 30px;
+    }
+    .feature-test {
+      background: #f8f9fa;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      border-left: 4px solid #007bff;
+    }
+    .test-result {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .quiz-display {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+    .question {
+      background: #f8f9fa;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 2em;
+      font-weight: bold;
+    }
+    .stat-label {
+      margin-top: 10px;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 Quiz Management Testing Suite</h1>
+    <p>This page tests all quiz management features including creation, editing, display, and deletion.</p>
+
+    <div class="feature-test">
+      <h2>📊 Quiz Statistics</h2>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-value" id="total-quizzes">0</div>
+          <div class="stat-label">Total Quizzes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="total-questions">0</div>
+          <div class="stat-label">Total Questions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="mcq-format">✓</div>
+          <div class="stat-label">MCQ Format (4-5 options)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-test">
+      <h2>✨ Test Quiz Creation</h2>
+      <button onclick="createTestQuiz()">Create Sample Quiz</button>
+      <button onclick="fetchQuizzes()">Fetch All Quizzes</button>
+      <button onclick="validateMCQFormat()">Validate MCQ Format</button>
+      <div id="creation-result"></div>
+    </div>
+
+    <div class="feature-test">
+      <h2>📝 Quiz Display</h2>
+      <div id="quiz-display"></div>
+    </div>
+
+    <div class="feature-test">
+      <h2>🔍 Test Results</h2>
+      <div id="test-results"></div>
+    </div>
+  </div>
+
+  <script>
+    let testModuleId = null;
+    let testQuizId = null;
+
+    // Initialize
+    window.onload = async () => {
+      await loginAndSetup();
+    };
+
+    async function loginAndSetup() {
+      try {
+        // First login as a creator
+        const loginResponse = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            email: 'test@example.com',
+            password: 'password123'
+          })
+        });
+
+        if (!loginResponse.ok) {
+          addResult('info', 'Creating test user account...');
+          // Register if login fails
+          await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              name: 'Test User',
+              email: 'test@example.com',
+              password: 'password123',
+              userType: 'creator'
+            })
+          });
+        }
+
+        // Create a test course and module for quiz testing
+        const courseResponse = await fetch('/api/courses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            title: 'Quiz Test Course',
+            description: 'Course for testing quiz functionality'
+          })
+        });
+
+        if (courseResponse.ok) {
+          const course = await courseResponse.json();
+          
+          // Create a test module
+          const moduleResponse = await fetch(`/api/courses/${course.id}/modules`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              title: 'Test Module',
+              description: 'Module for quiz testing'
+            })
+          });
+
+          if (moduleResponse.ok) {
+            const module = await moduleResponse.json();
+            testModuleId = module.id;
+            addResult('success', `Test environment ready! Module ID: ${testModuleId}`);
+          }
+        }
+      } catch (error) {
+        addResult('error', `Setup failed: ${error.message}`);
+      }
+    }
+
+    async function createTestQuiz() {
+      if (!testModuleId) {
+        addResult('error', 'Please wait for setup to complete');
+        return;
+      }
+
+      try {
+        const quizData = {
+          moduleId: testModuleId,
+          title: 'Sample MCQ Quiz',
+          questions: [
+            {
+              question: 'What is the capital of France?',
+              type: 'multiple_choice',
+              options: ['London', 'Berlin', 'Paris', 'Madrid', 'Rome'],
+              correctAnswer: '2',
+              explanation: 'Paris is the capital and largest city of France.'
+            },
+            {
+              question: 'Which programming language is used for web development?',
+              type: 'multiple_choice',
+              options: ['JavaScript', 'Python', 'Java', 'C++'],
+              correctAnswer: '0',
+              explanation: 'JavaScript is the primary language for client-side web development.'
+            },
+            {
+              question: 'What is 2 + 2?',
+              type: 'multiple_choice',
+              options: ['3', '4', '5', '6', '7'],
+              correctAnswer: '1',
+              explanation: 'Basic arithmetic: 2 + 2 = 4'
+            }
+          ],
+          passingScore: 70
+        };
+
+        const response = await fetch('/api/quizzes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(quizData)
+        });
+
+        if (response.ok) {
+          const quiz = await response.json();
+          testQuizId = quiz.id;
+          addResult('success', `Quiz created successfully! ID: ${quiz.id}`);
+          displayQuiz(quiz);
+          updateStats();
+        } else {
+          const error = await response.json();
+          addResult('error', `Failed to create quiz: ${error.message}`);
+        }
+      } catch (error) {
+        addResult('error', `Error creating quiz: ${error.message}`);
+      }
+    }
+
+    async function fetchQuizzes() {
+      if (!testModuleId) {
+        addResult('error', 'Please wait for setup to complete');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/modules/${testModuleId}/quizzes`, {
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          const quizzes = await response.json();
+          addResult('success', `Found ${quizzes.length} quiz(es) in module`);
+          
+          if (quizzes.length > 0) {
+            quizzes.forEach(quiz => displayQuiz(quiz));
+            updateStats();
+          }
+        } else {
+          addResult('error', 'Failed to fetch quizzes');
+        }
+      } catch (error) {
+        addResult('error', `Error fetching quizzes: ${error.message}`);
+      }
+    }
+
+    async function validateMCQFormat() {
+      if (!testModuleId) {
+        addResult('error', 'Please wait for setup to complete');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/modules/${testModuleId}/quizzes`, {
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          const quizzes = await response.json();
+          let allValid = true;
+          let totalQuestions = 0;
+
+          quizzes.forEach(quiz => {
+            quiz.questions?.forEach((question, qIndex) => {
+              totalQuestions++;
+              if (question.type !== 'multiple_choice') {
+                addResult('error', `Quiz "${quiz.title}" Question ${qIndex + 1} is not MCQ format`);
+                allValid = false;
+              }
+              const optionCount = question.options?.length || 0;
+              if (optionCount < 4 || optionCount > 5) {
+                addResult('error', `Quiz "${quiz.title}" Question ${qIndex + 1} has ${optionCount} options (should be 4-5)`);
+                allValid = false;
+              }
+            });
+          });
+
+          if (allValid) {
+            addResult('success', `✅ All ${totalQuestions} questions are MCQ format with 4-5 options!`);
+          }
+        }
+      } catch (error) {
+        addResult('error', `Validation error: ${error.message}`);
+      }
+    }
+
+    function displayQuiz(quiz) {
+      const display = document.getElementById('quiz-display');
+      const quizHtml = `
+        <div class="quiz-display">
+          <h3>${quiz.title}</h3>
+          <p>Passing Score: ${quiz.passingScore}%</p>
+          <p>Questions: ${quiz.questions?.length || 0}</p>
+          ${quiz.questions?.map((q, index) => `
+            <div class="question">
+              <strong>Q${index + 1}: ${q.question}</strong>
+              <ul>
+                ${q.options?.map((opt, i) => `
+                  <li ${i == q.correctAnswer ? 'style="color: green; font-weight: bold;"' : ''}>
+                    ${opt} ${i == q.correctAnswer ? '✓' : ''}
+                  </li>
+                `).join('') || ''}
+              </ul>
+              ${q.explanation ? `<em>Explanation: ${q.explanation}</em>` : ''}
+            </div>
+          `).join('') || ''}
+        </div>
+      `;
+      display.innerHTML = quizHtml;
+    }
+
+    async function updateStats() {
+      if (!testModuleId) return;
+
+      try {
+        const response = await fetch(`/api/modules/${testModuleId}/quizzes`, {
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          const quizzes = await response.json();
+          let totalQuestions = 0;
+          
+          quizzes.forEach(quiz => {
+            totalQuestions += quiz.questions?.length || 0;
+          });
+
+          document.getElementById('total-quizzes').textContent = quizzes.length;
+          document.getElementById('total-questions').textContent = totalQuestions;
+        }
+      } catch (error) {
+        console.error('Error updating stats:', error);
+      }
+    }
+
+    function addResult(type, message) {
+      const resultsDiv = document.getElementById('test-results');
+      const resultDiv = document.createElement('div');
+      resultDiv.className = `test-result ${type}`;
+      resultDiv.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+      resultsDiv.appendChild(resultDiv);
+    }
+  </script>
+</body>
+</html>

@@ -1,236 +1,41 @@
 # Korsify - AI-Powered Educational Platform
 
 ## Overview
-
-Korsify is a cutting-edge educational platform that transforms documents into structured online courses using Google's Gemini AI. The platform features a 5-phase AI pipeline for document processing, course generation, and educational content creation with support for multiple file formats and languages.
+Korsify is an AI-powered educational platform designed to transform documents into structured online courses using Google's Gemini AI. It features a 5-phase AI pipeline for document processing, course generation, and content creation, supporting multiple file formats and languages. The platform aims to streamline the creation of educational content, offering features like comprehensive quiz management, real-time learning metrics, and advanced source referencing, all powered by AI to deliver a personalized and efficient learning experience.
 
 ## User Preferences
-
 Preferred communication style: Simple, everyday language.
-
-## Recent Changes (January 2025)
-
-**Latest Updates (January 13, 2025):**
-- **Complete AI Generation Settings Implementation**
-  - Enhanced Gemini service to fully utilize ALL customization options during content generation
-  - Implemented includeExercises option: Adds hands-on practice exercises with step-by-step solutions in yellow-styled boxes
-  - Implemented includeExamples option: Adds real-world examples and case studies in green-styled boxes  
-  - All user preferences now properly integrated into AI prompts: difficulty level, quiz settings, exercises, and examples
-  - Created comprehensive test page (test-generation-settings.html) to verify settings compliance
-  - AI now generates content that strictly respects user's customization choices
-  - Practice exercises formatted with clear instructions and solution explanations
-  - Real-world examples connected to learner's potential experiences
-
-**Previous Updates (January 12, 2025):**
-- **Quiz Generation System Fix**
-  - Fixed quiz generation to properly respect user customization settings during AI course creation
-  - Updated Gemini service to dynamically generate quizzes based on user preferences (generateQuizzes, quizFrequency, questionsPerQuiz)
-  - Modified document processor to handle both lesson-level and module-level quiz creation
-  - Added quiz count display to course cards showing total quizzes per course with FileQuestion icon
-  - Dynamic response schema in Gemini service adapts based on quiz settings for proper AI generation
-- **Document Upload Integration Enhancement**
-  - Documents uploaded during course creation now automatically appear in course editor's Documents section
-  - Fixed document linking process to immediately associate uploaded documents with courses
-  - Removed "AI-Powered Course Creation" section from Content tab for cleaner interface
-  - Streamlined course creation workflow for better user experience
-
-**Previous Updates (January 28, 2025):**
-- **Real-Time Learning Metrics Implementation**
-  - Created database tables for tracking study time, learning streaks, and daily activity
-  - Implemented automatic time tracking in lesson viewer that records study time as users read
-  - Added API endpoints for fetching and updating learning metrics (/api/learner/metrics, /api/learner/track-progress)
-  - Updated learner dashboard to display actual learning data instead of mock values
-  - Tracks time spent on each lesson with periodic updates every 2 minutes
-  - Records progress when users navigate between lessons or complete content
-  - Shows real learning streaks, total study time, and weekly study progress
-- **Fixed Course Unenrollment and Browse Courses Platform-Wide Display**
-  - Unenrolled courses now immediately disappear from learner dashboard with forced refetch
-  - Browse courses section now shows ALL published courses from ALL users platform-wide
-  - Added clarifying text that browse section displays all platform courses from all creators
-  - Enhanced search to work across all published courses on the entire platform
-  - Fixed UI refresh issue where unenrolled courses remained visible until page refresh
-
-**Previous Updates (January 27, 2025):**
-- **Research-Based Learning Time Estimation**
-  - Implemented scientific learning time calculations based on 125 words/minute comprehension rate
-  - Research shows: General reading 200-250 wpm, Educational content 100-150 wpm, Technical material 50-125 wpm
-  - Course cards now display accurate completion times aggregated from lesson → module → course level
-  - Time calculations based on actual lesson content word count for precision
-- **Personalized Welcome Widget Implementation**
-  - Daily rotating inspirational quotes from famous educators and thought leaders
-  - Personalized learning tips with 7 different focus areas (Deep Learning, Growth Mindset, etc.)
-  - Smart goal recommendations based on current enrollment and progress
-  - Quick stats display showing enrolled courses, completed courses, and average progress
-  - Time-based greetings and motivational messages
-- **Firebase Google Authentication Implementation**
-  - Integrated Firebase SDK for Google sign-in authentication
-  - Removed LinkedIn and Apple OAuth providers per user request
-  - Firebase configuration set up with provided credentials (korsify-app project)
-  - Client-side Firebase authentication with popup/redirect support
-  - Server-side validation of Firebase ID tokens
-  - Seamless integration with existing user management system
-  - Auto-linking of Google accounts with existing email-based accounts
-
-**Previous Updates (January 27, 2025):**
-- **Enhanced Source Referencing with Document Scrolling**
-  - Fixed source referencing to scroll to relevant document sections when citations are clicked
-  - Added document content expansion with highlighted citation context
-  - Implemented smooth scrolling animations when navigating to citations
-  - Added visual highlight animations (yellow fade) to show clicked citation locations
-- **Revolutionary Rich Text Editor for Lessons**
-  - Implemented TipTap-based rich text editor with comprehensive formatting tools
-  - Added pre-built templates for Key Concepts, Examples, Warnings, Tips, Exercises, and Summaries
-  - Full support for text formatting, alignment, lists, quotes, code blocks, images, and links
-  - Toolbar with intuitive controls for headings, bold, italic, underline, highlight, and more
-- **Enhanced Lesson Viewer for Learners**
-  - Created beautiful lesson viewer with reading progress tracking
-  - Styled content with enhanced typography and visual hierarchy
-  - Added navigation between lessons with Previous/Next buttons
-  - Integrated video support with embedded YouTube player
-  - Attractive cards and layouts optimized for readability
-- **Fixed Role Selection Flow** - Role selection screen now appears at every login as requested
-  - Users must choose between Creator and Learner mode every time they log in
-  - Welcome screen displays "Welcome to Korsify! How would you like to use the platform today?"
-  - Fixed "Failed to update role" error that was preventing proper role selection
-  - Removed userType field error in authentication endpoints
-- **Implemented NotebookLM-Style Source Referencing**
-  - Added SourceViewer component for displaying document citations
-  - Created CitationRenderer for clickable inline citations [1], [2]
-  - Split layout in course editor with toggleable source panel on left side
-  - AI-generated content includes automatic citations linking back to source documents
-  - Hover previews and click-to-highlight functionality for citations
-- **Previous Feature Updates:**
-  - Removed Templates Section from Creator Dashboard for streamlined experience
-  - Added Quick Delete Functionality for courses with confirmation dialogs
-  - Fixed Database Schema Issues - removed source_references column mismatch
-  - Enhanced Course Management with quick delete buttons and confirmation dialogs
-  - AI Course Generation with strict Module → Lessons hierarchy
-  - Course Editor with full editing capabilities for all AI-generated content
-
-**Previous Updates (January 24, 2025):**
-- **MAJOR UPDATE: Implemented Complete Authentication System**
-  - Replaced mock authentication with real user accounts using industry-standard security
-  - Added secure password hashing with bcryptjs
-  - Implemented JWT token-based authentication with httpOnly cookies
-  - Created login/registration UI with email/password authentication
-  - Added user type selection (creator/learner) during registration
-  - Protected all API routes with authentication middleware
-  - Added logout functionality with session management
-  - Created dedicated authentication test page at `/test-auth` for testing
-  - Database schema updated to include password hashing and email verification fields
-- Fixed navigation auto-scrolling functionality by adding proper section IDs
-- Resolved file upload "No file uploaded" error by updating apiRequest function
-- Added comprehensive pricing section with Free, Pro, and Enterprise plans
-- All major functionality working: document upload, AI processing, course generation, and authentication
-- Application is production-ready with secure user management
 
 ## System Architecture
 
 ### Frontend Architecture
-The frontend is built using a modern React-based stack with TypeScript:
-- **Framework**: React 18 with TypeScript
-- **Styling**: Tailwind CSS with shadcn/ui components
-- **Routing**: Wouter for client-side routing
-- **State Management**: TanStack Query for server state management
-- **Build Tool**: Vite for development and production builds
-
-The UI follows a component-based architecture with reusable shadcn/ui components, maintaining consistency across the application with a custom design system featuring brand colors and proper responsive design.
+The frontend is built with React 18 and TypeScript, utilizing Tailwind CSS with shadcn/ui components for styling, Wouter for routing, and TanStack Query for server state management. Vite is used for building. The UI adheres to a component-based architecture, emphasizing reusability and a consistent design system with responsive design.
 
 ### Backend Architecture
-The backend uses a Node.js/Express setup with modern ES modules:
-- **Runtime**: Node.js with Express.js
-- **Language**: TypeScript with ES modules
-- **Database**: PostgreSQL with Drizzle ORM
-- **Database Provider**: Neon Database (serverless PostgreSQL)
-- **File Processing**: Multer for file uploads with support for PDF, DOC, DOCX, TXT, and MD files
-- **AI Integration**: Google Gemini 2.5 Flash API for content generation
+The backend is a Node.js/Express application written in TypeScript (ES modules). It uses PostgreSQL with Drizzle ORM (hosted on Neon Database) for data persistence. Multer handles file uploads (PDF, DOC, DOCX, TXT, MD), and Google Gemini 2.5 Flash API is integrated for AI-driven content generation.
 
 ### Data Storage Solutions
-The application uses a PostgreSQL database with the following key design decisions:
-- **ORM**: Drizzle ORM chosen for type safety and performance
-- **Schema**: Comprehensive schema supporting users, documents, courses, modules, lessons, quizzes, enrollments, and progress tracking
-- **Migrations**: Database migrations managed through Drizzle Kit
-- **Connection**: Neon serverless PostgreSQL for scalability and ease of deployment
+PostgreSQL is the chosen database, managed by Drizzle ORM for type safety. The schema supports users, documents, courses, modules, lessons, quizzes, enrollments, and progress tracking. Database migrations are handled via Drizzle Kit. Neon serverless PostgreSQL provides scalability and ease of deployment.
 
-## Key Components
-
-### AI Processing Pipeline
-The core feature is a 5-phase AI document processing system:
-1. **Document Analysis**: Extract and analyze document content
-2. **Content Analysis**: Identify learning objectives and structure
-3. **Content Generation**: Create modules, lessons, and educational content
-4. **Validation**: Ensure content quality and coherence
-5. **Finalization**: Complete course structure and metadata
-
-### User Management System
-- **Production-Ready Authentication System**
-  - Secure user registration with email and password
-  - Password hashing using bcryptjs with salt rounds
-  - JWT token-based authentication stored in httpOnly cookies
-  - Session management with automatic token refresh
-  - Protected API routes with authentication middleware
-  - Logout functionality with cookie clearing
-- Support for two user types: creators and learners
-- User profiles with role-based access control
-- Email verification support (field ready for implementation)
-
-### Course Management
-- Complete course creation workflow from document upload to published courses
-- Module and lesson organization with hierarchical structure
-- Quiz generation with multiple question types
-- Progress tracking and enrollment management
-
-### File Processing
-- Multi-format document support (PDF, DOC, DOCX, TXT, MD)
-- File validation and size limits (50MB)
-- Secure file storage and content extraction
-
-## Data Flow
-
-1. **Document Upload**: Users upload documents through the file upload interface
-2. **AI Processing**: Documents are processed through the 5-phase AI pipeline
-3. **Course Generation**: AI generates structured courses with modules and lessons
-4. **Content Review**: Creators can edit and refine generated content
-5. **Publishing**: Courses are made available to learners
-6. **Learning Experience**: Learners enroll, progress through content, and take quizzes
-7. **Progress Tracking**: System tracks completion and performance metrics
+### Key Components & Features
+- **AI Processing Pipeline**: A 5-phase system for document analysis, content analysis, content generation, validation, and finalization of educational courses.
+- **User Management System**: Production-ready authentication with secure registration, bcryptjs password hashing, JWT token-based authentication (httpOnly cookies), session management, and role-based access for creators and learners.
+- **Course Management**: Comprehensive workflow for course creation, including module/lesson organization, AI-generated quizzes, and progress tracking.
+- **File Processing**: Supports multiple document formats (PDF, DOC, DOCX, TXT, MD) with validation and secure storage.
+- **Enhanced Learning Features**: Includes real-time learning metrics (study time, streaks), research-based learning time estimations, personalized welcome widgets, rich text editor for lessons, and NotebookLM-style source referencing with document scrolling.
 
 ## External Dependencies
 
-### Core Dependencies
-- **Google Gemini AI**: Primary AI service for content generation and analysis
-- **Neon Database**: Serverless PostgreSQL hosting
-- **Radix UI**: Headless UI components for accessibility and consistency
-- **React Hook Form**: Form management with validation
-- **TanStack Query**: Server state management and caching
-
-### Development Tools
-- **Vite**: Build tool and development server
-- **TypeScript**: Type safety across the entire stack
-- **Tailwind CSS**: Utility-first CSS framework
-- **ESBuild**: JavaScript bundling for production
-
-### File Processing
-- **Multer**: File upload middleware
-- **Various file parsers**: For extracting content from different document formats
-
-## Deployment Strategy
-
-### Build Process
-- **Frontend**: Vite builds the React application to static assets
-- **Backend**: ESBuild bundles the Node.js server with external dependencies
-- **Output**: Separate builds for frontend (static) and backend (Node.js)
-
-### Environment Configuration
-- Database connection via `DATABASE_URL` environment variable
-- Gemini AI integration via `GEMINI_API_KEY`
-- Development vs production configuration handling
-
-### Production Readiness
-- Static asset serving in production
-- Proper error handling and logging
-- Session management with connect-pg-simple
-- File upload limits and validation
-- CORS and security considerations
-
-The architecture is designed for scalability with serverless database hosting, efficient AI processing pipelines, and modern frontend deployment patterns. The system can handle the complete lifecycle from document upload to course consumption while maintaining performance and user experience quality.
+- **Google Gemini AI**: Primary AI service for content generation and analysis.
+- **Neon Database**: Serverless PostgreSQL hosting.
+- **Radix UI**: Headless UI components.
+- **React Hook Form**: Form management and validation.
+- **TanStack Query**: Server state management and caching.
+- **Vite**: Build tool and development server.
+- **TypeScript**: Language used across the stack.
+- **Tailwind CSS**: Utility-first CSS framework.
+- **ESBuild**: JavaScript bundling.
+- **Multer**: File upload middleware.
+- **Bcryptjs**: Password hashing.
+- **Drizzle ORM**: Database ORM.
+- **Firebase**: Google authentication.
