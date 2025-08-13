@@ -14,6 +14,7 @@ import Navigation from "@/components/navigation";
 import AiGenerationDialog from "@/components/ai-generation-dialog";
 import { SourceViewer } from "@/components/source-viewer";
 import { CitationRenderer } from "@/components/citation-renderer";
+import RichTextViewer from "@/components/rich-text-viewer";
 import ModuleEditorDialog from "@/components/module-editor-dialog";
 import LessonEditorDialog from "@/components/lesson-editor-dialog";
 import QuizEditorDialog from "@/components/quiz-editor-dialog";
@@ -856,8 +857,10 @@ export default function CourseEditor() {
                                         </Button>
                                       </div>
                                       {lesson.content ? (
-                                        <CitationRenderer
+                                        <RichTextViewer
                                           content={lesson.content}
+                                          className="prose prose-sm max-w-none"
+                                          enableCitations={true}
                                           sourceReferences={lesson.sourceReferences || []}
                                           onCitationClick={(citationId) => {
                                             setActiveSourceReference(citationId);
