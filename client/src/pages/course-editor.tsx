@@ -79,7 +79,7 @@ export default function CourseEditor() {
   const [showPreview, setShowPreview] = useState(false);
   const [showDocumentSelector, setShowDocumentSelector] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
-  const [showSourcePanel, setShowSourcePanel] = useState(false);
+
   const [showModuleEditor, setShowModuleEditor] = useState(false);
   const [showLessonEditor, setShowLessonEditor] = useState(false);
   const [showQuizEditor, setShowQuizEditor] = useState(false);
@@ -88,7 +88,7 @@ export default function CourseEditor() {
   const [editingQuiz, setEditingQuiz] = useState(null);
   const [selectedModuleId, setSelectedModuleId] = useState("");
   const [selectedLessonId, setSelectedLessonId] = useState<string | undefined>(undefined);
-  const [activeSourceReference, setActiveSourceReference] = useState<string | null>(null);
+
   const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
   const [moduleQuizzes, setModuleQuizzes] = useState<Record<string, any[]>>({});
   
@@ -678,29 +678,9 @@ export default function CourseEditor() {
 
           {/* Content Tab */}
           <TabsContent value="content" className="space-y-6">
-            <div className="flex gap-6">
-              {/* Source Panel - Left Side */}
-              {showSourcePanel && (
-                <div className="w-96 flex-shrink-0">
-                  <Card className="h-[calc(100vh-300px)] overflow-hidden">
-                    <SourceViewer
-                      sourceReferences={course?.modules?.flatMap(m => 
-                        m.lessons?.flatMap(l => l.sourceReferences || []) || []
-                      ) || []}
-                      documents={courseDocuments.map(doc => ({
-                        id: doc.id,
-                        fileName: doc.fileName,
-                        processedContent: doc.processedContent || undefined
-                      }))}
-                      selectedCitationId={activeSourceReference || undefined}
-                      onClose={() => setShowSourcePanel(false)}
-                    />
-                  </Card>
-                </div>
-              )}
-              
+            <div>
               {/* Main Content Area */}
-              <div className="flex-1">
+              <div>
                 <div className="mb-6">
                   <h2 className="text-xl font-semibold mb-2">Course Content</h2>
                   <p className="text-gray-600">
@@ -845,27 +825,13 @@ export default function CourseEditor() {
                                   {/* Expanded Lesson Content with Citations */}
                                   {expandedLesson === lesson.id && (
                                     <div className="mt-2 p-4 bg-gray-50 rounded-lg">
-                                      <div className="flex justify-between items-start mb-2">
-                                        <h5 className="font-medium text-sm">Lesson Content</h5>
-                                        <Button 
-                                          variant="outline" 
-                                          size="sm"
-                                          onClick={() => setShowSourcePanel(!showSourcePanel)}
-                                        >
-                                          <FileText className="w-3 h-3 mr-1" />
-                                          {showSourcePanel ? 'Hide' : 'Show'} Sources
-                                        </Button>
-                                      </div>
+                                      <h5 className="font-medium text-sm mb-2">Lesson Content</h5>
                                       {lesson.content ? (
                                         <RichTextViewer
                                           content={lesson.content}
                                           className="prose prose-sm max-w-none"
-                                          enableCitations={true}
+                                          enableCitations={false}
                                           sourceReferences={lesson.sourceReferences || []}
-                                          onCitationClick={(citationId) => {
-                                            setActiveSourceReference(citationId);
-                                            setShowSourcePanel(true);
-                                          }}
                                         />
                                       ) : (
                                         <p className="text-sm text-gray-500">No content available</p>
@@ -1324,21 +1290,7 @@ export default function CourseEditor() {
           </DialogContent>
         </Dialog>
 
-        {/* Source Viewer Dialog */}
-        <Dialog open={showSourcePanel} onOpenChange={setShowSourcePanel}>
-          <DialogContent className="max-w-6xl w-full h-[80vh] p-0">
-            <SourceViewer
-              documents={courseDocuments.map(doc => ({
-                id: doc.id,
-                fileName: doc.fileName,
-                processedContent: doc.processedContent || undefined
-              }))}
-              sourceReferences={[]}
-              selectedCitationId={activeSourceReference || undefined}
-              onClose={() => setShowSourcePanel(false)}
-            />
-          </DialogContent>
-        </Dialog>
+
 
         {/* Module Editor Dialog */}
         {showModuleEditor && (
