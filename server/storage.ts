@@ -107,7 +107,9 @@ export interface IStorage {
   getLessonQuiz(lessonId: string): Promise<Quiz | undefined>;
   getQuizByLessonId(lessonId: string): Promise<Quiz | undefined>;
   getQuizByModuleId(moduleId: string): Promise<Quiz | undefined>;
+  getModuleQuizzes(moduleId: string): Promise<Quiz[]>;
   updateQuiz(id: string, updates: Partial<Quiz>): Promise<Quiz>;
+  deleteQuiz(id: string): Promise<void>;
 
   // Enrollment operations
   createEnrollment(enrollment: InsertEnrollment): Promise<Enrollment>;
@@ -720,6 +722,15 @@ export class DatabaseStorage implements IStorage {
   async updateQuiz(id: string, updates: Partial<Quiz>): Promise<Quiz> {
     const [updated] = await db.update(quizzes).set(updates).where(eq(quizzes.id, id)).returning();
     return updated;
+  }
+
+  async getModuleQuizzes(moduleId: string): Promise<Quiz[]> {
+    // Get all quizzes for this module (including lesson quizzes)
+    return db.select().from(quizzes).where(eq(quizzes.moduleId, moduleId));
+  }
+
+  async deleteQuiz(id: string): Promise<void> {
+    await db.delete(quizzes).where(eq(quizzes.id, id));
   }
 
   // Enrollment operations

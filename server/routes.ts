@@ -948,6 +948,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all quizzes for a module (including lesson quizzes)
+  app.get('/api/modules/:moduleId/quizzes', async (req: any, res) => {
+    try {
+      const { moduleId } = req.params;
+      const quizzes = await storage.getModuleQuizzes(moduleId);
+      res.json(quizzes);
+    } catch (error) {
+      console.error("Error fetching module quizzes:", error);
+      res.status(500).json({ message: "Failed to fetch module quizzes" });
+    }
+  });
+
+  // Create a new quiz
+  app.post('/api/quizzes', async (req: any, res) => {
+    try {
+      const { moduleId, lessonId, title, questions, passingScore } = req.body;
+      
+      if (!moduleId || !title || !questions) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const quiz = await storage.createQuiz({
+        moduleId,
+        lessonId,
+        title,
+        questions,
+        passingScore: passingScore || 70
+      });
+
+      res.json(quiz);
+    } catch (error) {
+      console.error("Error creating quiz:", error);
+      res.status(500).json({ message: "Failed to create quiz" });
+    }
+  });
+
+  // Update an existing quiz
+  app.patch('/api/quizzes/:quizId', async (req: any, res) => {
+    try {
+      const { quizId } = req.params;
+      const { title, questions, passingScore } = req.body;
+      
+      const updates: any = {};
+      if (title !== undefined) updates.title = title;
+      if (questions !== undefined) updates.questions = questions;
+      if (passingScore !== undefined) updates.passingScore = passingScore;
+
+      const quiz = await storage.updateQuiz(quizId, updates);
+      res.json(quiz);
+    } catch (error) {
+      console.error("Error updating quiz:", error);
+      res.status(500).json({ message: "Failed to update quiz" });
+    }
+  });
+
+  // Delete a quiz
+  app.delete('/api/quizzes/:quizId', async (req: any, res) => {
+    try {
+      const { quizId } = req.params;
+      await storage.deleteQuiz(quizId);
+      res.json({ message: "Quiz deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting quiz:", error);
+      res.status(500).json({ message: "Failed to delete quiz" });
+    }
+  });
+
   app.post('/api/quiz-attempts', async (req: any, res) => {
     try {
       const { quizId, lessonId, moduleId, score, answers, attemptNumber } = req.body;
