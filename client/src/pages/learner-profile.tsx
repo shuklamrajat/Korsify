@@ -1,359 +1,457 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import Navigation from "@/components/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import {
-  User,
-  Mail,
-  Calendar,
-  Award,
-  BookOpen,
-  Trophy,
-  Star,
-  Settings,
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { toast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { User } from "@shared/schema";
+import { 
+  User as UserIcon, 
+  Mail, 
+  Calendar, 
+  Award, 
+  BookOpen, 
+  Clock, 
+  Target, 
   Camera,
-  Edit,
-  Save,
-  X
+  Trophy,
+  TrendingUp,
+  Flame
 } from "lucide-react";
 
-export default function LearnerProfile() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState({
-    name: "",
-    bio: "",
-    location: "",
-    website: "",
-  });
+const profileFormSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  bio: z.string().optional(),
+  learningGoals: z.string().optional(),
+});
 
-  // Fetch user data
-  const { data: user, isLoading: userLoading } = useQuery<any>({
+type ProfileFormValues = z.infer<typeof profileFormSchema>;
+
+export default function LearnerProfile() {
+  const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
   });
 
-  // Fetch enrollments
-  const { data: enrollments = [] } = useQuery<any[]>({
-    queryKey: ["/api/enrollments"],
-  });
-
-  // Fetch learning metrics
-  const { data: metricsData } = useQuery({
-    queryKey: ["/api/learner/metrics"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/learner/metrics");
-      return response.json();
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      bio: user?.bio || "",
+      learningGoals: "",
     },
   });
 
-  const metrics = metricsData?.metrics || {};
-  const completedCourses = metricsData?.completedCourses || 0;
-
-  // Initialize profile data when user data loads
-  useState(() => {
-    if (user) {
-      setProfileData({
-        name: user.name || user.email?.split('@')[0] || "",
-        bio: user.bio || "",
-        location: user.location || "",
-        website: user.website || "",
+  const updateProfile = useMutation({
+    mutationFn: (data: ProfileFormValues) => 
+      apiRequest("/api/user/profile", "PATCH", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been successfully updated.",
       });
-    }
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
-  // Format time helper
-  const formatTime = (minutes: number) => {
-    if (!minutes || minutes === 0) return "0m";
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-    }
-    return `${mins}m`;
+  const { data: stats } = useQuery({
+    queryKey: ["/api/learner/stats"],
+    enabled: !!user,
+  });
+
+  const onSubmit = (data: ProfileFormValues) => {
+    updateProfile.mutate(data);
   };
 
-  // Sample achievements (in production, these would come from the API)
-  const achievements = [
-    { id: 1, title: "First Course", description: "Completed your first course", icon: Award, earned: true },
-    { id: 2, title: "Quick Learner", description: "Complete 5 lessons in one day", icon: Star, earned: true },
-    { id: 3, title: "Week Warrior", description: "Study for 7 days in a row", icon: Trophy, earned: true },
-    { id: 4, title: "Knowledge Seeker", description: "Enroll in 10 courses", icon: BookOpen, earned: false },
-    { id: 5, title: "Master Student", description: "Complete 25 courses", icon: Award, earned: false },
-    { id: 6, title: "Perfect Score", description: "Score 100% on 10 quizzes", icon: Star, earned: false },
-  ];
-
-  const handleSaveProfile = () => {
-    // In production, this would save to the API
-    toast({
-      title: "Profile Updated",
-      description: "Your profile has been updated successfully.",
-    });
-    setIsEditing(false);
-  };
-
-  if (userLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navigation />
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="h-32 bg-gray-200 rounded-lg mb-8"></div>
-            <div className="space-y-4">
-              <div className="h-20 bg-gray-200 rounded"></div>
-              <div className="h-20 bg-gray-200 rounded"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const userInitials = user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() ||
-                       user?.email?.substring(0, 2).toUpperCase() || 'U';
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Profile Header */}
-        <Card className="mb-8">
-          <CardContent className="p-8">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-6">
-                <div className="relative">
-                  <Avatar className="w-24 h-24">
-                    <AvatarImage src={user?.profilePicture} />
-                    <AvatarFallback className="text-2xl">{userInitials}</AvatarFallback>
-                  </Avatar>
-                  {isEditing && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="absolute bottom-0 right-0 rounded-full p-2"
-                    >
-                      <Camera className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-                <div className="flex-1">
-                  {isEditing ? (
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="name">Name</Label>
-                        <Input
-                          id="name"
-                          value={profileData.name}
-                          onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                          placeholder="Your name"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="bio">Bio</Label>
-                        <Input
-                          id="bio"
-                          value={profileData.bio}
-                          onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                          placeholder="Tell us about yourself"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <h1 className="text-2xl font-bold text-gray-900">{profileData.name || user?.email}</h1>
-                      <p className="text-gray-600 mt-1">{profileData.bio || "Lifelong learner"}</p>
-                      <div className="flex items-center space-x-4 mt-3 text-sm text-gray-500">
-                        <span className="flex items-center">
-                          <Mail className="w-4 h-4 mr-1" />
-                          {user?.email}
-                        </span>
-                        <span className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          Joined {new Date(user?.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                {isEditing ? (
-                  <>
-                    <Button onClick={handleSaveProfile} size="sm">
-                      <Save className="w-4 h-4 mr-2" />
-                      Save
-                    </Button>
-                    <Button onClick={() => setIsEditing(false)} size="sm" variant="outline">
-                      <X className="w-4 h-4 mr-2" />
-                      Cancel
-                    </Button>
-                  </>
-                ) : (
-                  <Button onClick={() => setIsEditing(true)} size="sm" variant="outline">
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit Profile
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Stats Overview */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-blue-600">{enrollments.length}</div>
-              <div className="text-sm text-gray-600 mt-1">Courses Enrolled</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-green-600">{completedCourses}</div>
-              <div className="text-sm text-gray-600 mt-1">Completed</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-purple-600">{formatTime(metrics.totalStudyTime || 0)}</div>
-              <div className="text-sm text-gray-600 mt-1">Total Study Time</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-orange-600">{metrics.currentStreak || 0}</div>
-              <div className="text-sm text-gray-600 mt-1">Day Streak</div>
-            </CardContent>
-          </Card>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Learner Profile</h1>
+          <p className="text-gray-600 mt-2">Track your learning journey and achievements</p>
         </div>
 
-        {/* Tabs for Additional Information */}
-        <Tabs defaultValue="achievements" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="achievements">Achievements</TabsTrigger>
-            <TabsTrigger value="certificates">Certificates</TabsTrigger>
-            <TabsTrigger value="activity">Recent Activity</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="achievements">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Profile Overview */}
+          <div className="lg:col-span-1">
             <Card>
               <CardHeader>
-                <CardTitle>Achievements</CardTitle>
+                <CardTitle>Profile Overview</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {achievements.map((achievement) => (
-                    <div
-                      key={achievement.id}
-                      className={`p-4 rounded-lg border ${
-                        achievement.earned
-                          ? 'bg-white border-green-200'
-                          : 'bg-gray-50 border-gray-200 opacity-60'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-full ${
-                          achievement.earned ? 'bg-green-100' : 'bg-gray-100'
-                        }`}>
-                          <achievement.icon className={`w-5 h-5 ${
-                            achievement.earned ? 'text-green-600' : 'text-gray-400'
-                          }`} />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{achievement.title}</h4>
-                          <p className="text-sm text-gray-600">{achievement.description}</p>
-                        </div>
-                        {achievement.earned && (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            Earned
-                          </Badge>
-                        )}
+              <CardContent className="space-y-6">
+                <div className="flex flex-col items-center">
+                  <Avatar className="h-24 w-24 mb-4">
+                    <AvatarImage src={user.profileImageUrl || undefined} />
+                    <AvatarFallback className="text-2xl">
+                      {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <Button variant="outline" size="sm">
+                    <Camera className="h-4 w-4 mr-2" />
+                    Change Photo
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center text-sm">
+                    <UserIcon className="h-4 w-4 mr-2 text-gray-500" />
+                    <span>{user.firstName} {user.lastName}</span>
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Mail className="h-4 w-4 mr-2 text-gray-500" />
+                    <span>{user.email}</span>
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Calendar className="h-4 w-4 mr-2 text-gray-500" />
+                    <span>Joined {new Date(user.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Award className="h-4 w-4 mr-2 text-gray-500" />
+                    <Badge variant="secondary">{user.currentRole}</Badge>
+                  </div>
+                </div>
+
+                {/* Learning Stats */}
+                <div className="pt-4 border-t space-y-3">
+                  <h3 className="font-semibold text-sm">Learning Statistics</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary">
+                        {stats?.coursesEnrolled || 0}
                       </div>
+                      <div className="text-xs text-gray-500">Courses</div>
                     </div>
-                  ))}
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary">
+                        {stats?.coursesCompleted || 0}
+                      </div>
+                      <div className="text-xs text-gray-500">Completed</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary">
+                        {stats?.totalStudyHours || 0}h
+                      </div>
+                      <div className="text-xs text-gray-500">Study Time</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary flex items-center justify-center">
+                        {stats?.currentStreak || 0}
+                        <Flame className="h-4 w-4 ml-1 text-orange-500" />
+                      </div>
+                      <div className="text-xs text-gray-500">Day Streak</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Achievements */}
+                <div className="pt-4 border-t">
+                  <h3 className="font-semibold text-sm mb-3">Recent Achievements</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      <Trophy className="h-3 w-3" />
+                      Fast Learner
+                    </Badge>
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      <Trophy className="h-3 w-3" />
+                      Quiz Master
+                    </Badge>
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      <Trophy className="h-3 w-3" />
+                      7-Day Streak
+                    </Badge>
+                  </div>
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
 
-          <TabsContent value="certificates">
-            <Card>
-              <CardHeader>
-                <CardTitle>Certificates</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {completedCourses > 0 ? (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {enrollments
-                      .filter((e: any) => e.progressPercentage === 100)
-                      .map((enrollment: any) => (
-                        <div key={enrollment.enrollment.id} className="p-4 border rounded-lg">
-                          <h4 className="font-medium text-gray-900 mb-2">{enrollment.course.title}</h4>
-                          <p className="text-sm text-gray-600 mb-3">
-                            Completed on {new Date(enrollment.enrollment.completedAt || Date.now()).toLocaleDateString()}
-                          </p>
-                          <Button size="sm" variant="outline">
-                            <Award className="w-4 h-4 mr-2" />
-                            View Certificate
-                          </Button>
+          {/* Profile Settings & Progress */}
+          <div className="lg:col-span-2">
+            <Tabs defaultValue="personal" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="personal">Personal Info</TabsTrigger>
+                <TabsTrigger value="progress">My Progress</TabsTrigger>
+                <TabsTrigger value="goals">Learning Goals</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="personal" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Personal Information</CardTitle>
+                    <CardDescription>
+                      Update your personal details and preferences
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="firstName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>First Name</FormLabel>
+                                <FormControl>
+                                  <Input {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="lastName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Last Name</FormLabel>
+                                <FormControl>
+                                  <Input {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         </div>
-                      ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Award className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                    <p>No certificates earned yet</p>
-                    <p className="text-sm mt-1">Complete courses to earn certificates</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          <TabsContent value="activity">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {enrollments.slice(0, 5).map((enrollment: any) => (
-                    <div key={enrollment.enrollment.id} className="flex items-center justify-between py-3 border-b last:border-0">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-blue-50 rounded-lg">
-                          <BookOpen className="w-4 h-4 text-blue-600" />
+                        <div>
+                          <Label>Email Address</Label>
+                          <Input value={user.email} disabled className="mt-2" />
+                          <p className="text-sm text-gray-500 mt-1">
+                            Email cannot be changed for security reasons
+                          </p>
+                        </div>
+
+                        <FormField
+                          control={form.control}
+                          name="bio"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>About Me</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  {...field} 
+                                  placeholder="Tell us about yourself and your learning interests..."
+                                  rows={4}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <Button type="submit" disabled={updateProfile.isPending}>
+                          {updateProfile.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </form>
+                    </Form>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="progress" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Learning Progress</CardTitle>
+                    <CardDescription>
+                      Track your progress across all enrolled courses
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-medium">Introduction to Machine Learning</h3>
+                            <p className="text-sm text-gray-500">Started 2 weeks ago</p>
+                          </div>
+                          <Badge>In Progress</Badge>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Progress</span>
+                            <span className="font-medium">65%</span>
+                          </div>
+                          <Progress value={65} />
+                          <div className="flex justify-between text-sm text-gray-500">
+                            <span>8 of 12 lessons completed</span>
+                            <span>Est. 2h remaining</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-medium">Web Development Fundamentals</h3>
+                            <p className="text-sm text-gray-500">Completed last week</p>
+                          </div>
+                          <Badge variant="secondary">Completed</Badge>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Final Score</span>
+                            <span className="font-medium">92%</span>
+                          </div>
+                          <Progress value={100} className="bg-green-100" />
+                          <div className="flex justify-between text-sm text-gray-500">
+                            <span>All lessons completed</span>
+                            <span>Certificate earned</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-medium">Data Science Basics</h3>
+                            <p className="text-sm text-gray-500">Started yesterday</p>
+                          </div>
+                          <Badge>New</Badge>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Progress</span>
+                            <span className="font-medium">15%</span>
+                          </div>
+                          <Progress value={15} />
+                          <div className="flex justify-between text-sm text-gray-500">
+                            <span>2 of 15 lessons completed</span>
+                            <span>Est. 8h remaining</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t">
+                      <h3 className="font-medium mb-3">Overall Statistics</h3>
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <div className="text-2xl font-bold text-primary">85%</div>
+                          <div className="text-xs text-gray-500">Avg. Score</div>
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{enrollment.course.title}</p>
-                          <p className="text-sm text-gray-600">
-                            {enrollment.progressPercentage}% complete • {enrollment.completedLessons}/{enrollment.totalLessons} lessons
-                          </p>
+                          <div className="text-2xl font-bold text-primary">47</div>
+                          <div className="text-xs text-gray-500">Quizzes Passed</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold text-primary">12</div>
+                          <div className="text-xs text-gray-500">Certificates</div>
                         </div>
                       </div>
-                      <Badge variant="outline">
-                        {enrollment.progressPercentage === 100 ? 'Completed' : 'In Progress'}
-                      </Badge>
                     </div>
-                  ))}
-                  {enrollments.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      No recent activity
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="goals" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Learning Goals</CardTitle>
+                    <CardDescription>
+                      Set and track your learning objectives
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="learningGoals"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>My Learning Goals</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              {...field} 
+                              placeholder="What do you want to achieve? (e.g., Master Python programming, Complete 5 courses this month)"
+                              rows={4}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div>
+                      <h3 className="font-medium mb-3">Goal Tracking</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Target className="h-4 w-4 text-primary" />
+                            <span className="text-sm">Complete 3 courses this month</span>
+                          </div>
+                          <Badge variant="outline">2/3</Badge>
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Clock className="h-4 w-4 text-primary" />
+                            <span className="text-sm">Study 20 hours per week</span>
+                          </div>
+                          <Badge variant="outline">18/20h</Badge>
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <TrendingUp className="h-4 w-4 text-primary" />
+                            <span className="text-sm">Maintain 7-day streak</span>
+                          </div>
+                          <Badge className="bg-green-100 text-green-800">Achieved!</Badge>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+
+                    <div>
+                      <h3 className="font-medium mb-3">Recommended Next Steps</h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-start gap-2">
+                          <span className="text-primary">•</span>
+                          <span>Complete the Machine Learning course to unlock Advanced ML</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-primary">•</span>
+                          <span>Take the Python assessment to earn your certificate</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-primary">•</span>
+                          <span>Join the study group for collaborative learning</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button 
+                      onClick={() => form.handleSubmit(onSubmit)()}
+                      disabled={updateProfile.isPending}
+                    >
+                      Save Goals
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
       </div>
     </div>
   );
