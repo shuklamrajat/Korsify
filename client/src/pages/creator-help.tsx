@@ -24,65 +24,65 @@ import {
   Send,
   ExternalLink,
   Mail,
-  Clock,
-  Lightbulb
+  Phone,
+  Clock
 } from "lucide-react";
 
 const faqs = [
   {
-    question: "How do I enroll in a course?",
-    answer: "Browse available courses from the Learner Dashboard or search for specific topics. Click on any course card to view details, then click 'Enroll Now' to start learning."
+    question: "How do I create my first course?",
+    answer: "To create your first course, navigate to the Creator Dashboard and click 'Create New Course'. Upload your document (PDF, DOC, DOCX, TXT, or MD), and our AI will automatically generate a structured course with modules, lessons, and quizzes."
   },
   {
-    question: "Can I learn at my own pace?",
-    answer: "Yes! All courses are self-paced. You can pause, resume, and revisit lessons anytime. Your progress is automatically saved."
+    question: "What file formats are supported?",
+    answer: "Korsify supports PDF, DOC, DOCX, TXT, and Markdown (.md) files. The maximum file size is 10MB per document."
   },
   {
-    question: "How do quizzes work?",
-    answer: "Quizzes appear at the end of modules to test your understanding. You can retake quizzes to improve your score. Practice mode allows unlimited attempts."
+    question: "How does the AI course generation work?",
+    answer: "Our World Class Fine-Tuned AI uses a 5-phase pipeline: Document Analysis, Content Analysis, Content Generation, Validation, and Finalization. This ensures high-quality, structured educational content."
   },
   {
-    question: "Will I get a certificate?",
-    answer: "Yes! You'll receive a certificate of completion when you finish a course with a passing grade (typically 70% or higher)."
+    question: "Can I edit the AI-generated content?",
+    answer: "Yes! All AI-generated content is fully editable. You can modify modules, lessons, quizzes, and add your own custom content using our rich text editor."
   },
   {
-    question: "Can I download course materials?",
-    answer: "Course materials can be viewed online anytime. Some courses offer downloadable resources which will be clearly marked."
+    question: "How do I track student progress?",
+    answer: "The Creator Analytics dashboard provides comprehensive insights into student progress, including completion rates, quiz scores, study time, and engagement metrics."
   },
   {
-    question: "How do I track my progress?",
-    answer: "Your Learner Dashboard shows overall progress. Each course has a progress bar showing completed lessons and your current position."
+    question: "Is there a limit to the number of courses I can create?",
+    answer: "With the Pro plan, you can create unlimited courses. The Free plan allows up to 3 active courses at a time."
   }
 ];
 
 const tutorials = [
   {
-    title: "Getting Started as a Learner",
-    duration: "3 min",
-    type: "video",
-    description: "Navigate the platform and start your first course"
-  },
-  {
-    title: "Maximizing Your Learning",
+    title: "Getting Started with Korsify",
     duration: "5 min",
-    type: "article",
-    description: "Tips and strategies for effective online learning"
-  },
-  {
-    title: "Understanding Your Analytics",
-    duration: "4 min",
     type: "video",
-    description: "Track progress and identify areas for improvement"
+    description: "Learn the basics of creating your first course"
   },
   {
-    title: "Study Tools and Features",
+    title: "Advanced Course Customization",
+    duration: "8 min",
+    type: "video",
+    description: "Master the course editor and customization options"
+  },
+  {
+    title: "Managing Quizzes and Assessments",
     duration: "6 min",
     type: "article",
-    description: "Make the most of notes, bookmarks, and practice mode"
+    description: "Create effective quizzes to test student knowledge"
+  },
+  {
+    title: "Understanding Analytics",
+    duration: "4 min",
+    type: "article",
+    description: "Make data-driven decisions with analytics insights"
   }
 ];
 
-export default function LearnerHelp() {
+export default function CreatorHelp() {
   const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
   });
@@ -104,8 +104,8 @@ export default function LearnerHelp() {
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Learner Help Center</h1>
-          <p className="text-gray-600 mt-2">Get help with your learning journey</p>
+          <h1 className="text-3xl font-bold text-gray-900">Help Center</h1>
+          <p className="text-gray-600 mt-2">Find answers, tutorials, and get support</p>
         </div>
 
         {/* Quick Search */}
@@ -126,8 +126,8 @@ export default function LearnerHelp() {
         <Tabs defaultValue="faq" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="faq">FAQs</TabsTrigger>
-            <TabsTrigger value="guides">Study Guides</TabsTrigger>
-            <TabsTrigger value="resources">Resources</TabsTrigger>
+            <TabsTrigger value="tutorials">Tutorials</TabsTrigger>
+            <TabsTrigger value="documentation">Documentation</TabsTrigger>
             <TabsTrigger value="support">Contact Support</TabsTrigger>
           </TabsList>
 
@@ -136,7 +136,7 @@ export default function LearnerHelp() {
               <CardHeader>
                 <CardTitle>Frequently Asked Questions</CardTitle>
                 <CardDescription>
-                  Quick answers to common learner questions
+                  Quick answers to common questions
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -155,12 +155,12 @@ export default function LearnerHelp() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="guides" className="mt-6 space-y-6">
+          <TabsContent value="tutorials" className="mt-6 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Study Guides & Tutorials</CardTitle>
+                <CardTitle>Video Tutorials & Guides</CardTitle>
                 <CardDescription>
-                  Learn how to make the most of your learning experience
+                  Step-by-step tutorials to help you get the most out of Korsify
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -187,50 +187,31 @@ export default function LearnerHelp() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Learning Tips</CardTitle>
-                <CardDescription>
-                  Proven strategies for effective learning
-                </CardDescription>
+                <CardTitle>Quick Start Guides</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Lightbulb className="h-5 w-5 text-yellow-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium mb-1">Set Clear Goals</h4>
-                    <p className="text-sm text-gray-600">Define what you want to achieve and create a study schedule that works for you.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Lightbulb className="h-5 w-5 text-yellow-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium mb-1">Take Regular Breaks</h4>
-                    <p className="text-sm text-gray-600">Use the Pomodoro technique: 25 minutes of focused study followed by a 5-minute break.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Lightbulb className="h-5 w-5 text-yellow-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium mb-1">Practice Active Learning</h4>
-                    <p className="text-sm text-gray-600">Take notes, complete quizzes, and apply what you learn to real-world scenarios.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Lightbulb className="h-5 w-5 text-yellow-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium mb-1">Review Regularly</h4>
-                    <p className="text-sm text-gray-600">Revisit completed lessons to reinforce your understanding and improve retention.</p>
-                  </div>
-                </div>
+              <CardContent className="space-y-3">
+                <Button variant="outline" className="w-full justify-between">
+                  <span>Creator's Guide to Success</span>
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" className="w-full justify-between">
+                  <span>Best Practices for Course Design</span>
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" className="w-full justify-between">
+                  <span>Maximizing Student Engagement</span>
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="resources" className="mt-6 space-y-6">
+          <TabsContent value="documentation" className="mt-6 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Learning Resources</CardTitle>
+                <CardTitle>Documentation</CardTitle>
                 <CardDescription>
-                  Additional resources to support your learning
+                  Comprehensive documentation for all features
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -242,37 +223,16 @@ export default function LearnerHelp() {
                     </h3>
                     <div className="space-y-2">
                       <Button variant="link" className="p-0 h-auto justify-start">
-                        Platform Overview
+                        Account Setup
                       </Button>
                       <Button variant="link" className="p-0 h-auto justify-start">
-                        How to Enroll in Courses
+                        Creating Your First Course
                       </Button>
                       <Button variant="link" className="p-0 h-auto justify-start">
-                        Understanding Course Structure
+                        Understanding the Dashboard
                       </Button>
                       <Button variant="link" className="p-0 h-auto justify-start">
-                        Taking Quizzes and Assessments
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-medium mb-3 flex items-center gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      Study Tools
-                    </h3>
-                    <div className="space-y-2">
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Using the Note-Taking Feature
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Bookmarking Important Content
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Practice Mode for Quizzes
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Tracking Your Progress
+                        Document Upload Guidelines
                       </Button>
                     </div>
                   </div>
@@ -280,20 +240,41 @@ export default function LearnerHelp() {
                   <div>
                     <h3 className="font-medium mb-3 flex items-center gap-2">
                       <BookOpen className="h-4 w-4" />
-                      Certificates & Achievements
+                      Advanced Features
                     </h3>
                     <div className="space-y-2">
                       <Button variant="link" className="p-0 h-auto justify-start">
-                        Earning Certificates
+                        AI Course Generation
                       </Button>
                       <Button variant="link" className="p-0 h-auto justify-start">
-                        Sharing Your Achievements
+                        Quiz Management System
                       </Button>
                       <Button variant="link" className="p-0 h-auto justify-start">
-                        Building Your Learning Portfolio
+                        Analytics & Insights
                       </Button>
                       <Button variant="link" className="p-0 h-auto justify-start">
-                        Verifying Certificates
+                        Custom Branding Options
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-medium mb-3 flex items-center gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      API & Integrations
+                    </h3>
+                    <div className="space-y-2">
+                      <Button variant="link" className="p-0 h-auto justify-start">
+                        API Documentation
+                      </Button>
+                      <Button variant="link" className="p-0 h-auto justify-start">
+                        Webhook Setup
+                      </Button>
+                      <Button variant="link" className="p-0 h-auto justify-start">
+                        Third-party Integrations
+                      </Button>
+                      <Button variant="link" className="p-0 h-auto justify-start">
+                        Export & Import Data
                       </Button>
                     </div>
                   </div>
@@ -305,40 +286,20 @@ export default function LearnerHelp() {
                     </h3>
                     <div className="space-y-2">
                       <Button variant="link" className="p-0 h-auto justify-start">
-                        Video Playback Issues
+                        Common Issues
                       </Button>
                       <Button variant="link" className="p-0 h-auto justify-start">
-                        Quiz Not Loading
+                        Error Messages Guide
                       </Button>
                       <Button variant="link" className="p-0 h-auto justify-start">
-                        Progress Not Saving
+                        Performance Optimization
                       </Button>
                       <Button variant="link" className="p-0 h-auto justify-start">
-                        Mobile App Help
+                        Browser Compatibility
                       </Button>
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Links</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-between">
-                  <span>Download Study Planner Template</span>
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" className="w-full justify-between">
-                  <span>Join Study Groups</span>
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" className="w-full justify-between">
-                  <span>Learning Best Practices Guide</span>
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -350,7 +311,7 @@ export default function LearnerHelp() {
                   <CardHeader>
                     <CardTitle>Contact Support</CardTitle>
                     <CardDescription>
-                      Need help? Send us a message
+                      Get help from our support team
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -383,11 +344,10 @@ export default function LearnerHelp() {
                         id="category"
                         className="w-full mt-2 p-2 border rounded-md"
                       >
-                        <option>Course Access Issue</option>
-                        <option>Technical Problem</option>
-                        <option>Certificate Question</option>
-                        <option>Account Help</option>
+                        <option>Technical Issue</option>
                         <option>Billing Question</option>
+                        <option>Feature Request</option>
+                        <option>Account Help</option>
                         <option>Other</option>
                       </select>
                     </div>
@@ -410,7 +370,7 @@ export default function LearnerHelp() {
                       <Mail className="h-5 w-5 text-primary" />
                       <div>
                         <p className="font-medium text-sm">Email</p>
-                        <p className="text-sm text-gray-600">learner@korsify.com</p>
+                        <p className="text-sm text-gray-600">support@korsify.com</p>
                       </div>
                     </div>
 
@@ -439,15 +399,15 @@ export default function LearnerHelp() {
                   <CardContent className="space-y-3">
                     <Button variant="outline" className="w-full justify-start">
                       <MessageCircle className="h-4 w-4 mr-2" />
-                      Join Study Groups
+                      Join Discord Community
                     </Button>
                     <Button variant="outline" className="w-full justify-start">
                       <BookOpen className="h-4 w-4 mr-2" />
-                      Learning Blog
+                      Read the Blog
                     </Button>
                     <Button variant="outline" className="w-full justify-start">
                       <Video className="h-4 w-4 mr-2" />
-                      Video Tutorials
+                      YouTube Channel
                     </Button>
                   </CardContent>
                 </Card>

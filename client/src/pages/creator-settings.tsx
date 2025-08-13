@@ -19,23 +19,23 @@ import {
   Palette, 
   Database, 
   Key,
-  BookOpen,
-  Target,
+  Zap,
+  CreditCard,
   AlertTriangle,
-  Clock
+  Settings2
 } from "lucide-react";
 
-export default function LearnerSettings() {
+export default function CreatorSettings() {
   const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
   });
 
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(false);
-  const [studyReminders, setStudyReminders] = useState(true);
+  const [autoSave, setAutoSave] = useState(true);
+  const [aiAssistance, setAiAssistance] = useState(true);
   const [language, setLanguage] = useState("en");
   const [theme, setTheme] = useState("light");
-  const [difficulty, setDifficulty] = useState("balanced");
 
   const updateSettings = useMutation({
     mutationFn: (data: any) => 
@@ -67,16 +67,16 @@ export default function LearnerSettings() {
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Learner Settings</h1>
-          <p className="text-gray-600 mt-2">Customize your learning experience</p>
+          <h1 className="text-3xl font-bold text-gray-900">Creator Settings</h1>
+          <p className="text-gray-600 mt-2">Manage your account settings and preferences</p>
         </div>
 
         <Tabs defaultValue="general" className="w-full">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="learning">Learning</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="privacy">Privacy</TabsTrigger>
+            <TabsTrigger value="ai">AI Settings</TabsTrigger>
             <TabsTrigger value="account">Account</TabsTrigger>
           </TabsList>
 
@@ -136,109 +136,26 @@ export default function LearnerSettings() {
                   </Select>
                 </div>
 
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Auto-save</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically save your work as you type
+                    </p>
+                  </div>
+                  <Switch
+                    checked={autoSave}
+                    onCheckedChange={setAutoSave}
+                  />
+                </div>
+
                 <Button 
-                  onClick={() => handleSaveSettings({ language, theme })}
+                  onClick={() => handleSaveSettings({ language, theme, autoSave })}
                   disabled={updateSettings.isPending}
                 >
                   Save General Settings
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="learning" className="mt-6 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Learning Preferences</CardTitle>
-                <CardDescription>
-                  Customize your learning experience
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label>Learning Difficulty</Label>
-                  <Select value={difficulty} onValueChange={setDifficulty}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="beginner">Beginner - Take it slow</SelectItem>
-                      <SelectItem value="balanced">Balanced - Standard pace</SelectItem>
-                      <SelectItem value="advanced">Advanced - Challenge me</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Daily Study Goal</Label>
-                  <Select defaultValue="30">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="15">15 minutes</SelectItem>
-                      <SelectItem value="30">30 minutes</SelectItem>
-                      <SelectItem value="60">1 hour</SelectItem>
-                      <SelectItem value="120">2 hours</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <h3 className="font-medium">Learning Features</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Study Reminders</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Get daily reminders to study
-                        </p>
-                      </div>
-                      <Switch
-                        checked={studyReminders}
-                        onCheckedChange={setStudyReminders}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Auto-play Next Lesson</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Automatically continue to next lesson
-                        </p>
-                      </div>
-                      <Switch defaultChecked />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Show Hints in Quizzes</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Display helpful hints during quizzes
-                        </p>
-                      </div>
-                      <Switch defaultChecked />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Enable Practice Mode</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Unlimited quiz attempts for practice
-                        </p>
-                      </div>
-                      <Switch defaultChecked />
-                    </div>
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={() => handleSaveSettings({ difficulty, studyReminders })}
-                  disabled={updateSettings.isPending}
-                >
-                  Save Learning Settings
                 </Button>
               </CardContent>
             </Card>
@@ -249,7 +166,7 @@ export default function LearnerSettings() {
               <CardHeader>
                 <CardTitle>Notification Preferences</CardTitle>
                 <CardDescription>
-                  Choose how you want to be notified about your learning progress
+                  Choose how you want to be notified about important updates
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -257,7 +174,7 @@ export default function LearnerSettings() {
                   <div className="space-y-0.5">
                     <Label>Email Notifications</Label>
                     <p className="text-sm text-muted-foreground">
-                      Receive email updates about your courses
+                      Receive email updates about your courses and students
                     </p>
                   </div>
                   <Switch
@@ -282,19 +199,15 @@ export default function LearnerSettings() {
                 <Separator />
 
                 <div className="space-y-4">
-                  <h3 className="font-medium">Notification Types</h3>
+                  <h3 className="font-medium">Email Notification Types</h3>
                   <div className="space-y-3">
                     <label className="flex items-center gap-2">
                       <input type="checkbox" defaultChecked />
-                      <span className="text-sm">Daily study reminders</span>
+                      <span className="text-sm">New student enrollments</span>
                     </label>
                     <label className="flex items-center gap-2">
                       <input type="checkbox" defaultChecked />
-                      <span className="text-sm">Course completion certificates</span>
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input type="checkbox" defaultChecked />
-                      <span className="text-sm">New course recommendations</span>
+                      <span className="text-sm">Course completion notifications</span>
                     </label>
                     <label className="flex items-center gap-2">
                       <input type="checkbox" />
@@ -302,11 +215,11 @@ export default function LearnerSettings() {
                     </label>
                     <label className="flex items-center gap-2">
                       <input type="checkbox" defaultChecked />
-                      <span className="text-sm">Achievement unlocked</span>
+                      <span className="text-sm">Student questions and feedback</span>
                     </label>
                     <label className="flex items-center gap-2">
                       <input type="checkbox" />
-                      <span className="text-sm">Study streak reminders</span>
+                      <span className="text-sm">Platform updates and announcements</span>
                     </label>
                   </div>
                 </div>
@@ -340,16 +253,16 @@ export default function LearnerSettings() {
                       <div className="space-y-0.5">
                         <Label>Public Profile</Label>
                         <p className="text-sm text-muted-foreground">
-                          Allow others to view your learning progress
+                          Allow students to view your profile
                         </p>
                       </div>
-                      <Switch />
+                      <Switch defaultChecked />
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <Label>Show Achievements</Label>
+                        <Label>Show Course Statistics</Label>
                         <p className="text-sm text-muted-foreground">
-                          Display your badges and certificates
+                          Display your course metrics publicly
                         </p>
                       </div>
                       <Switch defaultChecked />
@@ -394,10 +307,7 @@ export default function LearnerSettings() {
                   </h3>
                   <div className="space-y-3">
                     <Button variant="outline" className="w-full justify-start">
-                      Download My Learning Data
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      Export Certificates
+                      Download My Data
                     </Button>
                     <Button variant="outline" className="w-full justify-start text-red-600">
                       Delete My Account
@@ -408,53 +318,140 @@ export default function LearnerSettings() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="ai" className="mt-6 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>AI Settings</CardTitle>
+                <CardDescription>
+                  Configure how AI assists you in creating courses
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>AI Course Generation</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Use AI to automatically generate course content
+                    </p>
+                  </div>
+                  <Switch
+                    checked={aiAssistance}
+                    onCheckedChange={setAiAssistance}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>AI Model Preference</Label>
+                  <Select defaultValue="gemini-flash">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gemini-flash">Gemini 2.0 Flash (Recommended)</SelectItem>
+                      <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
+                      <SelectItem value="custom">Custom Model</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Content Generation Style</Label>
+                  <Select defaultValue="balanced">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="concise">Concise</SelectItem>
+                      <SelectItem value="balanced">Balanced</SelectItem>
+                      <SelectItem value="detailed">Detailed</SelectItem>
+                      <SelectItem value="academic">Academic</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h3 className="font-medium">AI Features</h3>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2">
+                      <input type="checkbox" defaultChecked />
+                      <span className="text-sm">Auto-generate quiz questions</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input type="checkbox" defaultChecked />
+                      <span className="text-sm">Smart content suggestions</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input type="checkbox" defaultChecked />
+                      <span className="text-sm">Automatic lesson structuring</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input type="checkbox" />
+                      <span className="text-sm">AI-powered content review</span>
+                    </label>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={() => handleSaveSettings({ aiAssistance })}
+                  disabled={updateSettings.isPending}
+                >
+                  Save AI Settings
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="account" className="mt-6 space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Account Management</CardTitle>
                 <CardDescription>
-                  Manage your subscription and account details
+                  Manage your subscription and billing information
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="p-4 border rounded-lg bg-primary/5">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-medium">Current Plan</h3>
-                    <Badge>Free</Badge>
+                    <Badge>Pro</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mb-4">
-                    You have access to basic learning features
+                    You have unlimited access to all creator features
                   </p>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
-                      <BookOpen className="h-4 w-4 text-primary" />
-                      <span>Access to 3 courses</span>
+                      <Zap className="h-4 w-4 text-primary" />
+                      <span>Unlimited courses</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-primary" />
-                      <span>Basic progress tracking</span>
+                      <Zap className="h-4 w-4 text-primary" />
+                      <span>Advanced AI features</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-primary" />
-                      <span>Limited study history</span>
+                      <Zap className="h-4 w-4 text-primary" />
+                      <span>Priority support</span>
                     </div>
                   </div>
-                  <Button className="w-full mt-4">Upgrade to Pro</Button>
                 </div>
 
-                <Separator />
-
                 <div className="space-y-4">
-                  <h3 className="font-medium">Account Actions</h3>
+                  <h3 className="font-medium flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    Billing Information
+                  </h3>
                   <div className="space-y-3">
-                    <Button variant="outline" className="w-full justify-start">
-                      Switch to Creator Mode
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      Manage Enrolled Courses
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      View Payment History
+                    <div className="flex justify-between text-sm">
+                      <span>Next billing date</span>
+                      <span className="font-medium">January 15, 2025</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Payment method</span>
+                      <span className="font-medium">•••• 4242</span>
+                    </div>
+                    <Button variant="outline" className="w-full">
+                      Update Payment Method
                     </Button>
                   </div>
                 </div>
@@ -468,10 +465,10 @@ export default function LearnerSettings() {
                   </h3>
                   <div className="space-y-3">
                     <Button variant="outline" className="w-full justify-start text-yellow-600">
-                      Reset Learning Progress
+                      Pause Subscription
                     </Button>
                     <Button variant="outline" className="w-full justify-start text-red-600">
-                      Close Account
+                      Cancel Subscription
                     </Button>
                   </div>
                 </div>
