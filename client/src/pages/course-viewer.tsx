@@ -35,6 +35,8 @@ import {
 import { LessonViewer } from "@/components/lesson-viewer";
 import { SourceViewer } from "@/components/source-viewer";
 import { QuizViewer } from "@/components/quiz-viewer";
+import { CelebrationEffect } from "@/components/celebration-effect";
+import { useCelebration } from "@/hooks/use-celebration";
 import { FileQuestion } from "lucide-react";
 
 export default function CourseViewer() {
@@ -58,6 +60,17 @@ export default function CourseViewer() {
   const [selectedCitationId, setSelectedCitationId] = useState<string | null>(null);
   const [moduleQuizzes, setModuleQuizzes] = useState<Record<string, any>>({});
   const [lessonQuizzes, setLessonQuizzes] = useState<Record<string, any>>({});
+  
+  // Celebration effects
+  const {
+    isVisible: celebrationVisible,
+    celebrationData,
+    hideCelebration,
+    celebrateLesson,
+    celebrateModule,
+    celebrateCourse,
+    celebrateQuiz
+  } = useCelebration();
 
   // Fetch course details
   const { data: course, isLoading, error } = useQuery<any>({
@@ -201,6 +214,40 @@ export default function CourseViewer() {
     
     const enrollment = enrollments.find((e: any) => e.course.id === courseId);
     if (enrollment) {
+      // Find the current lesson and module
+      const currentModule = course?.modules?.find((m: any) => m.id === selectedModule);
+      const currentLesson = currentModule?.lessons?.find((l: any) => l.id === selectedLesson);
+      
+      if (currentLesson) {
+        // Trigger lesson completion celebration
+        celebrateLesson(currentLesson.title, 10);
+        
+        // Check if module is now complete
+        const moduleProgress = currentModule?.lessons?.length || 0;
+        const completedLessons = enrollment.progress?.filter((p: any) => 
+          currentModule?.lessons?.some((l: any) => l.id === p.lessonId && p.completed)
+        ).length || 0;
+        
+        // If this completes the module, celebrate that too
+        if (completedLessons + 1 === moduleProgress) {
+          setTimeout(() => {
+            celebrateModule(currentModule.title, 50);
+          }, 2000);
+        }
+        
+        // Check if course is now complete
+        const totalLessons = course?.modules?.reduce((total: number, module: any) => 
+          total + (module.lessons?.length || 0), 0) || 0;
+        const totalCompletedLessons = enrollment.completedLessons || 0;
+        
+        // If this completes the course, celebrate that too
+        if (totalCompletedLessons + 1 === totalLessons) {
+          setTimeout(() => {
+            celebrateCourse(course.title, 200);
+          }, 4000);
+        }
+      }
+      
       updateProgressMutation.mutate({
         enrollmentId: enrollment.enrollment.id,
         lessonId: selectedLesson,
@@ -571,14 +618,25 @@ export default function CourseViewer() {
                     lessonId={selectedQuizType === 'lesson' && selectedLesson ? selectedLesson : undefined}
                     moduleId={selectedQuizType === 'module' && selectedModule ? selectedModule : undefined}
                     onComplete={(passed, score) => {
+                      // Find quiz title for celebration
+                      const quizTitle = selectedQuizType === 'lesson' 
+                        ? lessonQuizzes[selectedLesson || '']?.title || 'Lesson Quiz'
+                        : moduleQuizzes[selectedModule || '']?.title || 'Module Quiz';
+                      
+                      // Trigger quiz celebration
+                      celebrateQuiz(quizTitle, score, passed);
+                      
                       toast({
                         title: passed ? "Quiz Passed!" : "Quiz Completed",
                         description: `You scored ${score}%`,
                         variant: passed ? "default" : "destructive"
                       });
+                      
                       // Navigate to next lesson or quiz
                       if (passed) {
-                        navigateToNextLesson();
+                        setTimeout(() => {
+                          navigateToNextLesson();
+                        }, 3000); // Delay to let celebration play
                       }
                     }}
                     onRetry={() => {
@@ -619,6 +677,18 @@ export default function CourseViewer() {
           </div>
         </div>
       </div>
+      
+      {/* Celebration Effect */}
+      {celebrationData && (
+        <CelebrationEffect
+          isVisible={celebrationVisible}
+          type={celebrationData.type}
+          title={celebrationData.title}
+          description={celebrationData.description}
+          points={celebrationData.points}
+          onComplete={hideCelebration}
+        />
+      )}
     </div>
   );
 }
