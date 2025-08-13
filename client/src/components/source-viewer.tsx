@@ -65,6 +65,13 @@ export function SourceViewer({
     }
   }, [selectedCitationId, sourceReferences]);
 
+  // Function to strip HTML tags from text
+  const stripHtmlTags = (html: string): string => {
+    const tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  };
+
   // Group references by document
   const referencesByDocument = sourceReferences.reduce((acc, ref) => {
     if (!acc[ref.documentId]) {
@@ -290,7 +297,7 @@ export function SourceViewer({
                                 <div className="flex-1">
                                   <p className="text-sm text-gray-700 line-clamp-3">
                                     <Quote className="w-3 h-3 inline mr-1 text-gray-400" />
-                                    {ref.text}
+                                    {stripHtmlTags(ref.text)}
                                   </p>
                                   {ref.pageNumber && (
                                     <p className="text-xs text-gray-500 mt-1">
@@ -342,7 +349,7 @@ export function SourceViewer({
                         </div>
                         <p className="text-sm text-gray-700">
                           <Quote className="w-3 h-3 inline mr-1 text-gray-400" />
-                          {ref.text}
+                          {stripHtmlTags(ref.text)}
                         </p>
                         {ref.context && (
                           <p className="text-xs text-gray-500 mt-2 pl-4 border-l-2 border-gray-200">
@@ -375,7 +382,7 @@ export function SourceViewer({
               </Button>
             </div>
             <Card className="p-3 bg-blue-50 border-blue-200">
-              <p className="text-sm text-gray-700">{selectedReference.text}</p>
+              <p className="text-sm text-gray-700">{stripHtmlTags(selectedReference.text)}</p>
               <div className="flex items-center gap-2 mt-2">
                 <FileText className="w-3 h-3 text-blue-600" />
                 <span className="text-xs text-gray-600">
