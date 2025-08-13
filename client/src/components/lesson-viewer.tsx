@@ -29,6 +29,8 @@ import RichTextViewer from "@/components/rich-text-viewer";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { QuizViewer } from "@/components/quiz-viewer";
+import { CelebrationEffect } from "@/components/celebration-effect";
+import { useCelebration } from "@/hooks/use-celebration";
 
 interface LessonViewerProps {
   lesson: Lesson;
@@ -61,6 +63,15 @@ export function LessonViewer({
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [quizScore, setQuizScore] = useState<number | null>(null);
   const timeTrackerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Celebration effects
+  const {
+    isVisible: celebrationVisible,
+    celebrationData,
+    hideCelebration,
+    celebrateLesson,
+    celebrateQuiz
+  } = useCelebration();
   
   // Fetch quiz for this lesson
   const { data: quiz, error: quizError } = useQuery<{
@@ -349,10 +360,14 @@ export function LessonViewer({
                 <Button
                   onClick={async () => {
                     await trackLessonTime();
-                    onComplete();
+                    // Trigger lesson completion celebration
+                    celebrateLesson(lesson.title, 10);
+                    setTimeout(() => {
+                      onComplete();
+                    }, 1000); // Small delay to show celebration
                   }}
                   variant="default"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
                 >
                   <CheckCircle className="w-4 h-4" />
                   Mark as Complete
@@ -385,6 +400,18 @@ export function LessonViewer({
           )}
         </CardContent>
       </Card>
+      )}
+      
+      {/* Celebration Effect */}
+      {celebrationData && (
+        <CelebrationEffect
+          isVisible={celebrationVisible}
+          type={celebrationData.type}
+          title={celebrationData.title}
+          description={celebrationData.description}
+          points={celebrationData.points}
+          onComplete={hideCelebration}
+        />
       )}
     </div>
   );

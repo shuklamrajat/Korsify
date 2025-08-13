@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { CelebrationEffect } from "@/components/celebration-effect";
+import { useCelebration } from "@/hooks/use-celebration";
 import {
   Trophy,
   CheckCircle,
@@ -57,6 +59,14 @@ export function QuizViewer({
   const [score, setScore] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+  
+  // Celebration effects
+  const {
+    isVisible: celebrationVisible,
+    celebrationData,
+    hideCelebration,
+    celebrateQuiz
+  } = useCelebration();
 
   const currentQuestion = quiz.questions[currentQuestionIndex];
   const totalQuestions = quiz.questions.length;
@@ -120,6 +130,10 @@ export function QuizViewer({
       });
 
       const passed = finalScore >= quiz.passingScore;
+      
+      // Trigger quiz celebration
+      celebrateQuiz(quiz.title, finalScore, passed);
+      
       onComplete?.(passed, finalScore);
 
       if (passed) {
@@ -208,19 +222,20 @@ export function QuizViewer({
   }
 
   return (
-    <Card className="max-w-3xl mx-auto">
-      <CardHeader className="border-b">
-        <div className="flex items-center justify-between mb-2">
-          <CardTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5" />
-            {quiz.title}
-          </CardTitle>
-          <Badge variant="secondary">
-            Question {currentQuestionIndex + 1} of {totalQuestions}
-          </Badge>
-        </div>
-        <Progress value={progress} className="h-2" />
-      </CardHeader>
+    <>
+      <Card className="max-w-3xl mx-auto">
+        <CardHeader className="border-b">
+          <div className="flex items-center justify-between mb-2">
+            <CardTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5" />
+              {quiz.title}
+            </CardTitle>
+            <Badge variant="secondary">
+              Question {currentQuestionIndex + 1} of {totalQuestions}
+            </Badge>
+          </div>
+          <Progress value={progress} className="h-2" />
+        </CardHeader>
       
       <CardContent className="p-6">
         <div className="space-y-6">
@@ -365,6 +380,19 @@ export function QuizViewer({
           </div>
         </div>
       </CardContent>
-    </Card>
+      </Card>
+      
+      {/* Celebration Effect */}
+      {celebrationData && (
+        <CelebrationEffect
+          isVisible={celebrationVisible}
+          type={celebrationData.type}
+          title={celebrationData.title}
+          description={celebrationData.description}
+          points={celebrationData.points}
+          onComplete={hideCelebration}
+        />
+      )}
+    </>
   );
 }
