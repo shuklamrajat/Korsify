@@ -27,12 +27,37 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint for deployment verification (must be before auth middleware)
+  app.get('/api/health', async (req, res) => {
+    try {
+      // Check database connection
+      await storage.getUserByEmail('health-check@test.com').catch(() => null);
+      
+      res.status(200).json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        database: 'connected'
+      });
+    } catch (error) {
+      res.status(503).json({
+        status: 'unhealthy',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Setup authentication routes
   setupAuthRoutes(app);
 
   // Apply authentication middleware to protected API routes
   // Note: auth routes themselves don't need this middleware
   app.use('/api', (req, res, next) => {
+    // Skip auth middleware for health endpoint
+    if (req.path === '/health') {
+      return next();
+    }
     // Skip auth middleware for auth routes - ensure the path check is correct
     if (req.path.startsWith('/auth/')) {
       return next();
