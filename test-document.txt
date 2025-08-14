@@ -1,0 +1,26 @@
+Introduction to Machine Learning
+
+This document provides a comprehensive introduction to machine learning concepts and techniques.
+
+Chapter 1: Fundamentals of Machine Learning
+Machine learning is a subset of artificial intelligence that enables computers to learn from data without being explicitly programmed. It involves algorithms that can identify patterns, make decisions, and improve their performance through experience.
+
+Types of Machine Learning:
+1. Supervised Learning - Uses labeled data to train models
+2. Unsupervised Learning - Discovers patterns in unlabeled data  
+3. Reinforcement Learning - Learns through interaction and feedback
+
+Chapter 2: Common Algorithms
+- Linear Regression: Predicts continuous values
+- Decision Trees: Makes decisions based on feature splits
+- Neural Networks: Mimics human brain structure
+- Support Vector Machines: Finds optimal decision boundaries
+
+Chapter 3: Applications
+Machine learning is used in various fields including:
+- Healthcare: Disease diagnosis and drug discovery
+- Finance: Fraud detection and risk assessment
+- Transportation: Autonomous vehicles
+- Entertainment: Recommendation systems
+
+This foundational knowledge will help you understand how machine learning systems work and their real-world applications.

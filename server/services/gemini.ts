@@ -75,6 +75,14 @@ export class GeminiService {
     fileName: string,
     options: AIGenerationOptions = {}
   ): Promise<CourseStructure> {
+    console.log('🚀 Starting Gemini course generation:', {
+      fileName,
+      documentContentLength: documentContent.length,
+      documentPreview: documentContent.substring(0, 300) + '...',
+      hasContent: documentContent.length > 0,
+      options
+    });
+
     const {
       language = 'English',
       targetAudience = 'General learners',
@@ -267,6 +275,8 @@ export class GeminiService {
         throw new Error("Gemini API key is not configured. Please add GEMINI_API_KEY to your environment variables.");
       }
 
+      console.log('📤 Sending to Gemini API with prompt length:', userPrompt.length);
+      
       const response = await ai.models.generateContent({
         model: this.model,
         config: {
@@ -290,16 +300,26 @@ export class GeminiService {
         contents: userPrompt,
       });
 
+      console.log('📥 Received Gemini response');
+      
       const rawJson = response.text;
       if (!rawJson) {
+        console.error('❌ Empty response from Gemini');
         throw new Error("AI service returned empty response. This may be due to rate limiting or API issues. Please try again in a few moments.");
       }
 
+      console.log('📋 Response JSON length:', rawJson.length);
+      
       let courseStructure: CourseStructure;
       try {
         courseStructure = JSON.parse(rawJson);
+        console.log('✅ Successfully parsed course structure:', {
+          title: courseStructure.title,
+          moduleCount: courseStructure.modules?.length || 0,
+          difficultyLevel: courseStructure.difficultyLevel
+        });
       } catch (parseError) {
-        console.error("Failed to parse AI response:", rawJson);
+        console.error("❌ Failed to parse AI response:", rawJson.substring(0, 500));
         throw new Error("AI generated invalid response format. Please try regenerating the content.");
       }
 
