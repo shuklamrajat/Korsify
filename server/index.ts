@@ -2,6 +2,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { runMigrations } from "./migrate.js";
+import { validateEnvironment } from "./env-check.js";
 
 const app = express();
 // Increase payload size limit to 100MB for large file uploads
@@ -39,6 +41,24 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Validate environment variables
+  try {
+    validateEnvironment();
+  } catch (error) {
+    log(`Environment validation failed: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  }
+
+  // Run database migrations in production
+  if (process.env.NODE_ENV === "production") {
+    try {
+      await runMigrations();
+    } catch (error) {
+      log(`Migration failed: ${error instanceof Error ? error.message : String(error)}`);
+      process.exit(1);
+    }
+  }
+
   const server = await registerRoutes(app);
 
   // Test routes

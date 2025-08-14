@@ -1,0 +1,24 @@
+{
+  "deployment": {
+    "buildCommand": "npm run build",
+    "startCommand": "npm run start",
+    "healthCheck": "/api/health",
+    "port": "$PORT",
+    "environment": {
+      "NODE_ENV": "production",
+      "DATABASE_URL": "$DATABASE_URL"
+    },
+    "migrations": {
+      "enabled": true,
+      "command": "automatic",
+      "description": "Migrations run automatically on startup in production"
+    },
+    "dependencies": {
+      "runtime": [
+        "drizzle-kit",
+        "drizzle-orm",
+        "@neondatabase/serverless"
+      ]
+    }
+  }
+}

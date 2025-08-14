@@ -6,6 +6,13 @@ Korsify is an AI-powered educational platform designed to transform documents in
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (Updated: 2025-08-14)
+- **Database Migration System**: Added automatic migration system for production deployments
+- **Environment Validation**: Added comprehensive environment variable validation on startup
+- **Health Check Endpoint**: Added /api/health endpoint for deployment verification
+- **Production Dependencies**: Moved drizzle-kit to production dependencies for deployment support
+- **Deployment Configuration**: Added deployment config and migration automation for production environments
+
 ## System Architecture
 
 ### Frontend Architecture
