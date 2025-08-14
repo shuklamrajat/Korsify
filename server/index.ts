@@ -54,8 +54,17 @@ app.use((req, res, next) => {
     try {
       await runMigrations();
     } catch (error) {
-      log(`Migration failed: ${error instanceof Error ? error.message : String(error)}`);
-      process.exit(1);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      log(`Migration failed: ${errorMessage}`);
+      
+      // Check if this is a deployment with existing tables - don't crash in this case
+      if (errorMessage.includes("already exists") || 
+          errorMessage.includes("relation") && errorMessage.includes("already exists")) {
+        log("Tables appear to already exist - continuing with application startup");
+      } else {
+        log("Critical migration error - exiting");
+        process.exit(1);
+      }
     }
   }
 
