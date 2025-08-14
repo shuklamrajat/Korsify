@@ -18,20 +18,31 @@ import {
   Target
 } from "lucide-react";
 
+interface CreatorAnalytics {
+  totalCourses: number;
+  totalLearners: number;
+  totalLessons: number;
+  averageRating: number;
+  completionRate: number;
+  engagementRate: number;
+  recentActivity: Array<{
+    date: string;
+    enrollments: number;
+    completions: number;
+  }>;
+}
+
 export default function CreatorAnalytics() {
   const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
   });
 
-  const { data: analytics } = useQuery({
+  const { data: analytics } = useQuery<CreatorAnalytics>({
     queryKey: ["/api/creator/analytics"],
     enabled: !!user,
   });
 
-  const { data: recentActivity } = useQuery({
-    queryKey: ["/api/creator/recent-activity"],
-    enabled: !!user,
-  });
+
 
   if (!user) return null;
 
@@ -53,7 +64,7 @@ export default function CreatorAnalytics() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analytics?.totalStudents || 0}</div>
+              <div className="text-2xl font-bold">{analytics?.totalLearners || 0}</div>
               <p className="text-xs text-muted-foreground">
                 <span className="text-green-600">+12%</span> from last month
               </p>
@@ -66,7 +77,7 @@ export default function CreatorAnalytics() {
               <BookOpen className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analytics?.activeCourses || 0}</div>
+              <div className="text-2xl font-bold">{analytics?.totalCourses || 0}</div>
               <p className="text-xs text-muted-foreground">
                 {analytics?.totalCourses || 0} total courses
               </p>
@@ -90,7 +101,7 @@ export default function CreatorAnalytics() {
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analytics?.engagementScore || 0}/10</div>
+              <div className="text-2xl font-bold">{Math.round(analytics?.engagementRate || 0)}%</div>
               <p className="text-xs text-muted-foreground">
                 Based on student activity
               </p>
@@ -305,30 +316,17 @@ export default function CreatorAnalytics() {
                   <div>
                     <h3 className="font-medium mb-3">Recent Activity</h3>
                     <div className="space-y-2">
-                      {recentActivity?.map((activity: any, index: number) => (
+                      {analytics?.recentActivity?.map((activity, index: number) => (
                         <div key={index} className="flex items-center gap-3 text-sm">
                           <Calendar className="h-4 w-4 text-gray-400" />
                           <span className="text-gray-600">{activity.date}</span>
-                          <span>{activity.description}</span>
+                          <span>{activity.enrollments} enrollments, {activity.completions} completions</span>
                         </div>
                       )) || (
-                        <>
-                          <div className="flex items-center gap-3 text-sm">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            <span className="text-gray-600">Today</span>
-                            <span>15 new students enrolled</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-sm">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            <span className="text-gray-600">Yesterday</span>
-                            <span>New course published: "Advanced React"</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-sm">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            <span className="text-gray-600">2 days ago</span>
-                            <span>8 students completed your course</span>
-                          </div>
-                        </>
+                        <div className="flex items-center gap-3 text-sm">
+                          <Calendar className="h-4 w-4 text-gray-400" />
+                          <span className="text-gray-600">No recent activity</span>
+                        </div>
                       )}
                     </div>
                   </div>

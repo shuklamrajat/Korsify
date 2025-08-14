@@ -18,6 +18,20 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
 import { User as UserIcon, Mail, Calendar, Award, BookOpen, Users, FileText, Camera } from "lucide-react";
 
+interface CreatorAnalytics {
+  totalCourses: number;
+  totalLearners: number;
+  totalLessons: number;
+  averageRating: number;
+  completionRate: number;
+  engagementRate: number;
+  recentActivity: Array<{
+    date: string;
+    enrollments: number;
+    completions: number;
+  }>;
+}
+
 const profileFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -61,8 +75,8 @@ export default function CreatorProfile() {
     },
   });
 
-  const { data: stats } = useQuery({
-    queryKey: ["/api/creator/stats"],
+  const { data: stats } = useQuery<CreatorAnalytics>({
+    queryKey: ["/api/creator/analytics"],
     enabled: !!user,
   });
 
@@ -114,7 +128,7 @@ export default function CreatorProfile() {
                   </div>
                   <div className="flex items-center text-sm">
                     <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                    <span>Joined {new Date(user.createdAt).toLocaleDateString()}</span>
+                    <span>Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <Award className="h-4 w-4 mr-2 text-gray-500" />
@@ -128,27 +142,27 @@ export default function CreatorProfile() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-primary">
-                        {stats?.coursesCreated || 0}
+                        {stats?.totalCourses || 0}
                       </div>
                       <div className="text-xs text-gray-500">Courses</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-primary">
-                        {stats?.totalStudents || 0}
+                        {stats?.totalLearners || 0}
                       </div>
                       <div className="text-xs text-gray-500">Students</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-primary">
-                        {stats?.documentsProcessed || 0}
+                        {stats?.totalLessons || 0}
                       </div>
-                      <div className="text-xs text-gray-500">Documents</div>
+                      <div className="text-xs text-gray-500">Lessons</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-primary">
-                        {stats?.quizzesCreated || 0}
+                        {Math.round(stats?.completionRate || 0)}%
                       </div>
-                      <div className="text-xs text-gray-500">Quizzes</div>
+                      <div className="text-xs text-gray-500">Completion</div>
                     </div>
                   </div>
                 </div>
@@ -274,15 +288,15 @@ export default function CreatorProfile() {
                           <div className="mt-3 space-y-2">
                             <div className="flex justify-between text-sm">
                               <span>Courses Created</span>
-                              <span className="font-semibold">{stats?.coursesCreated || 0}</span>
+                              <span className="font-semibold">{stats?.totalCourses || 0}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span>Total Students Taught</span>
-                              <span className="font-semibold">{stats?.totalStudents || 0}</span>
+                              <span className="font-semibold">{stats?.totalLearners || 0}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span>Average Course Rating</span>
-                              <span className="font-semibold">{stats?.averageRating || "N/A"}</span>
+                              <span className="font-semibold">{stats?.averageRating ? stats.averageRating.toFixed(1) : "N/A"}</span>
                             </div>
                           </div>
                         </div>

@@ -44,6 +44,8 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  bio: text("bio"),
+  expertise: text("expertise"),
   currentRole: varchar("current_role", { enum: ['creator', 'learner'] }),
   emailVerified: boolean("email_verified").default(false),
   // OAuth provider fields
