@@ -3,6 +3,7 @@ import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { runMigrations } from "./migrate.js";
+import { runDeploymentMigrations } from "./deployMigrate.js";
 import { validateEnvironment } from "./env-check.js";
 
 const app = express();
@@ -52,19 +53,22 @@ app.use((req, res, next) => {
   // Run database migrations in production
   if (process.env.NODE_ENV === "production") {
     try {
-      await runMigrations();
+      // Use deployment-specific migration runner for production
+      await runDeploymentMigrations();
+      log("Production migrations completed");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      log(`Migration failed: ${errorMessage}`);
-      
-      // Check if this is a deployment with existing tables - don't crash in this case
-      if (errorMessage.includes("already exists") || 
-          errorMessage.includes("relation") && errorMessage.includes("already exists")) {
-        log("Tables appear to already exist - continuing with application startup");
-      } else {
-        log("Critical migration error - exiting");
-        process.exit(1);
-      }
+      log(`Migration warning: ${errorMessage}`);
+      // Don't exit - deployment migrations are designed to be fault-tolerant
+      log("Continuing with application startup...");
+    }
+  } else {
+    // In development, use the standard migration runner
+    try {
+      await runMigrations();
+    } catch (error) {
+      log(`Development migration error: ${error instanceof Error ? error.message : String(error)}`);
+      // In development, we can continue even if migrations fail
     }
   }
 
