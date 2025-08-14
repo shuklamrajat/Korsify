@@ -3,6 +3,7 @@ import * as path from 'path';
 import { geminiService, type AIGenerationOptions } from './gemini';
 import { storage } from '../storage';
 import type { InsertCourse, InsertModule, InsertLesson, InsertQuiz, SourceReference } from '@shared/schema';
+import mammoth from 'mammoth';
 
 export interface ProcessingPhase {
   name: string;
@@ -371,96 +372,60 @@ export class DocumentProcessor {
 
   private async extractTextFromFile(filePath: string, fileType: string): Promise<string> {
     try {
-      // Read the actual file content
-      const fileContent = await fs.readFile(filePath, 'utf-8');
+      console.log(`Extracting text from file: ${filePath} (type: ${fileType})`);
       
       // For text-based files, return the content directly
       if (fileType === '.txt' || fileType === '.md') {
+        const fileContent = await fs.readFile(filePath, 'utf-8');
+        console.log(`Extracted ${fileContent.length} characters from text file`);
         return fileContent;
       }
       
-      // For other file types, return a sample document content about React document viewers
-      // This simulates what would be extracted from DOCX/PDF files
-      return `Several options exist for implementing a document viewer in a React application that supports various file types, including DOCX and PDF. The choice depends on factors like required features, cost, and whether documents are publicly accessible or require private handling.
-
-1. Using Third-Party Libraries/SDKs:
-
-@cyntler/react-doc-viewer:
-This library provides a component for viewing various document types. It leverages the official MS Office online document viewing service for Office files, meaning it primarily supports public file URLs. For PDFs, it can handle both public URLs and object URLs.
-
-Key Features:
-- Supports multiple document formats (DOCX, XLSX, PPTX, PDF, images)
-- Built-in navigation between multiple documents
-- Customizable styling
-- Loading states and error handling
-
-Implementation Example:
-The library can be installed via npm and integrated into React components with minimal configuration. Documents are passed as an array of objects containing URI and file type information.
-
-2. PDF-Specific Solutions:
-
-react-pdf:
-A popular library specifically for rendering PDF documents in React applications. It provides fine-grained control over PDF rendering and supports features like page navigation, zoom controls, and text selection.
-
-Key Features:
-- Page-by-page rendering
-- Custom page sizing and scaling
-- Text layer for selection and searching
-- Annotation support
-- Thumbnail generation
-
-3. Microsoft Office Online Viewer:
-For public documents, Microsoft's Office Online Viewer can be embedded using an iframe. This approach requires minimal implementation effort but only works with publicly accessible URLs.
-
-URL Format:
-Documents are viewed by constructing a URL with the Office Online Viewer endpoint and the document's public URL as a parameter.
-
-4. Google Docs Viewer:
-Similar to Microsoft's solution, Google provides a document viewer that can handle various formats through an iframe embed. It also requires publicly accessible documents.
-
-5. Custom Implementation Considerations:
-
-For private documents or enhanced security requirements:
-- Server-side document conversion to HTML or images
-- Implementing authentication tokens for document access
-- Using signed URLs with expiration times
-- Client-side rendering libraries with local file handling
-
-Performance Optimizations:
-- Lazy loading for multi-page documents
-- Caching converted documents
-- Progressive rendering for large files
-- Thumbnail previews for quick navigation
-
-Security Considerations:
-- Sanitizing document content to prevent XSS attacks
-- Implementing proper access controls
-- Avoiding direct file system access from the client
-- Using content security policies for embedded viewers
-
-6. Hybrid Approaches:
-
-Combining multiple solutions based on file type:
-- Use specialized PDF libraries for PDF files
-- Leverage Office Online Viewer for public Office documents
-- Implement custom handlers for private documents
-- Provide fallback options for unsupported formats
-
-Cost Considerations:
-- Open-source libraries (free but require more implementation)
-- Commercial solutions with support and advanced features
-- API-based services with usage-based pricing
-- Self-hosted vs. cloud-based solutions
-
-The optimal choice depends on specific requirements including supported file types, security needs, performance requirements, and budget constraints. Many applications benefit from a hybrid approach that uses different solutions for different document types and access scenarios.`;
+      // For DOCX files, use mammoth to extract text
+      if (fileType === '.docx' || fileType === '.doc') {
+        try {
+          const fileBuffer = await fs.readFile(filePath);
+          const result = await mammoth.extractRawText({ buffer: fileBuffer });
+          const text = result.value;
+          console.log(`Extracted ${text.length} characters from DOCX file`);
+          
+          if (!text || text.trim().length === 0) {
+            throw new Error('No text content found in DOCX file');
+          }
+          
+          return text;
+        } catch (error: any) {
+          console.error('Error parsing DOCX file:', error);
+          throw new Error(`Failed to parse DOCX file: ${error?.message || error}`);
+        }
+      }
+      
+      // For PDF files, use pdf-parse to extract text
+      if (fileType === '.pdf') {
+        try {
+          // Lazy load pdf-parse to avoid initialization errors
+          const pdf = (await import('pdf-parse')).default;
+          const fileBuffer = await fs.readFile(filePath);
+          const data = await pdf(fileBuffer);
+          const text = data.text;
+          console.log(`Extracted ${text.length} characters from PDF file (${data.numpages} pages)`);
+          
+          if (!text || text.trim().length === 0) {
+            throw new Error('No text content found in PDF file');
+          }
+          
+          return text;
+        } catch (error: any) {
+          console.error('Error parsing PDF file:', error);
+          throw new Error(`Failed to parse PDF file: ${error?.message || error}`);
+        }
+      }
+      
+      // If file type is not supported, throw an error
+      throw new Error(`Unsupported file type: ${fileType}. Supported types: .txt, .md, .docx, .doc, .pdf`);
     } catch (error) {
       console.error('Error reading file:', error);
-      // Return the detailed document viewer content as fallback
-      return `Several options exist for implementing a document viewer in a React application that supports various file types, including DOCX and PDF. The choice depends on factors like required features, cost, and whether documents are publicly accessible or require private handling.
-
-1. Using Third-Party Libraries/SDKs:
-@cyntler/react-doc-viewer:
-This library provides a component for viewing various document types. It leverages the official MS Office online document viewing service for Office files, meaning it primarily supports public file URLs. For PDFs, it can handle both public URLs and object URLs.`;
+      throw error;
     }
   }
 
