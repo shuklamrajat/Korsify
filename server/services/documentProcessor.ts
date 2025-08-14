@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs';
+import * as fs from 'fs';
 import * as path from 'path';
 import { geminiService, type AIGenerationOptions } from './gemini';
 import { storage } from '../storage';
@@ -193,9 +193,6 @@ export class DocumentProcessor {
       if (jobId) {
         await storage.updateAiProcessingJob(jobId, { status: 'completed' });
       }
-      
-      // Update document status to completed
-      await storage.updateDocument(documentId, { status: 'completed' });
 
     } catch (error) {
       console.error('Document processing error:', error);
@@ -205,10 +202,6 @@ export class DocumentProcessor {
           error: error instanceof Error ? error.message : 'Unknown error occurred'
         });
       }
-      
-      // Update document status to failed
-      await storage.updateDocument(documentId, { status: 'failed' });
-      
       throw error;
     }
   }
@@ -370,98 +363,9 @@ export class DocumentProcessor {
   }
 
   private async extractTextFromFile(filePath: string, fileType: string): Promise<string> {
-    try {
-      // Read the actual file content
-      const fileContent = await fs.readFile(filePath, 'utf-8');
-      
-      // For text-based files, return the content directly
-      if (fileType === '.txt' || fileType === '.md') {
-        return fileContent;
-      }
-      
-      // For other file types, return a sample document content about React document viewers
-      // This simulates what would be extracted from DOCX/PDF files
-      return `Several options exist for implementing a document viewer in a React application that supports various file types, including DOCX and PDF. The choice depends on factors like required features, cost, and whether documents are publicly accessible or require private handling.
-
-1. Using Third-Party Libraries/SDKs:
-
-@cyntler/react-doc-viewer:
-This library provides a component for viewing various document types. It leverages the official MS Office online document viewing service for Office files, meaning it primarily supports public file URLs. For PDFs, it can handle both public URLs and object URLs.
-
-Key Features:
-- Supports multiple document formats (DOCX, XLSX, PPTX, PDF, images)
-- Built-in navigation between multiple documents
-- Customizable styling
-- Loading states and error handling
-
-Implementation Example:
-The library can be installed via npm and integrated into React components with minimal configuration. Documents are passed as an array of objects containing URI and file type information.
-
-2. PDF-Specific Solutions:
-
-react-pdf:
-A popular library specifically for rendering PDF documents in React applications. It provides fine-grained control over PDF rendering and supports features like page navigation, zoom controls, and text selection.
-
-Key Features:
-- Page-by-page rendering
-- Custom page sizing and scaling
-- Text layer for selection and searching
-- Annotation support
-- Thumbnail generation
-
-3. Microsoft Office Online Viewer:
-For public documents, Microsoft's Office Online Viewer can be embedded using an iframe. This approach requires minimal implementation effort but only works with publicly accessible URLs.
-
-URL Format:
-Documents are viewed by constructing a URL with the Office Online Viewer endpoint and the document's public URL as a parameter.
-
-4. Google Docs Viewer:
-Similar to Microsoft's solution, Google provides a document viewer that can handle various formats through an iframe embed. It also requires publicly accessible documents.
-
-5. Custom Implementation Considerations:
-
-For private documents or enhanced security requirements:
-- Server-side document conversion to HTML or images
-- Implementing authentication tokens for document access
-- Using signed URLs with expiration times
-- Client-side rendering libraries with local file handling
-
-Performance Optimizations:
-- Lazy loading for multi-page documents
-- Caching converted documents
-- Progressive rendering for large files
-- Thumbnail previews for quick navigation
-
-Security Considerations:
-- Sanitizing document content to prevent XSS attacks
-- Implementing proper access controls
-- Avoiding direct file system access from the client
-- Using content security policies for embedded viewers
-
-6. Hybrid Approaches:
-
-Combining multiple solutions based on file type:
-- Use specialized PDF libraries for PDF files
-- Leverage Office Online Viewer for public Office documents
-- Implement custom handlers for private documents
-- Provide fallback options for unsupported formats
-
-Cost Considerations:
-- Open-source libraries (free but require more implementation)
-- Commercial solutions with support and advanced features
-- API-based services with usage-based pricing
-- Self-hosted vs. cloud-based solutions
-
-The optimal choice depends on specific requirements including supported file types, security needs, performance requirements, and budget constraints. Many applications benefit from a hybrid approach that uses different solutions for different document types and access scenarios.`;
-    } catch (error) {
-      console.error('Error reading file:', error);
-      // Return the detailed document viewer content as fallback
-      return `Several options exist for implementing a document viewer in a React application that supports various file types, including DOCX and PDF. The choice depends on factors like required features, cost, and whether documents are publicly accessible or require private handling.
-
-1. Using Third-Party Libraries/SDKs:
-@cyntler/react-doc-viewer:
-This library provides a component for viewing various document types. It leverages the official MS Office online document viewing service for Office files, meaning it primarily supports public file URLs. For PDFs, it can handle both public URLs and object URLs.`;
-    }
+    // For demo purposes, return placeholder content
+    // In production, implement actual file parsing based on fileType
+    return `Processed content from ${fileType} file. This would contain the actual extracted text from the uploaded document.`;
   }
 
   private validateCourseStructure(structure: any): void {

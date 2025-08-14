@@ -158,6 +158,7 @@ export class GeminiService {
        - Content Focus: ${contentFocus}
        - Difficulty Level: ${difficultyLevel}
        - Include "Key Takeaways" sections summarizing essential points
+       - Add "Further Reading" suggestions based on document references
        
     8. QUIZ GENERATION REQUIREMENTS:
        ${generateQuizzes ? `
