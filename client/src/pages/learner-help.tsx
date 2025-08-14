@@ -1,460 +1,281 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import Navigation from "@/components/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import type { User } from "@shared/schema";
-import { 
-  HelpCircle, 
-  BookOpen, 
-  MessageCircle, 
-  Video, 
-  FileText,
-  ChevronDown,
-  Search,
-  Send,
-  ExternalLink,
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  HelpCircle,
+  BookOpen,
+  MessageCircle,
   Mail,
-  Clock,
-  Lightbulb
+  Phone,
+  Search,
+  ExternalLink,
+  FileText,
+  Video,
+  Users,
+  Zap,
+  Shield,
+  CreditCard,
+  Settings,
+  ChevronRight
 } from "lucide-react";
 
-const faqs = [
-  {
-    question: "How do I enroll in a course?",
-    answer: "Browse available courses from the Learner Dashboard or search for specific topics. Click on any course card to view details, then click 'Enroll Now' to start learning."
-  },
-  {
-    question: "Can I learn at my own pace?",
-    answer: "Yes! All courses are self-paced. You can pause, resume, and revisit lessons anytime. Your progress is automatically saved."
-  },
-  {
-    question: "How do quizzes work?",
-    answer: "Quizzes appear at the end of modules to test your understanding. You can retake quizzes to improve your score. Practice mode allows unlimited attempts."
-  },
-  {
-    question: "Will I get a certificate?",
-    answer: "Yes! You'll receive a certificate of completion when you finish a course with a passing grade (typically 70% or higher)."
-  },
-  {
-    question: "Can I download course materials?",
-    answer: "Course materials can be viewed online anytime. Some courses offer downloadable resources which will be clearly marked."
-  },
-  {
-    question: "How do I track my progress?",
-    answer: "Your Learner Dashboard shows overall progress. Each course has a progress bar showing completed lessons and your current position."
-  }
-];
-
-const tutorials = [
-  {
-    title: "Getting Started as a Learner",
-    duration: "3 min",
-    type: "video",
-    description: "Navigate the platform and start your first course"
-  },
-  {
-    title: "Maximizing Your Learning",
-    duration: "5 min",
-    type: "article",
-    description: "Tips and strategies for effective online learning"
-  },
-  {
-    title: "Understanding Your Analytics",
-    duration: "4 min",
-    type: "video",
-    description: "Track progress and identify areas for improvement"
-  },
-  {
-    title: "Study Tools and Features",
-    duration: "6 min",
-    type: "article",
-    description: "Make the most of notes, bookmarks, and practice mode"
-  }
-];
-
 export default function LearnerHelp() {
-  const { data: user } = useQuery<User>({
-    queryKey: ["/api/user"],
-  });
-
   const [searchQuery, setSearchQuery] = useState("");
-  const [supportMessage, setSupportMessage] = useState("");
-  const [supportSubject, setSupportSubject] = useState("");
 
-  if (!user) return null;
+  const faqs = [
+    {
+      category: "Getting Started",
+      icon: BookOpen,
+      questions: [
+        {
+          question: "How do I enroll in a course?",
+          answer: "To enroll in a course, browse the available courses in the 'Browse Courses' section, click on a course you're interested in, and press the 'Enroll' button. You'll have immediate access to all course content."
+        },
+        {
+          question: "Can I access courses offline?",
+          answer: "Currently, courses require an internet connection to access. We're working on offline functionality for future updates. You can download course materials where available."
+        },
+        {
+          question: "How do I track my progress?",
+          answer: "Your progress is automatically tracked as you complete lessons. You can view your overall progress on the dashboard, and detailed progress for each course in your 'My Learning' section."
+        }
+      ]
+    },
+    {
+      category: "Learning Features",
+      icon: Zap,
+      questions: [
+        {
+          question: "What are learning streaks?",
+          answer: "Learning streaks count consecutive days you've studied. Maintain your streak by completing at least one lesson per day. Streaks help build consistent learning habits."
+        },
+        {
+          question: "How do achievements work?",
+          answer: "Achievements are earned by completing specific milestones like finishing courses, maintaining streaks, or scoring well on quizzes. View your achievements in your profile."
+        },
+        {
+          question: "Can I retake quizzes?",
+          answer: "Yes, you can retake quizzes as many times as you want to improve your score. Your highest score will be recorded."
+        }
+      ]
+    },
+    {
+      category: "Account & Settings",
+      icon: Settings,
+      questions: [
+        {
+          question: "How do I change my password?",
+          answer: "Go to Settings > Account > Change Password. Enter your current password and your new password twice to confirm the change."
+        },
+        {
+          question: "Can I change my email address?",
+          answer: "Email changes require verification. Contact support through the Help section to initiate an email change request."
+        },
+        {
+          question: "How do I delete my account?",
+          answer: "Account deletion is permanent. Contact our support team to request account deletion. Note that all your progress and certificates will be permanently removed."
+        }
+      ]
+    },
+    {
+      category: "Technical Issues",
+      icon: Shield,
+      questions: [
+        {
+          question: "Videos aren't playing properly",
+          answer: "Try refreshing the page, clearing your browser cache, or switching to a different browser. Ensure you have a stable internet connection. If issues persist, contact support."
+        },
+        {
+          question: "I can't log into my account",
+          answer: "First, try resetting your password using the 'Forgot Password' link. If you're still unable to access your account, contact support with your registered email address."
+        },
+        {
+          question: "Course content isn't loading",
+          answer: "Check your internet connection and try refreshing the page. If the problem continues, try clearing your browser cache or using a different browser."
+        }
+      ]
+    }
+  ];
 
-  const filteredFaqs = faqs.filter(faq =>
-    faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const resources = [
+    {
+      title: "Video Tutorials",
+      description: "Watch step-by-step guides on using the platform",
+      icon: Video,
+      link: "#"
+    },
+    {
+      title: "User Guide",
+      description: "Comprehensive documentation for all features",
+      icon: FileText,
+      link: "#"
+    },
+    {
+      title: "Community Forum",
+      description: "Connect with other learners and get help",
+      icon: Users,
+      link: "#"
+    },
+    {
+      title: "Blog",
+      description: "Tips, updates, and learning strategies",
+      icon: BookOpen,
+      link: "#"
+    }
+  ];
+
+  const contactMethods = [
+    {
+      title: "Email Support",
+      description: "Get help via email within 24-48 hours",
+      icon: Mail,
+      action: "support@korsify.com",
+      buttonText: "Send Email"
+    },
+    {
+      title: "Live Chat",
+      description: "Chat with our support team (Mon-Fri, 9am-5pm)",
+      icon: MessageCircle,
+      action: "Start chat",
+      buttonText: "Start Chat"
+    },
+    {
+      title: "Community Forum",
+      description: "Get help from the community",
+      icon: Users,
+      action: "Visit forum",
+      buttonText: "Visit Forum"
+    }
+  ];
+
+  const filteredFAQs = faqs.map(category => ({
+    ...category,
+    questions: category.questions.filter(
+      q => q.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           q.answer.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  })).filter(category => category.questions.length > 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Learner Help Center</h1>
-          <p className="text-gray-600 mt-2">Get help with your learning journey</p>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <HelpCircle className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">How can we help you?</h1>
+          <p className="text-gray-600">Find answers to common questions or contact our support team</p>
         </div>
 
-        {/* Quick Search */}
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search for help..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+        {/* Search Bar */}
+        <div className="max-w-2xl mx-auto mb-12">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search for help..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-3 text-lg"
+            />
+          </div>
+        </div>
+
+        {/* Quick Resources */}
+        <div className="mb-12">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Quick Resources</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {resources.map((resource, index) => (
+              <Card key={index} className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardContent className="p-6">
+                  <resource.icon className="w-8 h-8 text-blue-600 mb-3" />
+                  <h3 className="font-semibold text-gray-900 mb-1">{resource.title}</h3>
+                  <p className="text-sm text-gray-600 mb-3">{resource.description}</p>
+                  <Button variant="ghost" size="sm" className="p-0 h-auto">
+                    Learn more
+                    <ExternalLink className="w-3 h-3 ml-1" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* FAQs */}
+        <div className="mb-12">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Frequently Asked Questions</h2>
+          {filteredFAQs.length > 0 ? (
+            <div className="space-y-6">
+              {filteredFAQs.map((category, categoryIndex) => (
+                <Card key={categoryIndex}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <category.icon className="w-5 h-5 mr-2" />
+                      {category.category}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Accordion type="single" collapsible className="w-full">
+                      {category.questions.map((qa, qaIndex) => (
+                        <AccordionItem key={qaIndex} value={`item-${categoryIndex}-${qaIndex}`}>
+                          <AccordionTrigger className="text-left">
+                            {qa.question}
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <p className="text-gray-600">{qa.answer}</p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-
-        <Tabs defaultValue="faq" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="faq">FAQs</TabsTrigger>
-            <TabsTrigger value="guides">Study Guides</TabsTrigger>
-            <TabsTrigger value="resources">Resources</TabsTrigger>
-            <TabsTrigger value="support">Contact Support</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="faq" className="mt-6 space-y-4">
+          ) : (
             <Card>
-              <CardHeader>
-                <CardTitle>Frequently Asked Questions</CardTitle>
-                <CardDescription>
-                  Quick answers to common learner questions
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {filteredFaqs.map((faq, index) => (
-                  <Collapsible key={index}>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full text-left p-4 rounded-lg hover:bg-gray-50 transition-colors">
-                      <span className="font-medium">{faq.question}</span>
-                      <ChevronDown className="h-4 w-4 transition-transform duration-200" />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="px-4 pb-4 pt-2">
-                      <p className="text-gray-600">{faq.answer}</p>
-                    </CollapsibleContent>
-                  </Collapsible>
-                ))}
+              <CardContent className="p-12 text-center">
+                <HelpCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-600">No FAQs found matching your search.</p>
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
+        </div>
 
-          <TabsContent value="guides" className="mt-6 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Study Guides & Tutorials</CardTitle>
-                <CardDescription>
-                  Learn how to make the most of your learning experience
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {tutorials.map((tutorial, index) => (
-                    <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          {tutorial.type === 'video' ? (
-                            <Video className="h-4 w-4 text-primary" />
-                          ) : (
-                            <FileText className="h-4 w-4 text-primary" />
-                          )}
-                          <h3 className="font-medium">{tutorial.title}</h3>
-                        </div>
-                        <span className="text-xs text-gray-500">{tutorial.duration}</span>
-                      </div>
-                      <p className="text-sm text-gray-600">{tutorial.description}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+        {/* Contact Support */}
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Still need help?</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {contactMethods.map((method, index) => (
+              <Card key={index}>
+                <CardContent className="p-6">
+                  <method.icon className="w-8 h-8 text-blue-600 mb-4" />
+                  <h3 className="font-semibold text-gray-900 mb-2">{method.title}</h3>
+                  <p className="text-sm text-gray-600 mb-4">{method.description}</p>
+                  <Button className="w-full">
+                    {method.buttonText}
+                    <ChevronRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Learning Tips</CardTitle>
-                <CardDescription>
-                  Proven strategies for effective learning
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Lightbulb className="h-5 w-5 text-yellow-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium mb-1">Set Clear Goals</h4>
-                    <p className="text-sm text-gray-600">Define what you want to achieve and create a study schedule that works for you.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Lightbulb className="h-5 w-5 text-yellow-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium mb-1">Take Regular Breaks</h4>
-                    <p className="text-sm text-gray-600">Use the Pomodoro technique: 25 minutes of focused study followed by a 5-minute break.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Lightbulb className="h-5 w-5 text-yellow-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium mb-1">Practice Active Learning</h4>
-                    <p className="text-sm text-gray-600">Take notes, complete quizzes, and apply what you learn to real-world scenarios.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Lightbulb className="h-5 w-5 text-yellow-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium mb-1">Review Regularly</h4>
-                    <p className="text-sm text-gray-600">Revisit completed lessons to reinforce your understanding and improve retention.</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="resources" className="mt-6 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Learning Resources</CardTitle>
-                <CardDescription>
-                  Additional resources to support your learning
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="font-medium mb-3 flex items-center gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      Getting Started
-                    </h3>
-                    <div className="space-y-2">
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Platform Overview
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        How to Enroll in Courses
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Understanding Course Structure
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Taking Quizzes and Assessments
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-medium mb-3 flex items-center gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      Study Tools
-                    </h3>
-                    <div className="space-y-2">
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Using the Note-Taking Feature
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Bookmarking Important Content
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Practice Mode for Quizzes
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Tracking Your Progress
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-medium mb-3 flex items-center gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      Certificates & Achievements
-                    </h3>
-                    <div className="space-y-2">
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Earning Certificates
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Sharing Your Achievements
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Building Your Learning Portfolio
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Verifying Certificates
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-medium mb-3 flex items-center gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      Troubleshooting
-                    </h3>
-                    <div className="space-y-2">
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Video Playback Issues
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Quiz Not Loading
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Progress Not Saving
-                      </Button>
-                      <Button variant="link" className="p-0 h-auto justify-start">
-                        Mobile App Help
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Links</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-between">
-                  <span>Download Study Planner Template</span>
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" className="w-full justify-between">
-                  <span>Join Study Groups</span>
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" className="w-full justify-between">
-                  <span>Learning Best Practices Guide</span>
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="support" className="mt-6 space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Contact Support</CardTitle>
-                    <CardDescription>
-                      Need help? Send us a message
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="subject">Subject</Label>
-                      <Input
-                        id="subject"
-                        placeholder="Brief description of your issue"
-                        value={supportSubject}
-                        onChange={(e) => setSupportSubject(e.target.value)}
-                        className="mt-2"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="message">Message</Label>
-                      <Textarea
-                        id="message"
-                        placeholder="Describe your issue in detail..."
-                        rows={6}
-                        value={supportMessage}
-                        onChange={(e) => setSupportMessage(e.target.value)}
-                        className="mt-2"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="category">Category</Label>
-                      <select 
-                        id="category"
-                        className="w-full mt-2 p-2 border rounded-md"
-                      >
-                        <option>Course Access Issue</option>
-                        <option>Technical Problem</option>
-                        <option>Certificate Question</option>
-                        <option>Account Help</option>
-                        <option>Billing Question</option>
-                        <option>Other</option>
-                      </select>
-                    </div>
-
-                    <Button className="w-full">
-                      <Send className="h-4 w-4 mr-2" />
-                      Send Message
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Other Ways to Get Help</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <Mail className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="font-medium text-sm">Email</p>
-                        <p className="text-sm text-gray-600">learner@korsify.com</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <MessageCircle className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="font-medium text-sm">Live Chat</p>
-                        <p className="text-sm text-gray-600">Available 9am-5pm EST</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="font-medium text-sm">Response Time</p>
-                        <p className="text-sm text-gray-600">Usually within 24 hours</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Community</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Button variant="outline" className="w-full justify-start">
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      Join Study Groups
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      <BookOpen className="h-4 w-4 mr-2" />
-                      Learning Blog
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      <Video className="h-4 w-4 mr-2" />
-                      Video Tutorials
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+        {/* Additional Help Text */}
+        <div className="mt-12 p-6 bg-blue-50 rounded-lg text-center">
+          <h3 className="font-semibold text-gray-900 mb-2">Can't find what you're looking for?</h3>
+          <p className="text-gray-600 mb-4">
+            Our support team is here to help. Don't hesitate to reach out with any questions or concerns.
+          </p>
+          <Button>
+            <Mail className="w-4 h-4 mr-2" />
+            Contact Support
+          </Button>
+        </div>
       </div>
     </div>
   );

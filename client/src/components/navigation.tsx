@@ -25,12 +25,14 @@ import {
   GraduationCap, 
   Menu, 
   User as UserIcon, 
+  Settings, 
   LogOut, 
   BookOpen, 
   PlusCircle, 
   BarChart3,
   Search,
   Bell,
+  HelpCircle,
   School
 } from "lucide-react";
 
@@ -219,6 +221,14 @@ export default function Navigation() {
                     <DropdownMenuItem onClick={() => setLocation(user.currentRole === 'creator' ? '/creator/profile' : '/learner/profile')}>
                       <UserIcon className="mr-2 h-4 w-4" />
                       <span>Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLocation(user.currentRole === 'creator' ? '/creator/settings' : '/learner/settings')}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLocation(user.currentRole === 'creator' ? '/creator/help' : '/learner/help')}>
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      <span>Help</span>
                     </DropdownMenuItem>
                     
                     <DropdownMenuSeparator />
