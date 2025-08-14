@@ -91,6 +91,14 @@ export class GeminiService {
     const systemPrompt = `
     You are an advanced educational content generator focused on creating comprehensive online courses from source documents.
 
+    CRITICAL UNIQUENESS REQUIREMENTS:
+    - EVERY module must have a UNIQUE, distinct title and focus
+    - EVERY lesson must have a UNIQUE title and cover different aspects
+    - NO duplicate content, titles, or themes across modules or lessons
+    - Each module must address a DIFFERENT aspect of the subject matter
+    - Each lesson within a module must cover DISTINCT subtopics
+    - Ensure progressive learning without repetition
+
     CONTENT GENERATION APPROACH:
     
     Transform the provided document into a structured online course by:
@@ -323,7 +331,16 @@ export class GeminiService {
 
   async generateQuizQuestions(content: string, count: number = 5): Promise<any[]> {
     const prompt = `
-    Based on the following content, generate ${count} quiz questions with these specifications:
+    Based on the following content, generate ${count} UNIQUE quiz questions with these specifications:
+    
+    UNIQUENESS REQUIREMENTS:
+    - EVERY question must be completely different and unique
+    - NO duplicate or similar questions
+    - Each question must test a DIFFERENT concept or aspect
+    - Avoid rephrasing the same question in different ways
+    - Ensure variety in topics covered across all questions
+    
+    QUESTION SPECIFICATIONS:
     - Mix of multiple choice and true/false questions
     - Test understanding, not just memorization
     - Include plausible distractors for multiple choice

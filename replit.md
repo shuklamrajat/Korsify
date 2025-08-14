@@ -6,7 +6,7 @@ Korsify is an AI-powered educational platform designed to transform documents in
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (Updated: 2025-08-14 02:32 AM)
+## Recent Changes (Updated: 2025-08-14 12:48 PM)
 - **Database Migration System**: Added automatic migration system for production deployments
 - **Environment Validation**: Added comprehensive environment variable validation on startup
 - **Health Check Endpoint**: Added /api/health endpoint for deployment verification
@@ -19,6 +19,13 @@ Preferred communication style: Simple, everyday language.
   - Transaction-based migration execution with rollback support
   - Smart error detection to distinguish between critical errors and benign existence conflicts
   - Connection testing and retry logic for production deployments
+- **Content Deduplication System**: Implemented comprehensive deduplication to prevent duplicate content generation:
+  - Added explicit AI prompt instructions to ensure unique modules, lessons, and quiz questions
+  - Created deduplication utility with Levenshtein distance-based similarity detection
+  - Implemented validation and cleaning of generated course structures before saving
+  - Added title uniqueness checks for modules, lessons, and quiz questions
+  - Automatic renaming of duplicate content with counter suffixes when needed
+  - Configurable similarity thresholds (85-90%) for duplicate detection
 
 ## System Architecture
 
