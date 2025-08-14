@@ -79,9 +79,7 @@ export default function CourseEditor() {
   const [showPreview, setShowPreview] = useState(false);
   const [showDocumentSelector, setShowDocumentSelector] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
-  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
-  const [activeSourceReference, setActiveSourceReference] = useState<string | null>(null);
-
+  const [showSourcePanel, setShowSourcePanel] = useState(false);
   const [showModuleEditor, setShowModuleEditor] = useState(false);
   const [showLessonEditor, setShowLessonEditor] = useState(false);
   const [showQuizEditor, setShowQuizEditor] = useState(false);
@@ -90,7 +88,7 @@ export default function CourseEditor() {
   const [editingQuiz, setEditingQuiz] = useState(null);
   const [selectedModuleId, setSelectedModuleId] = useState("");
   const [selectedLessonId, setSelectedLessonId] = useState<string | undefined>(undefined);
-
+  const [activeSourceReference, setActiveSourceReference] = useState<string | null>(null);
   const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
   const [moduleQuizzes, setModuleQuizzes] = useState<Record<string, any[]>>({});
   
@@ -680,41 +678,23 @@ export default function CourseEditor() {
 
           {/* Content Tab */}
           <TabsContent value="content" className="space-y-6">
-            <div className="flex gap-4">
-              {/* Document Viewer Panel - Slides in from left */}
-              {showDocumentViewer && (
-                <div className="w-96 flex-shrink-0 animate-in slide-in-from-left duration-300">
-                  <Card className="h-[calc(100vh-250px)] overflow-hidden">
-                    <CardHeader className="flex flex-row items-center justify-between p-4">
-                      <h3 className="font-semibold">Document Viewer</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowDocumentViewer(false);
-                          setActiveSourceReference(null);
-                        }}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <SourceViewer
-                        sourceReferences={course?.modules?.flatMap(m => 
-                          m.lessons?.flatMap(l => l.sourceReferences || []) || []
-                        ) || []}
-                        documents={courseDocuments.map(doc => ({
-                          id: doc.id,
-                          fileName: doc.fileName,
-                          processedContent: doc.processedContent || undefined
-                        }))}
-                        selectedCitationId={activeSourceReference || undefined}
-                        onClose={() => {
-                          setShowDocumentViewer(false);
-                          setActiveSourceReference(null);
-                        }}
-                      />
-                    </CardContent>
+            <div className="flex gap-6">
+              {/* Source Panel - Left Side */}
+              {showSourcePanel && (
+                <div className="w-96 flex-shrink-0">
+                  <Card className="h-[calc(100vh-300px)] overflow-hidden">
+                    <SourceViewer
+                      sourceReferences={course?.modules?.flatMap(m => 
+                        m.lessons?.flatMap(l => l.sourceReferences || []) || []
+                      ) || []}
+                      documents={courseDocuments.map(doc => ({
+                        id: doc.id,
+                        fileName: doc.fileName,
+                        processedContent: doc.processedContent || undefined
+                      }))}
+                      selectedCitationId={activeSourceReference || undefined}
+                      onClose={() => setShowSourcePanel(false)}
+                    />
                   </Card>
                 </div>
               )}
@@ -870,10 +850,10 @@ export default function CourseEditor() {
                                         <Button 
                                           variant="outline" 
                                           size="sm"
-                                          onClick={() => setShowDocumentViewer(!showDocumentViewer)}
+                                          onClick={() => setShowSourcePanel(!showSourcePanel)}
                                         >
                                           <FileText className="w-3 h-3 mr-1" />
-                                          {showDocumentViewer ? 'Hide' : 'Show'} Sources
+                                          {showSourcePanel ? 'Hide' : 'Show'} Sources
                                         </Button>
                                       </div>
                                       {lesson.content ? (
@@ -884,7 +864,7 @@ export default function CourseEditor() {
                                           sourceReferences={lesson.sourceReferences || []}
                                           onCitationClick={(citationId) => {
                                             setActiveSourceReference(citationId);
-                                            setShowDocumentViewer(true);
+                                            setShowSourcePanel(true);
                                           }}
                                         />
                                       ) : (
@@ -1344,7 +1324,21 @@ export default function CourseEditor() {
           </DialogContent>
         </Dialog>
 
-
+        {/* Source Viewer Dialog */}
+        <Dialog open={showSourcePanel} onOpenChange={setShowSourcePanel}>
+          <DialogContent className="max-w-6xl w-full h-[80vh] p-0">
+            <SourceViewer
+              documents={courseDocuments.map(doc => ({
+                id: doc.id,
+                fileName: doc.fileName,
+                processedContent: doc.processedContent || undefined
+              }))}
+              sourceReferences={[]}
+              selectedCitationId={activeSourceReference || undefined}
+              onClose={() => setShowSourcePanel(false)}
+            />
+          </DialogContent>
+        </Dialog>
 
         {/* Module Editor Dialog */}
         {showModuleEditor && (

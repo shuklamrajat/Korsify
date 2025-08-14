@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { DocumentViewer } from "@/components/document-viewer";
 import type { SourceReference } from "@shared/schema";
 
 interface SourceViewerProps {
@@ -37,9 +36,7 @@ export function SourceViewer({
   const [selectedReference, setSelectedReference] = useState<SourceReference | null>(null);
   const [expandedDocuments, setExpandedDocuments] = useState<Set<string>>(new Set());
   const [expandedContent, setExpandedContent] = useState<string | null>(null);
-  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
   const contentRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
-  const documentScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (selectedCitationId) {
@@ -48,7 +45,6 @@ export function SourceViewer({
         setSelectedReference(ref);
         setExpandedDocuments(new Set([ref.documentId]));
         setExpandedContent(ref.documentId);
-        setActiveDocumentId(ref.documentId);
         
         // Scroll to the reference after a short delay to ensure rendering
         setTimeout(() => {
@@ -64,13 +60,6 @@ export function SourceViewer({
       }
     }
   }, [selectedCitationId, sourceReferences]);
-
-  // Function to strip HTML tags from text
-  const stripHtmlTags = (html: string): string => {
-    const tmp = document.createElement("DIV");
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || "";
-  };
 
   // Group references by document
   const referencesByDocument = sourceReferences.reduce((acc, ref) => {
@@ -137,24 +126,8 @@ export function SourceViewer({
       <div className="p-4 bg-white border-b">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {activeDocumentId && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setActiveDocumentId(null);
-                  setExpandedContent(null);
-                }}
-                className="h-8 px-2"
-              >
-                <ChevronRight className="h-4 w-4 rotate-180 mr-1" />
-                Back
-              </Button>
-            )}
             <FileSearch className="w-5 h-5 text-gray-600" />
-            <h3 className="font-semibold text-gray-900">
-              {activeDocumentId ? 'Document Viewer' : 'Source References'}
-            </h3>
+            <h3 className="font-semibold text-gray-900">Source References</h3>
             {sourceReferences.length > 0 && (
               <Badge variant="secondary">{sourceReferences.length} citations</Badge>
             )}
@@ -173,25 +146,15 @@ export function SourceViewer({
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex flex-col">
+      <ScrollArea className="flex-1">
         {sourceReferences.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <FileSearch className="w-12 h-12 mx-auto mb-3 text-gray-300" />
             <p className="text-sm">No source references available</p>
             <p className="text-xs mt-1">Citations will appear here when content is generated from documents</p>
           </div>
-        ) : activeDocumentId ? (
-          // Show document viewer when a document is selected
-          <DocumentViewer
-            document={getDocumentById(activeDocumentId) || { id: activeDocumentId, fileName: 'Unknown Document' }}
-            sourceReferences={referencesByDocument[activeDocumentId] || []}
-            selectedReferenceId={selectedReference?.id}
-            onReferenceClick={(ref) => {
-              setSelectedReference(ref);
-            }}
-          />
         ) : (
-          <Tabs defaultValue="by-document" className="w-full h-full flex flex-col">
+          <Tabs defaultValue="by-document" className="w-full">
             <div className="px-4 pt-2">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="by-document">By Document</TabsTrigger>
@@ -283,8 +246,14 @@ export function SourceViewer({
                               key={ref.id}
                               onClick={() => {
                                 setSelectedReference(ref);
-                                setActiveDocumentId(docId);
                                 setExpandedContent(docId);
+                                // Scroll to citation in document
+                                setTimeout(() => {
+                                  const element = contentRefs.current[ref.id];
+                                  if (element) {
+                                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  }
+                                }, 100);
                               }}
                               className={`p-3 rounded-lg border cursor-pointer transition-all ${
                                 selectedReference?.id === ref.id
@@ -297,7 +266,7 @@ export function SourceViewer({
                                 <div className="flex-1">
                                   <p className="text-sm text-gray-700 line-clamp-3">
                                     <Quote className="w-3 h-3 inline mr-1 text-gray-400" />
-                                    {stripHtmlTags(ref.text)}
+                                    {ref.text}
                                   </p>
                                   {ref.pageNumber && (
                                     <p className="text-xs text-gray-500 mt-1">
@@ -323,10 +292,7 @@ export function SourceViewer({
                 return (
                   <Card
                     key={ref.id}
-                    onClick={() => {
-                      setSelectedReference(ref);
-                      setActiveDocumentId(ref.documentId);
-                    }}
+                    onClick={() => setSelectedReference(ref)}
                     className={`p-3 cursor-pointer transition-all ${
                       selectedReference?.id === ref.id
                         ? 'bg-blue-50 border-blue-300'
@@ -349,7 +315,7 @@ export function SourceViewer({
                         </div>
                         <p className="text-sm text-gray-700">
                           <Quote className="w-3 h-3 inline mr-1 text-gray-400" />
-                          {stripHtmlTags(ref.text)}
+                          {ref.text}
                         </p>
                         {ref.context && (
                           <p className="text-xs text-gray-500 mt-2 pl-4 border-l-2 border-gray-200">
@@ -364,7 +330,7 @@ export function SourceViewer({
             </TabsContent>
           </Tabs>
         )}
-      </div>
+      </ScrollArea>
 
       {/* Selected Reference Detail */}
       {selectedReference && (
@@ -382,7 +348,7 @@ export function SourceViewer({
               </Button>
             </div>
             <Card className="p-3 bg-blue-50 border-blue-200">
-              <p className="text-sm text-gray-700">{stripHtmlTags(selectedReference.text)}</p>
+              <p className="text-sm text-gray-700">{selectedReference.text}</p>
               <div className="flex items-center gap-2 mt-2">
                 <FileText className="w-3 h-3 text-blue-600" />
                 <span className="text-xs text-gray-600">

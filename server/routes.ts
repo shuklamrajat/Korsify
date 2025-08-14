@@ -2,7 +2,6 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
-import fs from "fs";
 import { storage } from "./storage";
 import { documentProcessor } from "./services/documentProcessor";
 import { templateGenerator } from "./services/templateGenerator";
@@ -193,48 +192,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching documents:", error);
       res.status(500).json({ message: "Failed to fetch documents" });
-    }
-  });
-
-  // Serve actual document files
-  app.get('/api/documents/:id/file', async (req: any, res) => {
-    try {
-      const document = await storage.getDocument(req.params.id);
-      if (!document || document.uploadedBy !== req.user.id) {
-        return res.status(404).json({ message: 'Document not found' });
-      }
-
-      const filePath = path.join(process.cwd(), 'uploads', document.storageUrl);
-      
-      // Check if file exists
-      const fileExists = await fs.promises.access(filePath, fs.constants.F_OK)
-        .then(() => true)
-        .catch(() => false);
-        
-      if (!fileExists) {
-        return res.status(404).json({ message: 'File not found' });
-      }
-
-      // Set appropriate content type based on file extension
-      const ext = path.extname(document.fileName).toLowerCase();
-      const contentTypes: Record<string, string> = {
-        '.pdf': 'application/pdf',
-        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        '.doc': 'application/msword',
-        '.txt': 'text/plain',
-        '.md': 'text/markdown'
-      };
-
-      const contentType = contentTypes[ext] || 'application/octet-stream';
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', `inline; filename="${document.fileName}"`);
-      
-      // Stream the file
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
-    } catch (error) {
-      console.error('Error serving document file:', error);
-      res.status(500).json({ message: 'Failed to serve document file' });
     }
   });
 
