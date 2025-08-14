@@ -374,15 +374,20 @@ export class DocumentProcessor {
     try {
       console.log(`Extracting text from file: ${filePath} (type: ${fileType})`);
       
+      // Normalize file type - handle both MIME types and file extensions
+      const normalizedType = fileType.toLowerCase();
+      
       // For text-based files, return the content directly
-      if (fileType === '.txt' || fileType === '.md') {
+      if (normalizedType === '.txt' || normalizedType === 'text/plain' || 
+          normalizedType === '.md' || normalizedType === 'text/markdown') {
         const fileContent = await fs.readFile(filePath, 'utf-8');
         console.log(`Extracted ${fileContent.length} characters from text file`);
         return fileContent;
       }
       
       // For DOCX files, use mammoth to extract text
-      if (fileType === '.docx' || fileType === '.doc') {
+      if (normalizedType === '.docx' || normalizedType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+          normalizedType === '.doc' || normalizedType === 'application/msword') {
         try {
           const fileBuffer = await fs.readFile(filePath);
           const result = await mammoth.extractRawText({ buffer: fileBuffer });
@@ -401,7 +406,7 @@ export class DocumentProcessor {
       }
       
       // For PDF files, use pdf-parse to extract text
-      if (fileType === '.pdf') {
+      if (normalizedType === '.pdf' || normalizedType === 'application/pdf') {
         try {
           // Lazy load pdf-parse to avoid initialization errors
           const pdf = (await import('pdf-parse')).default;
@@ -422,7 +427,7 @@ export class DocumentProcessor {
       }
       
       // If file type is not supported, throw an error
-      throw new Error(`Unsupported file type: ${fileType}. Supported types: .txt, .md, .docx, .doc, .pdf`);
+      throw new Error(`Unsupported file type: ${fileType}. Supported MIME types: application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/plain, text/markdown`);
     } catch (error) {
       console.error('Error reading file:', error);
       throw error;
