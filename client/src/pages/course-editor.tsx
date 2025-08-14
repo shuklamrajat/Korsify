@@ -1044,7 +1044,7 @@ export default function CourseEditor() {
                               Processing
                             </Badge>
                           )}
-                          {(doc.status === 'completed' || doc.status === 'processed') && (
+                          {doc.status === 'completed' && (
                             <Badge variant="default" className="bg-green-100 text-green-700">
                               <CheckCircle className="w-3 h-3 mr-1" />
                               Processed
