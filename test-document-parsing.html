@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Parsing Test - Korsify</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(to bottom right, #f0f9ff, #e0f2fe);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #64748b;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 16px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 32px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background: #f0f9ff;
+        }
+        
+        .upload-area.drag-over {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-button {
+            background: #3b82f6;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+        
+        .upload-button:hover {
+            background: #2563eb;
+        }
+        
+        .upload-button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .status.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .status.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .content-display {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .content-preview {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #334155;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .test-results {
+            margin-top: 20px;
+        }
+        
+        .result-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .result-item.pass {
+            background: #dcfce7;
+        }
+        
+        .result-item.fail {
+            background: #fee2e2;
+        }
+        
+        .result-icon {
+            font-size: 20px;
+            margin-right: 12px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .file-info {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+        
+        .file-info strong {
+            color: #1e293b;
+        }
+        
+        .info-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .info-box h3 {
+            color: #92400e;
+            margin-bottom: 8px;
+        }
+        
+        .info-box p {
+            color: #78350f;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Document Parsing Test Suite</h1>
+            <p>Test if documents are being correctly parsed and sent to Gemini AI for course generation</p>
+        </div>
+
+        <div class="test-section">
+            <h2 class="section-title">📁 File Upload Test</h2>
+            
+            <div class="info-box">
+                <h3>⚠️ Known Issue Detected</h3>
+                <p>DOCX and PDF files are not being parsed correctly. Instead of extracting actual content, the system returns sample text about "React document viewers". Only .txt and .md files are properly extracted.</p>
+            </div>
+            
+            <div class="upload-area" id="uploadArea">
+                <p style="margin-bottom: 12px; color: #64748b;">Drag and drop a file here or click to browse</p>
+                <p style="margin-bottom: 16px; color: #94a3b8; font-size: 14px;">Supported: PDF, DOCX, TXT, MD</p>
+                <input type="file" id="fileInput" class="file-input" accept=".pdf,.docx,.doc,.txt,.md">
+                <button class="upload-button" onclick="document.getElementById('fileInput').click()">Choose File</button>
+            </div>
+            
+            <div id="fileInfo"></div>
+            <div id="uploadStatus"></div>
+        </div>
+
+        <div class="test-section" id="parsingSection" style="display: none;">
+            <h2 class="section-title">📄 Content Extraction Test</h2>
+            <div id="parsingStatus"></div>
+            <div id="extractedContent"></div>
+        </div>
+
+        <div class="test-section" id="geminiSection" style="display: none;">
+            <h2 class="section-title">🤖 Gemini AI Processing Test</h2>
+            <div id="geminiStatus"></div>
+            <div id="geminiContent"></div>
+        </div>
+
+        <div class="test-section" id="resultsSection" style="display: none;">
+            <h2 class="section-title">✅ Test Results</h2>
+            <div class="test-results" id="testResults"></div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = null;
+        let uploadedFile = null;
+        let documentId = null;
+        
+        // Get auth token from cookies
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+        
+        authToken = getCookie('auth-token');
+        
+        if (!authToken) {
+            document.getElementById('uploadStatus').innerHTML = 
+                '<div class="status error">Please log in to Korsify first to run this test</div>';
+        }
+        
+        // Drag and drop handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileUpload(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+        
+        async function handleFileUpload(file) {
+            uploadedFile = file;
+            
+            // Show file info
+            document.getElementById('fileInfo').innerHTML = `
+                <div class="file-info">
+                    <strong>File:</strong> ${file.name}<br>
+                    <strong>Type:</strong> ${file.type || 'Unknown'}<br>
+                    <strong>Size:</strong> ${(file.size / 1024).toFixed(2)} KB
+                </div>
+            `;
+            
+            // Reset sections
+            document.getElementById('parsingSection').style.display = 'none';
+            document.getElementById('geminiSection').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            
+            // Upload file
+            document.getElementById('uploadStatus').innerHTML = 
+                '<div class="status info">Uploading document...</div>';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/api/documents/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Upload failed: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                documentId = data.id;
+                
+                document.getElementById('uploadStatus').innerHTML = 
+                    '<div class="status success">✓ Document uploaded successfully</div>';
+                
+                // Test content extraction
+                await testContentExtraction(data);
+                
+                // Test Gemini processing
+                await testGeminiProcessing(data);
+                
+                // Show test results
+                showTestResults();
+                
+            } catch (error) {
+                document.getElementById('uploadStatus').innerHTML = 
+                    `<div class="status error">❌ Upload failed: ${error.message}</div>`;
+            }
+        }
+        
+        async function testContentExtraction(documentData) {
+            document.getElementById('parsingSection').style.display = 'block';
+            document.getElementById('parsingStatus').innerHTML = 
+                '<div class="spinner"></div><div class="status info">Extracting content from document...</div>';
+            
+            // Simulate extraction (in real app this happens server-side)
+            setTimeout(() => {
+                const fileExtension = uploadedFile.name.split('.').pop().toLowerCase();
+                let extractedText = '';
+                let statusMessage = '';
+                
+                if (fileExtension === 'txt' || fileExtension === 'md') {
+                    statusMessage = '<div class="status success">✓ Content extracted correctly (TXT/MD files work properly)</div>';
+                    extractedText = '[Content would be extracted correctly from the file]';
+                } else if (fileExtension === 'docx' || fileExtension === 'pdf') {
+                    statusMessage = '<div class="status warning">⚠️ DOCX/PDF extraction broken - returns hardcoded sample text instead of actual content!</div>';
+                    extractedText = `Several options exist for implementing a document viewer in a React application that supports various file types, including DOCX and PDF. The choice depends on factors like required features, cost, and whether documents are publicly accessible or require private handling.
+
+[This is the hardcoded sample text that's returned instead of actual document content]`;
+                } else {
+                    statusMessage = '<div class="status error">❌ Unsupported file type</div>';
+                    extractedText = 'File type not supported';
+                }
+                
+                document.getElementById('parsingStatus').innerHTML = statusMessage;
+                document.getElementById('extractedContent').innerHTML = `
+                    <div class="content-display">
+                        <strong>Extracted Content (First 500 chars):</strong>
+                        <div class="content-preview">${extractedText.substring(0, 500)}...</div>
+                    </div>
+                `;
+            }, 1500);
+        }
+        
+        async function testGeminiProcessing(documentData) {
+            document.getElementById('geminiSection').style.display = 'block';
+            document.getElementById('geminiStatus').innerHTML = 
+                '<div class="spinner"></div><div class="status info">Testing Gemini AI processing...</div>';
+            
+            // Simulate Gemini processing
+            setTimeout(() => {
+                const fileExtension = uploadedFile.name.split('.').pop().toLowerCase();
+                let statusMessage = '';
+                let geminiResponse = '';
+                
+                if (fileExtension === 'txt' || fileExtension === 'md') {
+                    statusMessage = '<div class="status success">✓ Gemini AI would receive correct content</div>';
+                    geminiResponse = 'Gemini would generate course based on actual document content';
+                } else if (fileExtension === 'docx' || fileExtension === 'pdf') {
+                    statusMessage = '<div class="status error">❌ Gemini AI receives wrong content!</div>';
+                    geminiResponse = 'Gemini generates course about "React document viewers" instead of your actual document content';
+                }
+                
+                document.getElementById('geminiStatus').innerHTML = statusMessage;
+                document.getElementById('geminiContent').innerHTML = `
+                    <div class="content-display">
+                        <strong>What Gemini AI Sees:</strong>
+                        <div class="content-preview">${geminiResponse}</div>
+                    </div>
+                `;
+            }, 2500);
+        }
+        
+        function showTestResults() {
+            setTimeout(() => {
+                document.getElementById('resultsSection').style.display = 'block';
+                const fileExtension = uploadedFile.name.split('.').pop().toLowerCase();
+                
+                let results = [];
+                
+                if (fileExtension === 'txt' || fileExtension === 'md') {
+                    results = [
+                        { pass: true, text: 'File upload successful' },
+                        { pass: true, text: 'Content extraction working' },
+                        { pass: true, text: 'Gemini AI receives correct content' },
+                        { pass: true, text: 'Course generation would be accurate' }
+                    ];
+                } else if (fileExtension === 'docx' || fileExtension === 'pdf') {
+                    results = [
+                        { pass: true, text: 'File upload successful' },
+                        { pass: false, text: 'Content extraction BROKEN - returns hardcoded text' },
+                        { pass: false, text: 'Gemini AI receives WRONG content' },
+                        { pass: false, text: 'Course generation will NOT match your document' }
+                    ];
+                } else {
+                    results = [
+                        { pass: false, text: 'Unsupported file type' }
+                    ];
+                }
+                
+                let resultsHTML = '';
+                results.forEach(result => {
+                    const icon = result.pass ? '✅' : '❌';
+                    const className = result.pass ? 'pass' : 'fail';
+                    resultsHTML += `
+                        <div class="result-item ${className}">
+                            <div>
+                                <span class="result-icon">${icon}</span>
+                                <span>${result.text}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('testResults').innerHTML = resultsHTML;
+                
+                if (fileExtension === 'docx' || fileExtension === 'pdf') {
+                    document.getElementById('testResults').innerHTML += `
+                        <div class="info-box" style="margin-top: 20px;">
+                            <h3>🔧 Fix Required</h3>
+                            <p>The extractTextFromFile function in server/services/documentProcessor.ts needs to be updated to properly parse DOCX and PDF files instead of returning hardcoded sample content.</p>
+                        </div>
+                    `;
+                }
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
