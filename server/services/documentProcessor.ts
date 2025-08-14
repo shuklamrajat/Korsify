@@ -40,8 +40,25 @@ export class DocumentProcessor {
       let documentContent = document.processedContent;
       if (!documentContent) {
         // Extract content from file if not already processed
+        console.log('📄 Extracting content from file:', {
+          fileName: document.fileName,
+          fileType: document.fileType,
+          storageUrl: document.storageUrl,
+          fileSize: document.fileSize
+        });
+        
         documentContent = await this.extractTextFromFile(document.storageUrl, document.fileType);
+        
+        console.log('✅ Content extracted:', {
+          fileName: document.fileName,
+          contentLength: documentContent.length,
+          firstChars: documentContent.substring(0, 200) + '...',
+          hasContent: documentContent.length > 0
+        });
+        
         await storage.updateDocumentContent(documentId, documentContent);
+      } else {
+        console.log('📌 Using cached content for:', document.fileName, 'Length:', documentContent.length);
       }
 
       if (jobId) {
@@ -447,11 +464,23 @@ export class DocumentProcessor {
 
   private async extractTextFromFile(filePath: string, fileType: string): Promise<string> {
     try {
+      console.log('🔍 Attempting to extract text from file:', {
+        filePath,
+        fileType,
+        fileExists: await fs.access(filePath).then(() => true).catch(() => false)
+      });
+      
       // Read the actual file content
       const fileContent = await fs.readFile(filePath, 'utf-8');
       
+      console.log('📖 File read successfully:', {
+        contentLength: fileContent.length,
+        firstChars: fileContent.substring(0, 100) + '...'
+      });
+      
       // For text-based files, return the content directly
       if (fileType === '.txt' || fileType === '.md') {
+        console.log('✅ Returning text content for', fileType, 'file');
         return fileContent;
       }
       
