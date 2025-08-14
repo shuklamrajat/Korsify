@@ -75,14 +75,6 @@ export class GeminiService {
     fileName: string,
     options: AIGenerationOptions = {}
   ): Promise<CourseStructure> {
-    console.log('🚀 Starting Gemini course generation:', {
-      fileName,
-      documentContentLength: documentContent.length,
-      documentPreview: documentContent.substring(0, 300) + '...',
-      hasContent: documentContent.length > 0,
-      options
-    });
-
     const {
       language = 'English',
       targetAudience = 'General learners',
@@ -270,13 +262,6 @@ export class GeminiService {
     }
 
     try {
-      // Check if API key is configured
-      if (!process.env.GEMINI_API_KEY) {
-        throw new Error("Gemini API key is not configured. Please add GEMINI_API_KEY to your environment variables.");
-      }
-
-      console.log('📤 Sending to Gemini API with prompt length:', userPrompt.length);
-      
       const response = await ai.models.generateContent({
         model: this.model,
         config: {
@@ -300,62 +285,16 @@ export class GeminiService {
         contents: userPrompt,
       });
 
-      console.log('📥 Received Gemini response');
-      
       const rawJson = response.text;
       if (!rawJson) {
-        console.error('❌ Empty response from Gemini');
-        throw new Error("AI service returned empty response. This may be due to rate limiting or API issues. Please try again in a few moments.");
+        throw new Error("Empty response from model");
       }
 
-      console.log('📋 Response JSON length:', rawJson.length);
-      
-      let courseStructure: CourseStructure;
-      try {
-        courseStructure = JSON.parse(rawJson);
-        console.log('✅ Successfully parsed course structure:', {
-          title: courseStructure.title,
-          moduleCount: courseStructure.modules?.length || 0,
-          difficultyLevel: courseStructure.difficultyLevel
-        });
-      } catch (parseError) {
-        console.error("❌ Failed to parse AI response:", rawJson.substring(0, 500));
-        throw new Error("AI generated invalid response format. Please try regenerating the content.");
-      }
-
-      // Basic validation of the generated structure
-      if (!courseStructure.title || courseStructure.title.length < 5) {
-        throw new Error("AI failed to generate a proper course title. Please try regenerating the content.");
-      }
-
-      if (!courseStructure.modules || courseStructure.modules.length === 0) {
-        throw new Error("AI failed to generate course modules. Please ensure your document has sufficient content and try again.");
-      }
-
+      const courseStructure: CourseStructure = JSON.parse(rawJson);
       return courseStructure;
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to generate course structure:", error);
-      
-      // Provide more specific error messages based on the error type
-      if (error.message?.includes('API key')) {
-        throw new Error("AI service configuration error: " + error.message);
-      }
-      
-      if (error.message?.includes('quota') || error.message?.includes('rate')) {
-        throw new Error("AI service rate limit exceeded. Please wait a few minutes and try again.");
-      }
-      
-      if (error.message?.includes('network') || error.message?.includes('fetch')) {
-        throw new Error("Failed to connect to AI service. Please check your internet connection and try again.");
-      }
-      
-      // If it's already a custom error message, preserve it
-      if (error.message && !error.message.includes('Failed to generate')) {
-        throw error;
-      }
-      
-      // Generic fallback
-      throw new Error("Failed to generate course content. Please ensure your document has clear, extractable content and try again.");
+      throw new Error(`Failed to generate course structure: ${error}`);
     }
   }
 
