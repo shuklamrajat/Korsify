@@ -1,3 +1,0 @@
-This is a test document for parsing.
-It contains multiple lines of text.
-We'll use it to test if text extraction works correctly.

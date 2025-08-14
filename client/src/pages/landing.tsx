@@ -173,6 +173,14 @@ export default function Landing() {
                   <Zap className="w-5 h-5" />
                   Start Creating Courses
                 </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-2 border-white text-white hover:bg-white/10 flex items-center gap-2"
+                >
+                  <Play className="w-5 h-5" />
+                  Watch Demo
+                </Button>
               </div>
               <div className="flex items-center space-x-6 text-blue-100">
                 <div className="flex items-center gap-2">
