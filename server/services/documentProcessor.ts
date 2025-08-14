@@ -3,6 +3,7 @@ import * as path from 'path';
 import { geminiService, type AIGenerationOptions } from './gemini';
 import { storage } from '../storage';
 import type { InsertCourse, InsertModule, InsertLesson, InsertQuiz, SourceReference } from '@shared/schema';
+import { validateCourseStructure, cleanCourseStructure, generateUniqueTitle, isTitleDuplicate } from '../utils/deduplication';
 
 export interface ProcessingPhase {
   name: string;
@@ -64,7 +65,7 @@ export class DocumentProcessor {
         await this.updateJobPhase(jobId, 'content_generation', 55, 'processing');
       }
       
-      const courseStructure = await geminiService.generateCourseStructure(
+      let courseStructure = await geminiService.generateCourseStructure(
         documentContent,
         document.fileName,
         options
@@ -83,6 +84,16 @@ export class DocumentProcessor {
       if (!courseStructure || !courseStructure.modules || courseStructure.modules.length === 0) {
         throw new Error('Generated course structure is invalid');
       }
+      
+      // Clean and deduplicate the course structure
+      console.log('Validating course structure for duplicates...');
+      const validation = validateCourseStructure(courseStructure);
+      if (!validation.isValid) {
+        console.warn('Duplicate content detected:', validation.issues);
+      }
+      
+      console.log('Cleaning course structure to remove duplicates...');
+      courseStructure = cleanCourseStructure(courseStructure);
 
       if (jobId) {
         await this.updateJobPhase(jobId, 'validation', 95, 'completed');
@@ -99,12 +110,24 @@ export class DocumentProcessor {
         description: courseStructure.description,
       });
 
+      // Track created module and lesson titles to ensure uniqueness
+      const createdModuleTitles: string[] = [];
+      
       // Create modules and lessons
       for (let moduleIndex = 0; moduleIndex < courseStructure.modules.length; moduleIndex++) {
         const module = courseStructure.modules[moduleIndex];
+        
+        // Ensure unique module title
+        let moduleTitle = module.title;
+        if (isTitleDuplicate(moduleTitle, createdModuleTitles, 0.9)) {
+          moduleTitle = generateUniqueTitle(moduleTitle, createdModuleTitles);
+          console.log(`Renamed duplicate module from "${module.title}" to "${moduleTitle}"`);
+        }
+        createdModuleTitles.push(moduleTitle);
+        
         const moduleData: InsertModule = {
           courseId: courseId,
-          title: module.title,
+          title: moduleTitle,
           description: module.description || '',
           orderIndex: moduleIndex,
         };
@@ -112,10 +135,19 @@ export class DocumentProcessor {
 
         // Store lesson IDs for quiz generation
         const createdLessonIds: string[] = [];
+        const createdLessonTitles: string[] = [];
 
         // Create lessons for this module
         for (let lessonIndex = 0; lessonIndex < module.lessons.length; lessonIndex++) {
           const lesson = module.lessons[lessonIndex];
+          
+          // Ensure unique lesson title within module
+          let lessonTitle = lesson.title;
+          if (isTitleDuplicate(lessonTitle, createdLessonTitles, 0.9)) {
+            lessonTitle = generateUniqueTitle(lessonTitle, createdLessonTitles);
+            console.log(`Renamed duplicate lesson from "${lesson.title}" to "${lessonTitle}"`);
+          }
+          createdLessonTitles.push(lessonTitle);
           
           // Generate source references from content citations
           const doc = await storage.getDocument(documentId);
@@ -124,7 +156,7 @@ export class DocumentProcessor {
           
           const lessonData: InsertLesson = {
             moduleId: createdModule.id,
-            title: lesson.title,
+            title: lessonTitle,
             content: lesson.content,
             orderIndex: lessonIndex,
             estimatedDuration: lesson.estimatedDuration || 10,
@@ -137,20 +169,35 @@ export class DocumentProcessor {
 
           // Generate quiz per lesson if requested
           if (options.generateQuizzes && options.quizFrequency === 'lesson') {
-            const quizQuestions = await geminiService.generateQuizQuestions(
+            let quizQuestions = await geminiService.generateQuizQuestions(
               lesson.content,
               options.questionsPerQuiz || 5
             );
 
             if (quizQuestions && quizQuestions.length > 0) {
-              const quizData: InsertQuiz = {
-                moduleId: createdModule.id,
-                lessonId: createdLesson.id,
-                title: `${lesson.title} - Quiz`,
-                questions: quizQuestions,
-                passingScore: 70,
-              };
-              await storage.createQuiz(quizData);
+              // Deduplicate quiz questions
+              const uniqueQuestions: any[] = [];
+              const questionTexts: string[] = [];
+              
+              for (const q of quizQuestions) {
+                if (!isTitleDuplicate(q.question, questionTexts, 0.85)) {
+                  uniqueQuestions.push(q);
+                  questionTexts.push(q.question);
+                } else {
+                  console.log(`Removed duplicate quiz question: "${q.question.substring(0, 50)}..."`);
+                }
+              }
+              
+              if (uniqueQuestions.length > 0) {
+                const quizData: InsertQuiz = {
+                  moduleId: createdModule.id,
+                  lessonId: createdLesson.id,
+                  title: `${lessonTitle} - Quiz`,
+                  questions: uniqueQuestions,
+                  passingScore: 70,
+                };
+                await storage.createQuiz(quizData);
+              }
             }
           }
         }
@@ -159,19 +206,34 @@ export class DocumentProcessor {
         if (options.generateQuizzes && options.quizFrequency === 'module') {
           // Combine all lesson content for module quiz
           const moduleContent = module.lessons.map(l => l.content).join('\n\n');
-          const quizQuestions = await geminiService.generateQuizQuestions(
+          let quizQuestions = await geminiService.generateQuizQuestions(
             moduleContent,
             options.questionsPerQuiz || 5
           );
 
           if (quizQuestions && quizQuestions.length > 0) {
-            const quizData: InsertQuiz = {
-              moduleId: createdModule.id,
-              title: `${module.title} - Quiz`,
-              questions: quizQuestions,
-              passingScore: 70,
-            };
-            await storage.createQuiz(quizData);
+            // Deduplicate quiz questions
+            const uniqueQuestions: any[] = [];
+            const questionTexts: string[] = [];
+            
+            for (const q of quizQuestions) {
+              if (!isTitleDuplicate(q.question, questionTexts, 0.85)) {
+                uniqueQuestions.push(q);
+                questionTexts.push(q.question);
+              } else {
+                console.log(`Removed duplicate quiz question: "${q.question.substring(0, 50)}..."`);
+              }
+            }
+            
+            if (uniqueQuestions.length > 0) {
+              const quizData: InsertQuiz = {
+                moduleId: createdModule.id,
+                title: `${moduleTitle} - Quiz`,
+                questions: uniqueQuestions,
+                passingScore: 70,
+              };
+              await storage.createQuiz(quizData);
+            }
           }
         }
 
