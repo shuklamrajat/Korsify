@@ -12,6 +12,7 @@ Preferred communication style: Simple, everyday language.
 - **Health Check Endpoint**: Added /api/health endpoint for deployment verification
 - **Production Dependencies**: Moved drizzle-kit to production dependencies for deployment support
 - **Deployment Configuration**: Added deployment config and migration automation for production environments
+- **Migration Fixes**: Enhanced migration system with IF NOT EXISTS clauses, transaction support, and graceful error handling to prevent deployment failures and crash loops when tables already exist
 
 ## System Architecture
 
