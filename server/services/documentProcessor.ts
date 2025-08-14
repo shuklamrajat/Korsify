@@ -40,25 +40,8 @@ export class DocumentProcessor {
       let documentContent = document.processedContent;
       if (!documentContent) {
         // Extract content from file if not already processed
-        console.log('📄 Extracting content from file:', {
-          fileName: document.fileName,
-          fileType: document.fileType,
-          storageUrl: document.storageUrl,
-          fileSize: document.fileSize
-        });
-        
         documentContent = await this.extractTextFromFile(document.storageUrl, document.fileType);
-        
-        console.log('✅ Content extracted:', {
-          fileName: document.fileName,
-          contentLength: documentContent.length,
-          firstChars: documentContent.substring(0, 200) + '...',
-          hasContent: documentContent.length > 0
-        });
-        
         await storage.updateDocumentContent(documentId, documentContent);
-      } else {
-        console.log('📌 Using cached content for:', document.fileName, 'Length:', documentContent.length);
       }
 
       if (jobId) {
@@ -99,12 +82,6 @@ export class DocumentProcessor {
       // Validate the generated structure
       if (!courseStructure || !courseStructure.modules || courseStructure.modules.length === 0) {
         throw new Error('Generated course structure is invalid');
-      }
-
-      // Validate content quality - detect generic/placeholder content
-      const validationError = this.validateContentQuality(courseStructure, documentContent);
-      if (validationError) {
-        throw new Error(validationError);
       }
 
       if (jobId) {
@@ -234,76 +211,6 @@ export class DocumentProcessor {
       
       throw error;
     }
-  }
-
-  private validateContentQuality(courseStructure: any, documentContent: string): string | null {
-    // Check for generic/placeholder content patterns
-    const genericPatterns = [
-      /this module (lays|establishes) the (groundwork|foundation)/i,
-      /understanding document viewing in react/i,
-      /introduces various approaches/i,
-      /delves into specific/i,
-      /establishes the foundational knowledge/i,
-      /core factors influencing/i
-    ];
-
-    // Check if content is too short or lacks substance
-    for (const module of courseStructure.modules) {
-      if (!module.title || module.title.length < 5) {
-        return 'AI failed to generate proper module titles. The content appears to be generic or incomplete.';
-      }
-
-      if (!module.description || module.description.length < 20) {
-        return 'AI failed to generate proper module descriptions. The content appears to be generic or incomplete.';
-      }
-
-      // Check for generic patterns in module content
-      for (const pattern of genericPatterns) {
-        if (pattern.test(module.description)) {
-          return 'AI generated generic placeholder content instead of actual course material based on your document. Please try regenerating with different settings or ensure your document has sufficient content.';
-        }
-      }
-
-      // Check lessons
-      if (!module.lessons || module.lessons.length === 0) {
-        return 'AI failed to generate lessons for the modules. The content structure is incomplete.';
-      }
-
-      for (const lesson of module.lessons) {
-        if (!lesson.title || lesson.title.length < 5) {
-          return 'AI failed to generate proper lesson titles. The content appears to be generic or incomplete.';
-        }
-
-        if (!lesson.content || lesson.content.length < 100) {
-          return 'AI generated insufficient lesson content. Lessons are too short or empty.';
-        }
-
-        // Check for generic patterns in lesson content
-        for (const pattern of genericPatterns) {
-          if (pattern.test(lesson.content)) {
-            return 'AI generated generic placeholder content instead of actual course material based on your document. Please try regenerating with different settings or ensure your document has sufficient content.';
-          }
-        }
-
-        // Check if content is actually related to the document (basic check)
-        // Look for at least some overlap between document keywords and lesson content
-        const docWords = documentContent.toLowerCase().split(/\s+/).filter((w: string) => w.length > 4);
-        const lessonWords = lesson.content.toLowerCase().split(/\s+/).filter((w: string) => w.length > 4);
-        const commonWords = docWords.filter(word => lessonWords.includes(word));
-        
-        if (commonWords.length < 5) {
-          return 'AI generated content that does not appear to be based on your document. The generated content lacks connection to the source material.';
-        }
-      }
-    }
-
-    // Check overall course title and description
-    if (courseStructure.title && courseStructure.title.includes('Document Viewer') && 
-        !documentContent.toLowerCase().includes('document viewer')) {
-      return 'AI generated a generic course title not related to your document content. Please ensure your document has clear, extractable content.';
-    }
-
-    return null; // No validation errors
   }
 
   private extractSourceReferences(content: string, documentId: string, documentName: string): SourceReference[] {
@@ -464,23 +371,11 @@ export class DocumentProcessor {
 
   private async extractTextFromFile(filePath: string, fileType: string): Promise<string> {
     try {
-      console.log('🔍 Attempting to extract text from file:', {
-        filePath,
-        fileType,
-        fileExists: await fs.access(filePath).then(() => true).catch(() => false)
-      });
-      
       // Read the actual file content
       const fileContent = await fs.readFile(filePath, 'utf-8');
       
-      console.log('📖 File read successfully:', {
-        contentLength: fileContent.length,
-        firstChars: fileContent.substring(0, 100) + '...'
-      });
-      
       // For text-based files, return the content directly
       if (fileType === '.txt' || fileType === '.md') {
-        console.log('✅ Returning text content for', fileType, 'file');
         return fileContent;
       }
       
