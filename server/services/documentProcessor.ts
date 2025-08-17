@@ -167,11 +167,13 @@ export class DocumentProcessor {
           const createdLesson = await storage.createLesson(lessonData);
           createdLessonIds.push(createdLesson.id);
 
-          // Generate quiz per lesson if requested
+          // ONLY generate quiz per lesson if that's the selected frequency
           if (options.generateQuizzes && options.quizFrequency === 'lesson') {
+            console.log(`Generating quiz for lesson: ${lessonTitle} (Quiz frequency: lesson, Difficulty: ${options.difficultyLevel || 'intermediate'})`);
             let quizQuestions = await geminiService.generateQuizQuestions(
               lesson.content,
-              options.questionsPerQuiz || 5
+              options.questionsPerQuiz || 5,
+              options.difficultyLevel || 'intermediate'
             );
 
             if (quizQuestions && quizQuestions.length > 0) {
@@ -197,18 +199,21 @@ export class DocumentProcessor {
                   passingScore: 70,
                 };
                 await storage.createQuiz(quizData);
+                console.log(`Created quiz for lesson: ${lessonTitle}`);
               }
             }
           }
         }
 
-        // Generate quiz per module if requested
+        // ONLY generate quiz per module if that's the selected frequency
         if (options.generateQuizzes && options.quizFrequency === 'module') {
+          console.log(`Generating module quiz for: ${moduleTitle} (Quiz frequency: module, Difficulty: ${options.difficultyLevel || 'intermediate'})`);
           // Combine all lesson content for module quiz
           const moduleContent = module.lessons.map(l => l.content).join('\n\n');
           let quizQuestions = await geminiService.generateQuizQuestions(
             moduleContent,
-            options.questionsPerQuiz || 5
+            options.questionsPerQuiz || 5,
+            options.difficultyLevel || 'intermediate'
           );
 
           if (quizQuestions && quizQuestions.length > 0) {
@@ -228,17 +233,19 @@ export class DocumentProcessor {
             if (uniqueQuestions.length > 0) {
               const quizData: InsertQuiz = {
                 moduleId: createdModule.id,
-                title: `${moduleTitle} - Quiz`,
+                title: `${moduleTitle} - Module Quiz`,
                 questions: uniqueQuestions,
                 passingScore: 70,
               };
               await storage.createQuiz(quizData);
+              console.log(`Created module quiz for: ${moduleTitle}`);
             }
           }
         }
 
-        // Legacy support: Create quiz if available in the module structure
+        // DEPRECATED: Legacy quiz support - should not be used with new generation
         if (module.quiz && !options.generateQuizzes) {
+          console.warn('Legacy quiz found in module structure - this should not happen with new generation');
           const quizData: InsertQuiz = {
             moduleId: createdModule.id,
             title: module.quiz.title,

@@ -158,25 +158,69 @@ export class GeminiService {
        - For Health Sciences: Implement clinical reasoning, evidence-based practice, patient scenarios
        - For Arts: Include creative exercises, critique methodologies, aesthetic analysis
 
-    7. COURSE SPECIFICATIONS:
+    7. DIFFICULTY LEVEL REQUIREMENTS (${difficultyLevel.toUpperCase()}):
+       ${difficultyLevel === 'beginner' ? `
+       - Use simple, everyday language and avoid jargon
+       - Explain all technical terms when first introduced
+       - Focus on fundamental concepts and basic understanding
+       - Provide step-by-step explanations for all processes
+       - Use many relatable analogies and simple examples from the source
+       - Break down complex ideas into smaller, digestible parts
+       - Include more repetition and reinforcement of key concepts
+       - Base ALL content directly on the source document - no external additions
+       ` : ''}
+       ${difficultyLevel === 'intermediate' ? `
+       - Use moderate technical language with clear explanations
+       - Build on assumed foundational knowledge from the source
+       - Include practical applications and real-world scenarios from the document
+       - Balance theory with practical examples from the source material
+       - Introduce more complex relationships between concepts
+       - Expect familiarity with basic terminology from the document
+       - Include analytical thinking exercises based on source content
+       - STRICTLY use only information present in the source document
+       ` : ''}
+       ${difficultyLevel === 'advanced' ? `
+       - Use sophisticated technical language as presented in the source
+       - Explore complex theoretical frameworks from the document
+       - Deep dive into nuanced aspects mentioned in the source
+       - Include critical analysis of concepts from the source material
+       - Present advanced applications and edge cases from the document
+       - Expect strong foundational knowledge
+       - Focus on synthesis and evaluation of source material
+       - ALL content must be traceable to the source document
+       ` : ''}
+       ${difficultyLevel === 'expert' ? `
+       - Use highly specialized terminology from the source document
+       - Explore cutting-edge concepts and research mentioned in the source
+       - Include in-depth technical details from the document
+       - Present complex theoretical models from the source material
+       - Focus on expert-level analysis and critique
+       - Include advanced problem-solving scenarios from the document
+       - Expect mastery of prerequisite knowledge
+       - ONLY use advanced concepts that are explicitly in the source document
+       ` : ''}
+
+    8. COURSE SPECIFICATIONS:
        - Create exactly ${moduleCount} comprehensive modules
        - Each module: 3-5 lessons of 1000-1200 words each
        - Language: ${language}
        - Target Audience: ${targetAudience} (adapt sophistication accordingly)
        - Content Focus: ${contentFocus}
-       - Difficulty Level: ${difficultyLevel}
        - Include "Key Takeaways" sections summarizing essential points
        - Add "Further Reading" suggestions based on document references
        
-    8. QUIZ GENERATION REQUIREMENTS:
+    9. QUIZ GENERATION REQUIREMENTS:
        ${generateQuizzes ? `
-       - Generate comprehensive quizzes for assessment
-       - Quiz Frequency: ${quizFrequency === 'lesson' ? 'Create a quiz for EVERY lesson' : 'Create ONE quiz per module'}
-       - Questions per quiz: Generate exactly ${questionsPerQuiz} questions
-       - Question types: Multiple choice questions with 4 options each
+       - STRICT QUIZ FREQUENCY RULE: ${quizFrequency === 'lesson' ? 
+         'Create a quiz for EVERY SINGLE LESSON. Each lesson MUST have its own quiz. DO NOT create module-level quizzes.' : 
+         'Create ONLY ONE quiz per module covering all lessons. DO NOT create individual lesson quizzes.'}
+       - Questions per quiz: Generate exactly ${questionsPerQuiz} unique questions
+       - NO DUPLICATE QUESTIONS across different quizzes
+       - Question types: Multiple choice questions with 4 distinct options each
        - Include detailed explanations for correct answers
-       - Base all questions directly on lesson/module content
-       - Ensure questions test key concepts and understanding
+       - Base all questions directly on ${quizFrequency === 'lesson' ? 'the specific lesson content' : 'all lessons in the module'}
+       - Ensure questions test key concepts from the source material only
+       - Questions must be appropriate for ${difficultyLevel} level learners
        ` : '- Do not generate any quizzes'}
 
     9. PRACTICAL EXERCISES AND EXAMPLES:
@@ -329,7 +373,38 @@ export class GeminiService {
     return response.text || content;
   }
 
-  async generateQuizQuestions(content: string, count: number = 5): Promise<any[]> {
+  async generateQuizQuestions(content: string, count: number = 5, difficultyLevel: string = 'intermediate'): Promise<any[]> {
+    const difficultyInstructions: Record<string, string> = {
+      beginner: `
+        - Use simple, clear language in questions
+        - Test basic understanding and recall
+        - Ask about fundamental concepts from the content
+        - Provide straightforward options with clear distinctions
+        - Focus on "what" and "who" questions
+        - Base ALL questions directly on explicit facts from the content`,
+      intermediate: `
+        - Use moderate technical language appropriate to the content
+        - Test comprehension and application
+        - Ask about relationships between concepts from the content
+        - Include some analytical questions
+        - Mix "what", "how", and "why" questions
+        - Base ALL questions on information present in the content`,
+      advanced: `
+        - Use sophisticated language from the source material
+        - Test analysis and synthesis
+        - Ask about complex relationships and implications
+        - Include critical thinking questions
+        - Focus on "why", "how", and "what if" questions from the content
+        - Base ALL questions on advanced concepts from the content`,
+      expert: `
+        - Use highly technical language from the source
+        - Test evaluation and creation abilities
+        - Ask about nuanced distinctions and edge cases from the content
+        - Include questions requiring deep analysis
+        - Focus on synthesis and critique of source material
+        - Base ALL questions on expert-level content provided`
+    };
+
     const prompt = `
     Based on the following content, generate ${count} UNIQUE quiz questions with these specifications:
     
@@ -340,11 +415,16 @@ export class GeminiService {
     - Avoid rephrasing the same question in different ways
     - Ensure variety in topics covered across all questions
     
+    DIFFICULTY LEVEL: ${difficultyLevel.toUpperCase()}
+    ${difficultyInstructions[difficultyLevel] || difficultyInstructions.intermediate}
+    
     QUESTION SPECIFICATIONS:
     - Mix of multiple choice and true/false questions
-    - Test understanding, not just memorization
+    - Test understanding appropriate to ${difficultyLevel} level
     - Include plausible distractors for multiple choice
     - Provide explanations for correct answers
+    - ALL questions must be based ONLY on the provided content
+    - Do NOT introduce external knowledge or assumptions
     
     Content: ${content}
     
@@ -354,7 +434,7 @@ export class GeminiService {
       "type": "multiple_choice" | "true_false",
       "options": ["option1", "option2", ...] (for multiple choice),
       "correctAnswer": "correct answer",
-      "explanation": "Why this is correct"
+      "explanation": "Why this is correct based on the content"
     }
     `;
 
