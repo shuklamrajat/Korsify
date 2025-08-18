@@ -168,12 +168,16 @@ export class DocumentProcessor {
           createdLessonIds.push(createdLesson.id);
 
           // ONLY generate quiz per lesson if that's the selected frequency
-          if (options.generateQuizzes && options.quizFrequency === 'lesson') {
-            console.log(`Generating quiz for lesson: ${lessonTitle} (Quiz frequency: lesson, Difficulty: ${options.difficultyLevel || 'intermediate'})`);
+          if (options.generateQuizzes && options.quizFrequency === 'lesson' && options.questionsPerQuiz) {
+            // Use EXACT user settings - only generate if user specified question count
+            const questionsCount = options.questionsPerQuiz;
+            const difficulty = options.difficultyLevel || 'intermediate';
+            
+            console.log(`Generating quiz for lesson: ${lessonTitle} (Quiz frequency: lesson, Questions: EXACTLY ${questionsCount}, Difficulty: ${difficulty})`);
             let quizQuestions = await geminiService.generateQuizQuestions(
               lesson.content,
-              options.questionsPerQuiz || 5,
-              options.difficultyLevel || 'intermediate'
+              questionsCount,
+              difficulty
             );
 
             if (quizQuestions && quizQuestions.length > 0) {
@@ -206,14 +210,18 @@ export class DocumentProcessor {
         }
 
         // ONLY generate quiz per module if that's the selected frequency
-        if (options.generateQuizzes && options.quizFrequency === 'module') {
-          console.log(`Generating module quiz for: ${moduleTitle} (Quiz frequency: module, Difficulty: ${options.difficultyLevel || 'intermediate'})`);
+        if (options.generateQuizzes && options.quizFrequency === 'module' && options.questionsPerQuiz) {
+          // Use EXACT user settings - only generate if user specified question count
+          const questionsCount = options.questionsPerQuiz;
+          const difficulty = options.difficultyLevel || 'intermediate';
+          
+          console.log(`Generating module quiz for: ${moduleTitle} (Quiz frequency: module, Questions: EXACTLY ${questionsCount}, Difficulty: ${difficulty})`);
           // Combine all lesson content for module quiz
           const moduleContent = module.lessons.map(l => l.content).join('\n\n');
           let quizQuestions = await geminiService.generateQuizQuestions(
             moduleContent,
-            options.questionsPerQuiz || 5,
-            options.difficultyLevel || 'intermediate'
+            questionsCount,
+            difficulty
           );
 
           if (quizQuestions && quizQuestions.length > 0) {
