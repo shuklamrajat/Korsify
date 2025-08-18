@@ -6,7 +6,7 @@ Korsify is an AI-powered educational platform designed to transform documents in
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (Updated: 2025-08-18 04:32 AM)
+## Recent Changes (Updated: 2025-08-18 05:25 AM)
 - **Database Migration System**: Added automatic migration system for production deployments
 - **Environment Validation**: Added comprehensive environment variable validation on startup
 - **Health Check Endpoint**: Added /api/health endpoint for deployment verification
@@ -33,6 +33,15 @@ Preferred communication style: Simple, everyday language.
   - Difficulty level properly influences both content complexity and quiz question difficulty
   - AI prompts explicitly instructed to generate EXACTLY the number of questions specified
   - All generated content strictly tied to source document regardless of difficulty level
+- **Mandatory Quiz Generation System**: Ensured 100% compliance with user quiz preferences:
+  - Quiz generation is now MANDATORY when enabled - no silent failures or missing quizzes
+  - Added retry logic with up to 3 attempts if quiz generation fails
+  - Validation ensures exact number of questions requested is generated
+  - Error thrown if quiz generation fails after retries to prevent incomplete courses
+  - Removed conditional checks that prevented quiz generation
+  - Quiz frequency strictly enforced - EVERY lesson gets quiz when "per lesson" selected
+  - Module quizzes generated for EVERY module when "per module" selected
+  - Added detailed logging for quiz generation success and failures
 
 ## System Architecture
 

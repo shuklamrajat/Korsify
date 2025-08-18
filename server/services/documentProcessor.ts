@@ -167,18 +167,38 @@ export class DocumentProcessor {
           const createdLesson = await storage.createLesson(lessonData);
           createdLessonIds.push(createdLesson.id);
 
-          // ONLY generate quiz per lesson if that's the selected frequency
-          if (options.generateQuizzes && options.quizFrequency === 'lesson' && options.questionsPerQuiz) {
-            // Use EXACT user settings - only generate if user specified question count
-            const questionsCount = options.questionsPerQuiz;
+          // MANDATORY: Generate quiz per lesson if that's the selected frequency
+          if (options.generateQuizzes && options.quizFrequency === 'lesson') {
+            // Ensure we always have a question count - use user setting or reasonable default
+            const questionsCount = options.questionsPerQuiz || 5;
             const difficulty = options.difficultyLevel || 'intermediate';
             
-            console.log(`Generating quiz for lesson: ${lessonTitle} (Quiz frequency: lesson, Questions: EXACTLY ${questionsCount}, Difficulty: ${difficulty})`);
-            let quizQuestions = await geminiService.generateQuizQuestions(
-              lesson.content,
-              questionsCount,
-              difficulty
-            );
+            console.log(`[MANDATORY] Generating quiz for lesson: ${lessonTitle} (Questions: ${questionsCount}, Difficulty: ${difficulty})`);
+            
+            // Retry logic for quiz generation
+            let quizQuestions = null;
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            while ((!quizQuestions || quizQuestions.length === 0) && retryCount < maxRetries) {
+              if (retryCount > 0) {
+                console.log(`Retrying quiz generation for lesson: ${lessonTitle} (Attempt ${retryCount + 1}/${maxRetries})`);
+              }
+              
+              quizQuestions = await geminiService.generateQuizQuestions(
+                lesson.content,
+                questionsCount,
+                difficulty
+              );
+              
+              if (!quizQuestions || quizQuestions.length === 0) {
+                console.error(`Failed to generate quiz for lesson: ${lessonTitle} - Attempt ${retryCount + 1}`);
+                retryCount++;
+                if (retryCount < maxRetries) {
+                  await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+                }
+              }
+            }
 
             if (quizQuestions && quizQuestions.length > 0) {
               // Deduplicate quiz questions
@@ -203,26 +223,53 @@ export class DocumentProcessor {
                   passingScore: 70,
                 };
                 await storage.createQuiz(quizData);
-                console.log(`Created quiz for lesson: ${lessonTitle}`);
+                console.log(`✓ Successfully created quiz for lesson: ${lessonTitle} with ${uniqueQuestions.length} questions`);
+              } else {
+                console.error(`ERROR: No unique questions generated for lesson: ${lessonTitle} after deduplication`);
+                throw new Error(`Failed to generate quiz for lesson: ${lessonTitle} - No unique questions after deduplication`);
               }
+            } else {
+              console.error(`CRITICAL ERROR: Failed to generate quiz for lesson: ${lessonTitle} after ${maxRetries} attempts`);
+              throw new Error(`Failed to generate quiz for lesson: ${lessonTitle} after ${maxRetries} attempts`);
             }
           }
         }
 
-        // ONLY generate quiz per module if that's the selected frequency
-        if (options.generateQuizzes && options.quizFrequency === 'module' && options.questionsPerQuiz) {
-          // Use EXACT user settings - only generate if user specified question count
-          const questionsCount = options.questionsPerQuiz;
+        // MANDATORY: Generate quiz per module if that's the selected frequency
+        if (options.generateQuizzes && options.quizFrequency === 'module') {
+          // Ensure we always have a question count - use user setting or reasonable default
+          const questionsCount = options.questionsPerQuiz || 5;
           const difficulty = options.difficultyLevel || 'intermediate';
           
-          console.log(`Generating module quiz for: ${moduleTitle} (Quiz frequency: module, Questions: EXACTLY ${questionsCount}, Difficulty: ${difficulty})`);
+          console.log(`[MANDATORY] Generating module quiz for: ${moduleTitle} (Questions: ${questionsCount}, Difficulty: ${difficulty})`);
+          
           // Combine all lesson content for module quiz
           const moduleContent = module.lessons.map(l => l.content).join('\n\n');
-          let quizQuestions = await geminiService.generateQuizQuestions(
-            moduleContent,
-            questionsCount,
-            difficulty
-          );
+          
+          // Retry logic for quiz generation
+          let quizQuestions = null;
+          let retryCount = 0;
+          const maxRetries = 3;
+          
+          while ((!quizQuestions || quizQuestions.length === 0) && retryCount < maxRetries) {
+            if (retryCount > 0) {
+              console.log(`Retrying module quiz generation for: ${moduleTitle} (Attempt ${retryCount + 1}/${maxRetries})`);
+            }
+            
+            quizQuestions = await geminiService.generateQuizQuestions(
+              moduleContent,
+              questionsCount,
+              difficulty
+            );
+            
+            if (!quizQuestions || quizQuestions.length === 0) {
+              console.error(`Failed to generate module quiz for: ${moduleTitle} - Attempt ${retryCount + 1}`);
+              retryCount++;
+              if (retryCount < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+              }
+            }
+          }
 
           if (quizQuestions && quizQuestions.length > 0) {
             // Deduplicate quiz questions
@@ -246,8 +293,14 @@ export class DocumentProcessor {
                 passingScore: 70,
               };
               await storage.createQuiz(quizData);
-              console.log(`Created module quiz for: ${moduleTitle}`);
+              console.log(`✓ Successfully created module quiz for: ${moduleTitle} with ${uniqueQuestions.length} questions`);
+            } else {
+              console.error(`ERROR: No unique questions generated for module: ${moduleTitle} after deduplication`);
+              throw new Error(`Failed to generate quiz for module: ${moduleTitle} - No unique questions after deduplication`);
             }
+          } else {
+            console.error(`CRITICAL ERROR: Failed to generate quiz for module: ${moduleTitle} after ${maxRetries} attempts`);
+            throw new Error(`Failed to generate quiz for module: ${moduleTitle} after ${maxRetries} attempts`);
           }
         }
 

@@ -457,7 +457,20 @@ export class GeminiService {
         throw new Error("Empty response from model");
       }
 
-      return JSON.parse(rawJson);
+      const questions = JSON.parse(rawJson);
+      
+      // Validate we got the exact number of questions requested
+      if (Array.isArray(questions)) {
+        if (questions.length !== count) {
+          console.warn(`AI generated ${questions.length} questions instead of requested ${count}. Retrying...`);
+          // Return empty to trigger retry
+          return [];
+        }
+        console.log(`✓ AI successfully generated exactly ${count} questions as requested`);
+        return questions;
+      }
+      
+      return questions;
     } catch (error) {
       console.error("Failed to generate quiz questions:", error);
       return [];
