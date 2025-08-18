@@ -109,6 +109,7 @@ export default function AiGenerationDialog({
   // Customization options state
   const [customOptions, setCustomOptions] = useState({
     difficultyLevel: 'beginner',
+    moduleCount: 3, // Number of modules to generate (1-10)
     generateQuizzes: true,
     quizFrequency: 'module', // 'module' or 'lesson'
     questionsPerQuiz: 5,
@@ -283,6 +284,27 @@ export default function AiGenerationDialog({
                       </Select>
                     </div>
 
+                    {/* Module Count */}
+                    <div className="space-y-2">
+                      <Label htmlFor="moduleCount">Number of Modules</Label>
+                      <p className="text-sm text-gray-500">How many modules to generate (1-10)</p>
+                      <Select
+                        value={customOptions.moduleCount.toString()}
+                        onValueChange={(value) => setCustomOptions({...customOptions, moduleCount: parseInt(value)})}
+                      >
+                        <SelectTrigger id="moduleCount">
+                          <SelectValue placeholder="Select module count" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                            <SelectItem key={num} value={num.toString()}>
+                              {num} {num === 1 ? 'Module' : 'Modules'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     {/* Quiz Generation Settings */}
                     <div className="space-y-4 border-t pt-4">
                       <div className="flex items-center justify-between">
@@ -372,6 +394,7 @@ export default function AiGenerationDialog({
                         onClick={() => {
                           setCustomOptions({
                             difficultyLevel: 'beginner',
+                            moduleCount: 3,
                             generateQuizzes: true,
                             quizFrequency: 'module',
                             questionsPerQuiz: 5,
@@ -410,6 +433,10 @@ export default function AiGenerationDialog({
                       <div>
                         <span className="text-gray-500">Difficulty:</span>
                         <Badge variant="secondary" className="ml-2 capitalize">{customOptions.difficultyLevel}</Badge>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Modules:</span>
+                        <Badge variant="secondary" className="ml-2">{customOptions.moduleCount}</Badge>
                       </div>
                       <div>
                         <span className="text-gray-500">Quizzes:</span>
