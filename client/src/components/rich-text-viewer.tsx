@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
 import '@/styles/rich-text-viewer.css';
 
@@ -20,36 +19,11 @@ export default function RichTextViewer({
 }: RichTextViewerProps) {
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Configure DOMPurify to allow necessary HTML elements and attributes
-  const sanitizeConfig = {
-    ALLOWED_TAGS: [
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'p', 'br', 'hr',
-      'strong', 'em', 'u', 'del', 's', 'mark',
-      'ul', 'ol', 'li',
-      'blockquote', 'code', 'pre',
-      'a', 'img', 'figure', 'figcaption',
-      'table', 'thead', 'tbody', 'tr', 'th', 'td',
-      'div', 'span', 'sup', 'sub'
-    ],
-    ALLOWED_ATTR: [
-      'href', 'target', 'rel', 'title',
-      'src', 'alt', 'width', 'height', 'loading',
-      'class', 'style', 'id',
-      'data-citation-id', 'data-*'
-    ],
-    ALLOW_DATA_ATTR: true,
-    KEEP_CONTENT: true,
-    ADD_ATTR: ['target', 'rel'] // Allow target and rel for links
-  };
-
   useEffect(() => {
     if (contentRef.current && enableCitations && sourceReferences.length > 0) {
       // Process citations in the content
       const processedContent = processCitations(content, sourceReferences);
-      // Sanitize the processed content before setting innerHTML
-      const sanitizedContent = DOMPurify.sanitize(processedContent, sanitizeConfig);
-      contentRef.current.innerHTML = sanitizedContent;
+      contentRef.current.innerHTML = processedContent;
       
       // Add event listeners to citation elements
       const citations = contentRef.current.querySelectorAll('.citation-link');
@@ -64,9 +38,7 @@ export default function RichTextViewer({
       });
     } else if (contentRef.current) {
       // Simply set the HTML content if no citations processing needed
-      // Sanitize the content before setting innerHTML
-      const sanitizedContent = DOMPurify.sanitize(content, sanitizeConfig);
-      contentRef.current.innerHTML = sanitizedContent;
+      contentRef.current.innerHTML = content;
     }
 
     // Process any embedded elements for better display
