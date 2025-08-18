@@ -75,18 +75,19 @@ export class GeminiService {
     fileName: string,
     options: AIGenerationOptions = {}
   ): Promise<CourseStructure> {
-    const {
-      language = 'English',
-      targetAudience = 'General learners',
-      contentFocus = 'Comprehensive understanding',
-      difficultyLevel = 'intermediate',
-      moduleCount = 3,
-      generateQuizzes = true,
-      quizFrequency = 'module',
-      questionsPerQuiz = 5,
-      includeExercises = true,
-      includeExamples = true
-    } = options;
+    // Only use defaults for display/UI fields, not for generation logic
+    const language = options.language || 'English';
+    const targetAudience = options.targetAudience || 'General learners';
+    const contentFocus = options.contentFocus || 'Comprehensive understanding';
+    const difficultyLevel = options.difficultyLevel || 'intermediate';
+    const moduleCount = options.moduleCount || 3;
+    
+    // User-controlled generation settings - use exact values, no defaults
+    const generateQuizzes = options.generateQuizzes;
+    const quizFrequency = options.quizFrequency;
+    const questionsPerQuiz = options.questionsPerQuiz;
+    const includeExercises = options.includeExercises;
+    const includeExamples = options.includeExamples;
 
     const systemPrompt = `
     You are an advanced educational content generator focused on creating comprehensive online courses from source documents.
@@ -210,11 +211,13 @@ export class GeminiService {
        - Add "Further Reading" suggestions based on document references
        
     9. QUIZ GENERATION REQUIREMENTS:
-       ${generateQuizzes ? `
+       ${generateQuizzes && questionsPerQuiz ? `
        - STRICT QUIZ FREQUENCY RULE: ${quizFrequency === 'lesson' ? 
          'Create a quiz for EVERY SINGLE LESSON. Each lesson MUST have its own quiz. DO NOT create module-level quizzes.' : 
          'Create ONLY ONE quiz per module covering all lessons. DO NOT create individual lesson quizzes.'}
-       - Questions per quiz: Generate exactly ${questionsPerQuiz} unique questions
+       - CRITICAL: Generate EXACTLY ${questionsPerQuiz} questions per quiz - not ${questionsPerQuiz - 1}, not ${questionsPerQuiz + 1}, but EXACTLY ${questionsPerQuiz}
+       - If you generate any number other than ${questionsPerQuiz} questions, the system will fail
+       - Count the questions you generate and ensure it equals exactly ${questionsPerQuiz}
        - NO DUPLICATE QUESTIONS across different quizzes
        - Question types: Multiple choice questions with 4 distinct options each
        - Include detailed explanations for correct answers
@@ -373,7 +376,7 @@ export class GeminiService {
     return response.text || content;
   }
 
-  async generateQuizQuestions(content: string, count: number = 5, difficultyLevel: string = 'intermediate'): Promise<any[]> {
+  async generateQuizQuestions(content: string, count: number, difficultyLevel: string): Promise<any[]> {
     const difficultyInstructions: Record<string, string> = {
       beginner: `
         - Use simple, clear language in questions
@@ -406,7 +409,9 @@ export class GeminiService {
     };
 
     const prompt = `
-    Based on the following content, generate ${count} UNIQUE quiz questions with these specifications:
+    Based on the following content, generate EXACTLY ${count} quiz questions - no more, no less.
+    
+    CRITICAL REQUIREMENT: You MUST generate EXACTLY ${count} questions. Not ${count - 1}, not ${count + 1}, but EXACTLY ${count} questions.
     
     UNIQUENESS REQUIREMENTS:
     - EVERY question must be completely different and unique
