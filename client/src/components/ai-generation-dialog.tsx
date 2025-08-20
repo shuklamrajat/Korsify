@@ -287,7 +287,7 @@ export default function AiGenerationDialog({
                     {/* Module Count */}
                     <div className="space-y-2">
                       <Label htmlFor="moduleCount">Number of Modules</Label>
-                      <p className="text-sm text-gray-500">How many modules to generate (1-10)</p>
+                      <p className="text-sm text-gray-500">How many modules to generate (1-6)</p>
                       <Select
                         value={customOptions.moduleCount.toString()}
                         onValueChange={(value) => setCustomOptions({...customOptions, moduleCount: parseInt(value)})}
@@ -296,7 +296,7 @@ export default function AiGenerationDialog({
                           <SelectValue placeholder="Select module count" />
                         </SelectTrigger>
                         <SelectContent>
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                          {[1, 2, 3, 4, 5, 6].map(num => (
                             <SelectItem key={num} value={num.toString()}>
                               {num} {num === 1 ? 'Module' : 'Modules'}
                             </SelectItem>

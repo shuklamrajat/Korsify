@@ -43,7 +43,7 @@ Preferred communication style: Simple, everyday language.
   - Module quizzes generated for EVERY module when "per module" selected
   - Added detailed logging for quiz generation success and failures
 - **Module Count Customization**: Added user control over number of modules generated:
-  - New setting in Generation Settings dialog allows selection from 1-10 modules
+  - New setting in Generation Settings dialog allows selection from 1-6 modules
   - Default remains 3 modules when not specified
   - Module count properly passed from frontend to backend generation pipeline
   - AI prompts instructed to generate exact number of modules requested by user
