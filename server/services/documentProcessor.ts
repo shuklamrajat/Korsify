@@ -77,9 +77,9 @@ export class DocumentProcessor {
         await this.updateJobPhase(jobId, 'content_generation', 60, 'processing');
       }
       
-      // Step 2: Generate modules in batches
+      // Step 2: Generate modules in batches (one at a time for consistent quality)
       const moduleCount = outline.modules.length;
-      const batchSize = moduleCount <= 3 ? moduleCount : 2; // Use 2 for larger courses
+      const batchSize = 1; // Generate one module at a time for best quality consistency
       const batches: number[][] = [];
       
       // Create batch indices
@@ -168,8 +168,14 @@ export class DocumentProcessor {
       for (let moduleIndex = 0; moduleIndex < courseStructure.modules.length; moduleIndex++) {
         const module = courseStructure.modules[moduleIndex];
         
-        // Ensure unique module title
+        // Apply consistent naming: "Module X: Title"
         let moduleTitle = module.title;
+        // Check if it already has the "Module X:" prefix (from batch generation)
+        if (!moduleTitle.startsWith(`Module ${moduleIndex + 1}:`)) {
+          moduleTitle = `Module ${moduleIndex + 1}: ${moduleTitle}`;
+        }
+        
+        // Ensure unique module title
         if (isTitleDuplicate(moduleTitle, createdModuleTitles, 0.9)) {
           moduleTitle = generateUniqueTitle(moduleTitle, createdModuleTitles);
           console.log(`Renamed duplicate module from "${module.title}" to "${moduleTitle}"`);
@@ -192,8 +198,14 @@ export class DocumentProcessor {
         for (let lessonIndex = 0; lessonIndex < module.lessons.length; lessonIndex++) {
           const lesson = module.lessons[lessonIndex];
           
-          // Ensure unique lesson title within module
+          // Apply consistent naming: "Lesson X.Y: Title"
           let lessonTitle = lesson.title;
+          // Check if it already has the "Lesson X.Y:" prefix (from batch generation)
+          if (!lessonTitle.startsWith(`Lesson ${moduleIndex + 1}.${lessonIndex + 1}:`)) {
+            lessonTitle = `Lesson ${moduleIndex + 1}.${lessonIndex + 1}: ${lessonTitle}`;
+          }
+          
+          // Ensure unique lesson title within module
           if (isTitleDuplicate(lessonTitle, createdLessonTitles, 0.9)) {
             lessonTitle = generateUniqueTitle(lessonTitle, createdLessonTitles);
             console.log(`Renamed duplicate lesson from "${lesson.title}" to "${lessonTitle}"`);
@@ -492,9 +504,9 @@ export class DocumentProcessor {
       
       await this.updatePhase(job.id, 'content_generation', 60, 'processing', onProgressUpdate);
       
-      // Step 2: Generate modules in batches
+      // Step 2: Generate modules in batches (one at a time for consistent quality)
       const moduleCount = outline.modules.length;
-      const batchSize = moduleCount <= 3 ? moduleCount : 2; // Use 2 for larger courses
+      const batchSize = 1; // Generate one module at a time for best quality consistency
       const batches: number[][] = [];
       
       // Create batch indices
