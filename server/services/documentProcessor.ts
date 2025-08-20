@@ -60,67 +60,16 @@ export class DocumentProcessor {
         await this.updateJobPhase(jobId, 'content_analysis', 50, 'completed');
       }
 
-      // Phase 3: Content Generation (50-85%) - Now Progressive
+      // Phase 3: Content Generation (50-85%)
       if (jobId) {
         await this.updateJobPhase(jobId, 'content_generation', 55, 'processing');
       }
       
-      // Step 1: Generate course outline (lightweight, fast)
-      console.log('Generating course outline...');
-      const outline = await geminiService.generateCourseOutline(
+      let courseStructure = await geminiService.generateCourseStructure(
         documentContent,
         document.fileName,
         options
       );
-      
-      if (jobId) {
-        await this.updateJobPhase(jobId, 'content_generation', 60, 'processing');
-      }
-      
-      // Step 2: Generate modules in batches (one at a time for consistent quality)
-      const moduleCount = outline.modules.length;
-      const batchSize = 1; // Generate one module at a time for best quality consistency
-      const batches: number[][] = [];
-      
-      // Create batch indices
-      for (let i = 0; i < moduleCount; i += batchSize) {
-        const batch = [];
-        for (let j = i; j < Math.min(i + batchSize, moduleCount); j++) {
-          batch.push(j);
-        }
-        batches.push(batch);
-      }
-      
-      console.log(`Generating ${moduleCount} modules in ${batches.length} batches...`);
-      
-      // Generate each batch
-      const allModules: any[] = [];
-      for (let i = 0; i < batches.length; i++) {
-        const batch = batches[i];
-        const progress = 60 + (20 * (i + 1) / batches.length); // Progress from 60 to 80
-        
-        console.log(`Generating batch ${i + 1}/${batches.length}: Modules ${batch.map(b => b + 1).join(', ')}`);
-        
-        const batchModules = await geminiService.generateModuleBatch(
-          documentContent,
-          outline,
-          batch,
-          options
-        );
-        
-        allModules.push(...batchModules);
-        
-        if (jobId) {
-          await this.updateJobPhase(jobId, 'content_generation', Math.round(progress), 'processing');
-        }
-      }
-      
-      // Combine into full course structure
-      let courseStructure = {
-        title: outline.title,
-        description: outline.description,
-        modules: allModules
-      };
 
       if (jobId) {
         await this.updateJobPhase(jobId, 'content_generation', 85, 'completed');
@@ -168,14 +117,8 @@ export class DocumentProcessor {
       for (let moduleIndex = 0; moduleIndex < courseStructure.modules.length; moduleIndex++) {
         const module = courseStructure.modules[moduleIndex];
         
-        // Apply consistent naming: "Module X: Title"
-        let moduleTitle = module.title;
-        // Check if it already has the "Module X:" prefix (from batch generation)
-        if (!moduleTitle.startsWith(`Module ${moduleIndex + 1}:`)) {
-          moduleTitle = `Module ${moduleIndex + 1}: ${moduleTitle}`;
-        }
-        
         // Ensure unique module title
+        let moduleTitle = module.title;
         if (isTitleDuplicate(moduleTitle, createdModuleTitles, 0.9)) {
           moduleTitle = generateUniqueTitle(moduleTitle, createdModuleTitles);
           console.log(`Renamed duplicate module from "${module.title}" to "${moduleTitle}"`);
@@ -198,14 +141,8 @@ export class DocumentProcessor {
         for (let lessonIndex = 0; lessonIndex < module.lessons.length; lessonIndex++) {
           const lesson = module.lessons[lessonIndex];
           
-          // Apply consistent naming: "Lesson X.Y: Title"
-          let lessonTitle = lesson.title;
-          // Check if it already has the "Lesson X.Y:" prefix (from batch generation)
-          if (!lessonTitle.startsWith(`Lesson ${moduleIndex + 1}.${lessonIndex + 1}:`)) {
-            lessonTitle = `Lesson ${moduleIndex + 1}.${lessonIndex + 1}: ${lessonTitle}`;
-          }
-          
           // Ensure unique lesson title within module
+          let lessonTitle = lesson.title;
           if (isTitleDuplicate(lessonTitle, createdLessonTitles, 0.9)) {
             lessonTitle = generateUniqueTitle(lessonTitle, createdLessonTitles);
             console.log(`Renamed duplicate lesson from "${lesson.title}" to "${lessonTitle}"`);
@@ -307,7 +244,7 @@ export class DocumentProcessor {
           console.log(`[MANDATORY] Generating module quiz for: ${moduleTitle} (Questions: ${questionsCount}, Difficulty: ${difficulty})`);
           
           // Combine all lesson content for module quiz
-          const moduleContent = module.lessons.map((l: any) => l.content).join('\n\n');
+          const moduleContent = module.lessons.map(l => l.content).join('\n\n');
           
           // Retry logic for quiz generation
           let quizQuestions = null;
@@ -491,61 +428,14 @@ export class DocumentProcessor {
       
       await this.updatePhase(job.id, 'content_analysis', 50, 'completed', onProgressUpdate);
 
-      // Phase 3: Content Generation (50-85%) - Now Progressive
+      // Phase 3: Content Generation (50-85%)
       await this.updatePhase(job.id, 'content_generation', 55, 'processing', onProgressUpdate);
       
-      // Step 1: Generate course outline (lightweight, fast)
-      console.log('Generating course outline...');
-      const outline = await geminiService.generateCourseOutline(
+      const courseStructure = await geminiService.generateCourseStructure(
         documentContent,
         document.fileName,
         options
       );
-      
-      await this.updatePhase(job.id, 'content_generation', 60, 'processing', onProgressUpdate);
-      
-      // Step 2: Generate modules in batches (one at a time for consistent quality)
-      const moduleCount = outline.modules.length;
-      const batchSize = 1; // Generate one module at a time for best quality consistency
-      const batches: number[][] = [];
-      
-      // Create batch indices
-      for (let i = 0; i < moduleCount; i += batchSize) {
-        const batch = [];
-        for (let j = i; j < Math.min(i + batchSize, moduleCount); j++) {
-          batch.push(j);
-        }
-        batches.push(batch);
-      }
-      
-      console.log(`Generating ${moduleCount} modules in ${batches.length} batches...`);
-      
-      // Generate each batch
-      const allModules: any[] = [];
-      for (let i = 0; i < batches.length; i++) {
-        const batch = batches[i];
-        const progress = 60 + (20 * (i + 1) / batches.length); // Progress from 60 to 80
-        
-        console.log(`Generating batch ${i + 1}/${batches.length}: Modules ${batch.map(b => b + 1).join(', ')}`);
-        
-        const batchModules = await geminiService.generateModuleBatch(
-          documentContent,
-          outline,
-          batch,
-          options
-        );
-        
-        allModules.push(...batchModules);
-        
-        await this.updatePhase(job.id, 'content_generation', Math.round(progress), 'processing', onProgressUpdate);
-      }
-      
-      // Combine into full course structure
-      const courseStructure = {
-        title: outline.title,
-        description: outline.description,
-        modules: allModules
-      };
 
       // Log the structure to debug quiz generation
       console.log('Generated course structure:', JSON.stringify(courseStructure, null, 2));
