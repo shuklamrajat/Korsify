@@ -6,7 +6,7 @@ Korsify is an AI-powered educational platform designed to transform documents in
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (Updated: 2025-08-20 03:37 AM)
+## Recent Changes (Updated: 2025-08-18 06:12 PM)
 - **Database Migration System**: Added automatic migration system for production deployments
 - **Environment Validation**: Added comprehensive environment variable validation on startup
 - **Health Check Endpoint**: Added /api/health endpoint for deployment verification
@@ -47,14 +47,6 @@ Preferred communication style: Simple, everyday language.
   - Default remains 3 modules when not specified
   - Module count properly passed from frontend to backend generation pipeline
   - AI prompts instructed to generate exact number of modules requested by user
-- **Progressive Module Generation System**: Completely redesigned course generation to prevent deployment timeouts:
-  - Split generation into two phases: lightweight outline generation first, then module content in batches
-  - Generates course outline (title, description, module titles) in fast initial phase
-  - Modules generated in batches of 2-3 to avoid API timeouts with large courses
-  - Real-time progress updates throughout batch generation process
-  - Maintains content quality while preventing 5-6 minute deployment timeouts
-  - Applies to both async and sync processing methods for consistency
-  - Solves timeout issues for courses with any number of modules (1-10)
 
 ## System Architecture
 
