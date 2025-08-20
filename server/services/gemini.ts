@@ -140,12 +140,38 @@ export class GeminiService {
         contents: prompt,
       });
 
-      const rawJson = response.text;
+      let rawJson = response.text;
       if (!rawJson) {
         throw new Error("Empty response from model");
       }
 
-      return JSON.parse(rawJson);
+      // Clean the response to ensure valid JSON
+      // Remove markdown code blocks if present
+      rawJson = rawJson.replace(/```json\n?/gi, '').replace(/```\n?/gi, '');
+      
+      // Try to extract JSON from the response if it contains extra text
+      const jsonMatch = rawJson.match(/(\{[\s\S]*\})/);
+      if (jsonMatch) {
+        rawJson = jsonMatch[1];
+      }
+      
+      // Remove any trailing commas before closing brackets/braces
+      rawJson = rawJson.replace(/,(\s*[}\]])/g, '$1');
+      
+      // Parse with error recovery
+      try {
+        return JSON.parse(rawJson);
+      } catch (parseError) {
+        console.error('JSON parse error for outline:', parseError);
+        console.error('Raw response (first 500 chars):', rawJson.substring(0, 500));
+        
+        // Try to fix common JSON issues
+        // Remove any control characters
+        rawJson = rawJson.replace(/[\x00-\x1F\x7F]/g, '');
+        
+        // Final attempt to parse
+        return JSON.parse(rawJson);
+      }
     } catch (error) {
       console.error("Failed to generate course outline:", error);
       throw new Error(`Failed to generate course outline: ${error}`);
@@ -230,14 +256,93 @@ export class GeminiService {
         contents: prompt,
       });
 
-      const rawJson = response.text;
+      let rawJson = response.text;
       if (!rawJson) {
         throw new Error("Empty response from model");
       }
 
-      return JSON.parse(rawJson);
+      // Clean the response to ensure valid JSON
+      // Remove markdown code blocks if present
+      rawJson = rawJson.replace(/```json\n?/gi, '').replace(/```\n?/gi, '');
+      
+      // Try to extract JSON from the response if it contains extra text
+      const jsonMatch = rawJson.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
+      if (jsonMatch) {
+        rawJson = jsonMatch[1];
+      }
+      
+      // Remove any trailing commas before closing brackets/braces
+      rawJson = rawJson.replace(/,(\s*[}\]])/g, '$1');
+      
+      // Parse with error recovery
+      try {
+        return JSON.parse(rawJson);
+      } catch (parseError) {
+        console.error(`JSON parse error for batch ${moduleIndices}:`, parseError);
+        console.error('Raw response (first 500 chars):', rawJson.substring(0, 500));
+        
+        // Try to fix common JSON issues
+        // Remove any control characters
+        rawJson = rawJson.replace(/[\x00-\x1F\x7F]/g, '');
+        
+        // Escape unescaped quotes in strings (basic attempt)
+        rawJson = rawJson.replace(/([^\\])"([^"]*)"([^"]*)"([^"]*)"/g, '$1"$2\\"$3\\"$4"');
+        
+        // Final attempt to parse
+        return JSON.parse(rawJson);
+      }
     } catch (error) {
       console.error(`Failed to generate module batch ${moduleIndices}:`, error);
+      
+      // Retry with a simpler prompt if JSON parsing fails
+      if (error instanceof SyntaxError) {
+        console.log(`Retrying batch ${moduleIndices} with simplified prompt...`);
+        
+        const simplifiedPrompt = `
+        Generate content for modules ${moduleIndices.map(i => i + 1).join(', ')} of the course.
+        
+        CRITICAL: Return ONLY valid JSON array, no other text or formatting.
+        
+        Structure:
+        [
+          {
+            "title": "Module Title",
+            "description": "Brief description",
+            "lessons": [
+              {
+                "title": "Lesson Title",
+                "content": "<p>HTML content here</p>"
+              }
+            ]
+          }
+        ]
+        
+        Source: ${documentContent.substring(0, 2000)}
+        `;
+        
+        try {
+          const retryResponse = await ai.models.generateContent({
+            model: this.model,
+            config: {
+              responseMimeType: "application/json",
+            },
+            contents: simplifiedPrompt,
+          });
+          
+          let retryJson = retryResponse.text || "[]";
+          retryJson = retryJson.replace(/```json\n?/gi, '').replace(/```\n?/gi, '');
+          const jsonMatch = retryJson.match(/(\[[\s\S]*\])/);
+          if (jsonMatch) {
+            retryJson = jsonMatch[1];
+          }
+          
+          return JSON.parse(retryJson);
+        } catch (retryError) {
+          console.error('Retry also failed:', retryError);
+          throw new Error(`Failed to generate valid JSON for module batch after retry`);
+        }
+      }
+      
       throw new Error(`Failed to generate module batch: ${error}`);
     }
   }
