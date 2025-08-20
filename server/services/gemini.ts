@@ -98,11 +98,17 @@ export class GeminiService {
     Generate ONLY the structure - titles and topics, no full content.
 
     REQUIREMENTS:
-    - Create exactly ${moduleCount} modules
-    - Each module should have 3-5 lessons
-    - Each lesson should list 3-5 main topics to cover
-    - Difficulty level: ${difficultyLevel}
-    ${generateQuizzes ? `- Plan for quizzes: ${quizFrequency === 'lesson' ? 'one per lesson' : 'one per module'}` : ''}
+    1. Create exactly ${moduleCount} modules
+    2. Each module should have 3-5 lessons
+    3. Each lesson should list 3-5 main topics to cover
+    4. Difficulty level: ${difficultyLevel}
+    ${generateQuizzes ? `5. Plan for quizzes: ${quizFrequency === 'lesson' ? 'one per lesson' : 'one per module'}` : ''}
+    
+    NAMING CONVENTION (CRITICAL):
+    - Modules: Do NOT include "Module X:" prefix here (will be added later)
+    - Just use descriptive titles like "Introduction to Machine Learning"
+    - Lessons: Do NOT include "Lesson X.Y:" prefix here (will be added later)
+    - Just use descriptive titles like "Understanding Neural Networks"
 
     SOURCE DOCUMENT:
     ${fileName}
@@ -110,18 +116,18 @@ export class GeminiService {
     Content (first 3000 chars for context):
     ${documentContent.substring(0, 3000)}
 
-    Return a JSON object with this structure:
+    Return a JSON object with this EXACT structure:
     {
       "title": "Course Title",
-      "description": "Brief course description",
+      "description": "Comprehensive course description (100-150 words)",
       "modules": [
         {
-          "title": "Module Title",
-          "description": "Module description",
+          "title": "Descriptive Module Title (no Module X prefix)",
+          "description": "Module description explaining what will be covered",
           "lessons": [
             {
-              "title": "Lesson Title",
-              "topics": ["Topic 1", "Topic 2", "Topic 3"]
+              "title": "Descriptive Lesson Title (no Lesson X.Y prefix)",
+              "topics": ["Specific topic 1", "Specific topic 2", "Specific topic 3"]
             }
           ]
         }
@@ -195,54 +201,92 @@ export class GeminiService {
     const modulesToGenerate = moduleIndices.map(idx => outline.modules[idx]);
     
     const prompt = `
-    Generate FULL CONTENT for these specific modules from the course outline.
+    You are creating high-quality educational content. MAINTAIN CONSISTENT QUALITY throughout ALL modules.
     
     COURSE: ${outline.title}
     
     MODULES TO GENERATE (${moduleIndices.length} modules):
     ${modulesToGenerate.map((m, i) => `
     Module ${moduleIndices[i] + 1}: ${m.title}
-    - ${m.lessons.map(l => l.title).join('\n- ')}
+    ${m.lessons.map((l, j) => `  - Lesson ${moduleIndices[i] + 1}.${j + 1}: ${l.title}`).join('\n')}
     `).join('\n')}
     
-    REQUIREMENTS:
-    - Generate 1000-1200 words per lesson
-    - Difficulty level: ${difficultyLevel}
-    - Format content as HTML with proper tags
-    - Base ALL content on the provided document
-    ${includeExercises ? '- Include practice exercises in styled boxes' : ''}
-    ${includeExamples ? '- Include real-world examples in green boxes' : ''}
+    CRITICAL QUALITY REQUIREMENTS:
+    1. NAMING CONSISTENCY: Use "Module X: [Title]" and "Lesson X.Y: [Title]" format
+       - Module 1: Introduction → Lesson 1.1, Lesson 1.2, Lesson 1.3
+       - Module 2: Advanced Topics → Lesson 2.1, Lesson 2.2, Lesson 2.3
+    
+    2. CONTENT STRUCTURE (Apply to EVERY lesson):
+       - Introduction paragraph (100-150 words)
+       - 3-4 main sections with clear headings
+       - Each section: 250-300 words with depth and detail
+       - Conclusion/summary paragraph (100-150 words)
+       - Total: 1000-1200 words per lesson
+    
+    3. CONSISTENT HTML FORMATTING:
+       <h2>Module X: [Module Title]</h2>
+       <h3>Lesson X.Y: [Lesson Title]</h3>
+       <div class="introduction">
+         <p>[Introduction content]</p>
+       </div>
+       <h4>[Section Heading]</h4>
+       <p>[Section content with proper paragraphs]</p>
+       <div class="key-points">
+         <ul>
+           <li>[Key point 1]</li>
+           <li>[Key point 2]</li>
+         </ul>
+       </div>
+       ${includeExamples ? '<div class="example-box" style="background: #e8f5e9; padding: 15px; border-left: 4px solid #4caf50;"><strong>Example:</strong> [Real-world example]</div>' : ''}
+       ${includeExercises ? '<div class="exercise-box" style="background: #fff3e0; padding: 15px; border-left: 4px solid #ff9800;"><strong>Practice:</strong> [Exercise description]</div>' : ''}
+       <div class="summary">
+         <p>[Conclusion/summary]</p>
+       </div>
+    
+    4. MAINTAIN QUALITY: 
+       - Same depth and detail for ALL modules (not just the first ones)
+       - Rich explanations with context and relevance
+       - Practical insights and applications
+       - Clear progression from basic to advanced concepts
+       - NO shortcuts or reduced quality in later modules
+    
+    5. DIFFICULTY LEVEL: ${difficultyLevel}
+       - Adjust complexity of explanations accordingly
+       - Maintain comprehensive coverage regardless of difficulty
     
     ${generateQuizzes && quizFrequency === 'lesson' ? `
-    QUIZ REQUIREMENTS:
-    - Generate EXACTLY ${questionsPerQuiz} quiz questions for EACH lesson
-    - Multiple choice format with 4 options each
-    - Include explanations for correct answers
+    6. QUIZ REQUIREMENTS (Per Lesson):
+       - Generate EXACTLY ${questionsPerQuiz} questions for EACH lesson
+       - Questions must directly relate to lesson content
+       - Multiple choice with 4 options each
+       - Include explanations for correct answers
     ` : ''}
     
     ${generateQuizzes && quizFrequency === 'module' ? `
-    MODULE QUIZ REQUIREMENTS:
-    - Generate EXACTLY ${questionsPerQuiz} quiz questions for EACH module
-    - Cover all lessons in the module
-    - Multiple choice format with 4 options each
+    6. MODULE QUIZ REQUIREMENTS:
+       - Generate EXACTLY ${questionsPerQuiz} questions per module
+       - Questions should cover all lessons in the module
+       - Multiple choice with 4 options each
     ` : ''}
     
-    SOURCE DOCUMENT:
+    SOURCE DOCUMENT (Use this as the foundation for ALL content):
     ${documentContent}
     
-    Return a JSON array of modules with this structure:
+    IMPORTANT: Apply the SAME level of detail, structure, and quality to EVERY module and lesson.
+    
+    Return a JSON array with this exact structure:
     [
       {
-        "title": "Module Title",
-        "description": "Module description",
+        "title": "Module ${moduleIndices[0] + 1}: [Module Title]",
+        "description": "[Comprehensive module description]",
         "lessons": [
           {
-            "title": "Lesson Title",
-            "content": "Full HTML formatted content",
-            ${generateQuizzes && quizFrequency === 'lesson' ? `"quiz": { "questions": [...] }` : ''}
+            "title": "Lesson ${moduleIndices[0] + 1}.1: [Lesson Title]",
+            "content": "[Full HTML formatted content following the structure above]"
+            ${generateQuizzes && quizFrequency === 'lesson' ? ',"quiz": { "questions": [...] }' : ''}
           }
         ]
-        ${generateQuizzes && quizFrequency === 'module' ? `,"quiz": { "questions": [...] }` : ''}
+        ${generateQuizzes && quizFrequency === 'module' ? ',"quiz": { "questions": [...] }' : ''}
       }
     ]
     `;
