@@ -42,6 +42,19 @@ export interface AIGenerationOptions {
   includeExamples?: boolean;
 }
 
+interface CourseOutline {
+  title: string;
+  description: string;
+  modules: {
+    title: string;
+    description: string;
+    lessons: {
+      title: string;
+      topics: string[];
+    }[];
+  }[];
+}
+
 export class GeminiService {
   private model = "gemini-2.5-flash";
 
@@ -68,6 +81,165 @@ export class GeminiService {
     });
 
     return response.text || "Analysis failed";
+  }
+
+  async generateCourseOutline(
+    documentContent: string,
+    fileName: string,
+    options: AIGenerationOptions = {}
+  ): Promise<CourseOutline> {
+    const moduleCount = options.moduleCount || 3;
+    const difficultyLevel = options.difficultyLevel || 'intermediate';
+    const generateQuizzes = options.generateQuizzes;
+    const quizFrequency = options.quizFrequency;
+    
+    const prompt = `
+    Create a high-level course outline from this document. 
+    Generate ONLY the structure - titles and topics, no full content.
+
+    REQUIREMENTS:
+    - Create exactly ${moduleCount} modules
+    - Each module should have 3-5 lessons
+    - Each lesson should list 3-5 main topics to cover
+    - Difficulty level: ${difficultyLevel}
+    ${generateQuizzes ? `- Plan for quizzes: ${quizFrequency === 'lesson' ? 'one per lesson' : 'one per module'}` : ''}
+
+    SOURCE DOCUMENT:
+    ${fileName}
+    
+    Content (first 3000 chars for context):
+    ${documentContent.substring(0, 3000)}
+
+    Return a JSON object with this structure:
+    {
+      "title": "Course Title",
+      "description": "Brief course description",
+      "modules": [
+        {
+          "title": "Module Title",
+          "description": "Module description",
+          "lessons": [
+            {
+              "title": "Lesson Title",
+              "topics": ["Topic 1", "Topic 2", "Topic 3"]
+            }
+          ]
+        }
+      ]
+    }
+
+    IMPORTANT: Return ONLY valid JSON, no markdown formatting.
+    `;
+
+    try {
+      const response = await ai.models.generateContent({
+        model: this.model,
+        config: {
+          responseMimeType: "application/json",
+        },
+        contents: prompt,
+      });
+
+      const rawJson = response.text;
+      if (!rawJson) {
+        throw new Error("Empty response from model");
+      }
+
+      return JSON.parse(rawJson);
+    } catch (error) {
+      console.error("Failed to generate course outline:", error);
+      throw new Error(`Failed to generate course outline: ${error}`);
+    }
+  }
+
+  async generateModuleBatch(
+    documentContent: string,
+    outline: CourseOutline,
+    moduleIndices: number[],
+    options: AIGenerationOptions = {}
+  ): Promise<any> {
+    const difficultyLevel = options.difficultyLevel || 'intermediate';
+    const generateQuizzes = options.generateQuizzes;
+    const quizFrequency = options.quizFrequency;
+    const questionsPerQuiz = options.questionsPerQuiz;
+    const includeExercises = options.includeExercises;
+    const includeExamples = options.includeExamples;
+    
+    // Extract the modules to generate from the outline
+    const modulesToGenerate = moduleIndices.map(idx => outline.modules[idx]);
+    
+    const prompt = `
+    Generate FULL CONTENT for these specific modules from the course outline.
+    
+    COURSE: ${outline.title}
+    
+    MODULES TO GENERATE (${moduleIndices.length} modules):
+    ${modulesToGenerate.map((m, i) => `
+    Module ${moduleIndices[i] + 1}: ${m.title}
+    - ${m.lessons.map(l => l.title).join('\n- ')}
+    `).join('\n')}
+    
+    REQUIREMENTS:
+    - Generate 1000-1200 words per lesson
+    - Difficulty level: ${difficultyLevel}
+    - Format content as HTML with proper tags
+    - Base ALL content on the provided document
+    ${includeExercises ? '- Include practice exercises in styled boxes' : ''}
+    ${includeExamples ? '- Include real-world examples in green boxes' : ''}
+    
+    ${generateQuizzes && quizFrequency === 'lesson' ? `
+    QUIZ REQUIREMENTS:
+    - Generate EXACTLY ${questionsPerQuiz} quiz questions for EACH lesson
+    - Multiple choice format with 4 options each
+    - Include explanations for correct answers
+    ` : ''}
+    
+    ${generateQuizzes && quizFrequency === 'module' ? `
+    MODULE QUIZ REQUIREMENTS:
+    - Generate EXACTLY ${questionsPerQuiz} quiz questions for EACH module
+    - Cover all lessons in the module
+    - Multiple choice format with 4 options each
+    ` : ''}
+    
+    SOURCE DOCUMENT:
+    ${documentContent}
+    
+    Return a JSON array of modules with this structure:
+    [
+      {
+        "title": "Module Title",
+        "description": "Module description",
+        "lessons": [
+          {
+            "title": "Lesson Title",
+            "content": "Full HTML formatted content",
+            ${generateQuizzes && quizFrequency === 'lesson' ? `"quiz": { "questions": [...] }` : ''}
+          }
+        ]
+        ${generateQuizzes && quizFrequency === 'module' ? `,"quiz": { "questions": [...] }` : ''}
+      }
+    ]
+    `;
+
+    try {
+      const response = await ai.models.generateContent({
+        model: this.model,
+        config: {
+          responseMimeType: "application/json",
+        },
+        contents: prompt,
+      });
+
+      const rawJson = response.text;
+      if (!rawJson) {
+        throw new Error("Empty response from model");
+      }
+
+      return JSON.parse(rawJson);
+    } catch (error) {
+      console.error(`Failed to generate module batch ${moduleIndices}:`, error);
+      throw new Error(`Failed to generate module batch: ${error}`);
+    }
   }
 
   async generateCourseStructure(
