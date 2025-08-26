@@ -1,32 +1,42 @@
 FROM node:18-alpine
 
-# Install build dependencies
+# Install build dependencies and PostgreSQL client
 RUN apk add --no-cache python3 make g++ postgresql-client
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Install all dependencies
+# Install dependencies
 RUN npm ci
 
-# Copy source code
+# Copy all source code
 COPY . .
 
-# Build the application
-RUN npm run build || echo "Build step completed"
+# Build the TypeScript application
+RUN npm run build
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create necessary directories
+RUN mkdir -p uploads dist
 
-# Set production environment
+# Remove dev dependencies to reduce image size
+RUN npm prune --production
+
+# Set environment variables
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Expose Cloud Run port
+# Expose the port Cloud Run expects
 EXPOSE 8080
 
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Health check to ensure the app is running
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/api/health || exit 1
+
 # Start the application
-CMD ["npm", "start"]
+CMD ["node", "dist/index.js"]

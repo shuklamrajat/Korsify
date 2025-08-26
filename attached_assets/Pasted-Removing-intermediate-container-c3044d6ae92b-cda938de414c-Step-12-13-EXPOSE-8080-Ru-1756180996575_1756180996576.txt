@@ -1,0 +1,61 @@
+Removing intermediate container c3044d6ae92b
+ ---> cda938de414c
+Step 12/13 : EXPOSE 8080
+ ---> Running in a114b0ad3cae
+Removing intermediate container a114b0ad3cae
+ ---> 698981dbb37a
+Step 13/13 : CMD ["npm", "start"]
+ ---> Running in 28362cb13caa
+Removing intermediate container 28362cb13caa
+ ---> f6583f3919cf
+Successfully built f6583f3919cf
+Successfully tagged us-central1-docker.pkg.dev/korsify-app/cloud-run-source-deploy/korsify/korsify:b39dd98cc6141e6c405b733e2f4588908e2cb2d1
+Finished Step #0 - "Build"
+Starting Step #1 - "Push"
+Already have image (with digest): gcr.io/cloud-builders/docker
+The push refers to repository [us-central1-docker.pkg.dev/korsify-app/cloud-run-source-deploy/korsify/korsify]
+4c94567a5ea7: Preparing
+fe49647a9a2d: Preparing
+a707d2a9ccac: Preparing
+fd2c72019831: Preparing
+9957ba065112: Preparing
+ccfb20f495e0: Preparing
+f05bd4e1a495: Preparing
+82140d9a70a7: Preparing
+f3b40b0cdb1c: Preparing
+0b1f26057bd0: Preparing
+08000c18d16d: Preparing
+f05bd4e1a495: Waiting
+82140d9a70a7: Waiting
+f3b40b0cdb1c: Waiting
+0b1f26057bd0: Waiting
+08000c18d16d: Waiting
+ccfb20f495e0: Waiting
+fd2c72019831: Pushed
+9957ba065112: Pushed
+4c94567a5ea7: Pushed
+ccfb20f495e0: Pushed
+82140d9a70a7: Pushed
+f3b40b0cdb1c: Pushed
+fe49647a9a2d: Pushed
+08000c18d16d: Pushed
+0b1f26057bd0: Pushed
+f05bd4e1a495: Pushed
+a707d2a9ccac: Pushed
+b39dd98cc6141e6c405b733e2f4588908e2cb2d1: digest: sha256:398a66cb0e0ded7fbb4a792be70eb530f9d950584689051e12041d691d63c45d size: 2631
+Finished Step #1 - "Push"
+Starting Step #2 - "Deploy"
+Pulling image: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+slim: Pulling from google.com/cloudsdktool/cloud-sdk
+Digest: sha256:1c80be6c832b0b77d83578054a512cfaf9ce5b27bcba5745dad9194b4570d012
+Status: Downloaded newer image for gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+Deploying...
+Creating Revision..................................................................................................................................................................................................................................................failed
+Deployment failed
+ERROR: (gcloud.run.services.update) Revision 'korsify-00002-r8r' is not ready and cannot serve traffic. The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.
+Logs URL: https://console.cloud.google.com/logs/viewer?project=korsify-app&resource=cloud_run_revision/service_name/korsify/revision_name/korsify-00002-r8r&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22korsify%22%0Aresource.labels.revision_name%3D%22korsify-00002-r8r%22 
+For more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start
+Finished Step #2 - "Deploy"
+ERROR
+ERROR: build step 2 "gcr.io/google.com/cloudsdktool/cloud-sdk:slim" failed: step exited with non-zero status: 1
