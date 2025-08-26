@@ -8,30 +8,42 @@ echo "Korsify Migration to Google Cloud"
 echo "Step 1: Project Setup"
 echo "========================================="
 
-# Configuration variables
-PROJECT_ID="korsify-prod-$(date +%s)"
+# Configuration variables - USING EXISTING PROJECT
+PROJECT_ID="korsify-app"
 PROJECT_NAME="Korsify Production"
 REGION="us-central1"
 ZONE="us-central1-a"
 
 echo ""
-echo "Creating GCP Project: $PROJECT_ID"
+echo "Using existing GCP Project: $PROJECT_ID"
 echo "Region: $REGION"
 echo ""
 
-# Create new project
-echo "1. Creating new project..."
-gcloud projects create $PROJECT_ID --name="$PROJECT_NAME" --set-as-default
-
-# Set the project as default
+# Set the existing project as default
+echo "1. Setting up existing project..."
 gcloud config set project $PROJECT_ID
 
+# Verify project exists
+if ! gcloud projects describe $PROJECT_ID &>/dev/null; then
+    echo "ERROR: Project $PROJECT_ID not found!"
+    echo "Please make sure you have access to the project 'korsify-app'"
+    echo "Run: gcloud projects list"
+    exit 1
+fi
+
+echo "✓ Project $PROJECT_ID found and set as default"
+
 echo ""
-echo "2. Linking billing account..."
-echo "Please link your billing account in the Google Cloud Console:"
-echo "https://console.cloud.google.com/billing/linkedaccount?project=$PROJECT_ID"
-echo ""
-read -p "Press enter once you've linked your billing account..."
+echo "2. Checking billing account..."
+# Check if billing is enabled
+if gcloud beta billing projects describe $PROJECT_ID --format="value(billingEnabled)" | grep -q "True"; then
+    echo "✓ Billing is already enabled for this project"
+else
+    echo "Please ensure billing is enabled for your project:"
+    echo "https://console.cloud.google.com/billing/linkedaccount?project=$PROJECT_ID"
+    echo ""
+    read -p "Press enter once you've verified billing is enabled..."
+fi
 
 echo ""
 echo "3. Enabling required APIs..."
