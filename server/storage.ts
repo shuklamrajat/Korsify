@@ -617,7 +617,12 @@ export class DatabaseStorage implements IStorage {
 
   // Course Template operations
   async createCourseTemplate(template: InsertCourseTemplate): Promise<CourseTemplate> {
-    const [created] = await db.insert(courseTemplates).values(template).returning();
+    // Ensure tags is a proper array
+    const templateData = {
+      ...template,
+      tags: template.tags || []
+    };
+    const [created] = await db.insert(courseTemplates).values([templateData]).returning();
     return created;
   }
 
@@ -666,7 +671,13 @@ export class DatabaseStorage implements IStorage {
 
   // Lesson operations
   async createLesson(lesson: InsertLesson): Promise<Lesson> {
-    const [created] = await db.insert(lessons).values(lesson).returning();
+    // Ensure attachments and sourceReferences are proper arrays
+    const lessonData = {
+      ...lesson,
+      attachments: lesson.attachments || [],
+      sourceReferences: lesson.sourceReferences || []
+    };
+    const [created] = await db.insert(lessons).values([lessonData]).returning();
     return created;
   }
 

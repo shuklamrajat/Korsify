@@ -42,25 +42,12 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Add health check endpoint first (before any validation)
-  app.get('/api/health', (req, res) => {
-    res.status(200).json({ 
-      status: 'ok', 
-      timestamp: new Date().toISOString(),
-      env: process.env.NODE_ENV 
-    });
-  });
-
-  // Validate environment variables (but don't exit in production if non-critical vars missing)
+  // Validate environment variables
   try {
     validateEnvironment();
   } catch (error) {
     log(`Environment validation failed: ${error instanceof Error ? error.message : String(error)}`);
-    if (process.env.NODE_ENV === "production") {
-      log("Continuing startup despite validation errors in production...");
-    } else {
-      process.exit(1);
-    }
+    process.exit(1);
   }
 
   // Run database migrations in production
