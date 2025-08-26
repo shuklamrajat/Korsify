@@ -32,11 +32,15 @@ steps:
       - '--cpu'
       - '1'
       - '--timeout'
-      - '300'
+      - '900'
       - '--min-instances'
       - '0'
       - '--max-instances'
       - '10'
+      - '--port'
+      - '8080'
+      - '--cpu-throttling'
+      - '--no-use-http2'
 
 # Store images in Container Registry
 images:
