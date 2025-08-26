@@ -37,10 +37,10 @@ gcloud --version
 gcloud auth login
 ```
 
-2. **Create Google Cloud Project:**
+2. **Verify Your Existing Project:**
+   - Your existing project: **korsify-app**
    - Go to: https://console.cloud.google.com
-   - Click "Create Project"
-   - Enable billing (required but you get $300 free)
+   - Make sure billing is enabled (required for resources)
 
 3. **Run Setup Script:**
 ```bash
@@ -49,7 +49,7 @@ chmod +x *.sh
 ./step1-gcp-setup.sh
 ```
 This will:
-- Create your GCP project
+- Configure your existing korsify-app project
 - Enable required APIs
 - Create Cloud SQL database
 - Set up storage buckets
